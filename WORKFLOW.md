@@ -11,7 +11,7 @@ For the full technical pipeline specification, see [PIPELINE.md](PIPELINE.md).
 ```bash
 # 1. Setup
 cd ~/autonovel
-cp .env.example .env   # Add your Anthropic API key
+cp .env.example .env   # Add your Anthropic or MiniMax API key
 
 # 2. Generate a seed concept (or write your own in seed.txt)
 uv run python seed.py
@@ -26,7 +26,7 @@ uv run python run_pipeline.py --from-scratch
 The pipeline will:
 1. Build the world, characters, outline, and voice (Phase 1)
 2. Draft all chapters sequentially (Phase 2)
-3. Revise through automated cycles + Opus review (Phase 3)
+3. Revise through automated cycles + review loop (Phase 3)
 4. Export to manuscript, PDF, ePub (Phase 4)
 
 ---
@@ -63,7 +63,7 @@ uv run python evaluate.py --full                # Score the whole novel
 uv run python adversarial_edit.py all           # Find cuts in all chapters
 uv run python apply_cuts.py all --types OVER-EXPLAIN REDUNDANT
 uv run python reader_panel.py                   # 4-persona evaluation
-uv run python review.py                         # Opus dual-persona review
+uv run python review.py                         # Dual-persona review
 uv run python gen_brief.py --auto               # Auto-generate revision brief
 uv run python gen_revision.py 5 briefs/ch05.md  # Rewrite chapter from brief
 ```
@@ -107,7 +107,7 @@ OUTER LOOP (you, when you check in):
   → let the agent run again
 
 REVIEW LOOP (after automated revision):
-  send to Opus → parse review → fix top items → repeat
+  send to review model → parse review → fix top items → repeat
   → stop when no major unqualified items remain
 ```
 

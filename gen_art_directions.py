@@ -8,34 +8,25 @@ import json
 import re
 from pathlib import Path
 from dotenv import load_dotenv
+from llm_client import call_text_model, default_model_for_role
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env", override=True)
 
-WRITER_MODEL = os.environ.get("AUTONOVEL_WRITER_MODEL", "claude-sonnet-4-6")
-ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-ANTHROPIC_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "https://api.anthropic.com")
+WRITER_MODEL = os.environ.get(
+    "AUTONOVEL_WRITER_MODEL",
+    default_model_for_role("writer", "claude-sonnet-4-6"),
+)
 
 
 def call_claude(prompt, max_tokens=3000):
-    import httpx
-    resp = httpx.post(
-        f"{ANTHROPIC_BASE}/v1/messages",
-        headers={
-            "x-api-key": ANTHROPIC_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        },
-        json={
-            "model": WRITER_MODEL,
-            "max_tokens": max_tokens,
-            "temperature": 0.9,
-            "messages": [{"role": "user", "content": prompt}],
-        },
+    return call_text_model(
+        model=WRITER_MODEL,
+        max_tokens=max_tokens,
+        temperature=0.9,
+        messages=[{"role": "user", "content": prompt}],
         timeout=120,
     )
-    resp.raise_for_status()
-    return resp.json()["content"][0]["text"]
 
 
 def generate_directions(art_type, style, n=6, world_excerpt=""):

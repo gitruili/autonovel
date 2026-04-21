@@ -12,39 +12,33 @@ import json
 import re
 from pathlib import Path
 from dotenv import load_dotenv
+from llm_client import call_text_model, default_model_for_role
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
-JUDGE_MODEL = os.environ.get("AUTONOVEL_JUDGE_MODEL", "claude-opus-4-6")
-API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-API_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "https://api.anthropic.com")
+JUDGE_MODEL = os.environ.get(
+    "AUTONOVEL_JUDGE_MODEL",
+    default_model_for_role("judge", "claude-opus-4-6"),
+)
 CHAPTERS_DIR = BASE_DIR / "chapters"
 EDIT_LOG_DIR = BASE_DIR / "edit_logs"
 EDIT_LOG_DIR.mkdir(exist_ok=True)
 
 def call_judge(prompt, max_tokens=8000):
-    import httpx
-    headers = {
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-    }
-    payload = {
-        "model": JUDGE_MODEL,
-        "max_tokens": max_tokens,
-        "temperature": 0.3,
-        "system": (
+    return call_text_model(
+        model=JUDGE_MODEL,
+        max_tokens=max_tokens,
+        temperature=0.3,
+        system=(
             "You are a ruthless literary editor. You cut fat from prose. "
             "You have no sentiment about good-enough sentences -- if a sentence "
             "isn't earning its place, it goes. You quote exactly from the text. "
             "You never invent or paraphrase. Always respond with valid JSON."
         ),
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    resp = httpx.post(f"{API_BASE}/v1/messages", headers=headers, json=payload, timeout=300)
-    resp.raise_for_status()
-    return resp.json()["content"][0]["text"]
+        messages=[{"role": "user", "content": prompt}],
+        timeout=300,
+    )
 
 def parse_json(text):
     text = text.strip()

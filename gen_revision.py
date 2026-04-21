@@ -7,37 +7,31 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
+from llm_client import call_text_model, default_model_for_role
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
-WRITER_MODEL = os.environ.get("AUTONOVEL_WRITER_MODEL", "claude-sonnet-4-6")
-API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-API_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "https://api.anthropic.com")
+WRITER_MODEL = os.environ.get(
+    "AUTONOVEL_WRITER_MODEL",
+    default_model_for_role("writer", "claude-sonnet-4-6"),
+)
 
 def call_writer(prompt, max_tokens=16000):
-    import httpx
-    headers = {
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "context-1m-2025-08-07",
-        "content-type": "application/json",
-    }
-    payload = {
-        "model": WRITER_MODEL,
-        "max_tokens": max_tokens,
-        "temperature": 0.8,
-        "system": (
+    return call_text_model(
+        model=WRITER_MODEL,
+        max_tokens=max_tokens,
+        temperature=0.8,
+        system=(
             "You are rewriting a fantasy novel chapter based on a specific revision brief. "
             "You follow the brief exactly. You preserve the voice, world, and characters "
             "from the existing draft while making the structural changes specified. "
             "You write the FULL chapter. Do not truncate or summarize."
         ),
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    resp = httpx.post(f"{API_BASE}/v1/messages", headers=headers, json=payload, timeout=600)
-    resp.raise_for_status()
-    return resp.json()["content"][0]["text"]
+        messages=[{"role": "user", "content": prompt}],
+        timeout=600,
+        include_beta=True,
+    )
 
 def main():
     ch_num = int(sys.argv[1])

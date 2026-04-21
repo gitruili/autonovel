@@ -14,7 +14,7 @@ WRITER_MODEL = os.environ.get(
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
 
-def call_writer(prompt, max_tokens=16000):
+def call_writer(prompt, max_tokens=8000):
     return call_text_model(
         model=WRITER_MODEL,
         max_tokens=max_tokens,
@@ -27,7 +27,7 @@ def call_writer(prompt, max_tokens=16000):
             "You never use AI slop words. You write in clean, direct prose."
         ),
         messages=[{"role": "user", "content": prompt}],
-        timeout=600,
+        timeout=1500,
         include_beta=True,
     )
 

@@ -17,7 +17,7 @@ WRITER_MODEL = os.environ.get(
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
 
-def call_writer(prompt, max_tokens=16000):
+def call_writer(prompt, max_tokens=8000):
     return call_text_model(
         model=WRITER_MODEL,
         max_tokens=max_tokens,
@@ -31,7 +31,7 @@ def call_writer(prompt, max_tokens=16000):
             "implies a history. Every location has a sensory signature."
         ),
         messages=[{"role": "user", "content": prompt}],
-        timeout=300,
+        timeout=1500,
     )
 
 seed = (BASE_DIR / "seed.txt").read_text()

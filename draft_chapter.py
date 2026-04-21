@@ -19,7 +19,7 @@ WRITER_MODEL = os.environ.get(
 )
 CHAPTERS_DIR = BASE_DIR / "chapters"
 
-def call_writer(prompt, max_tokens=16000):
+def call_writer(prompt, max_tokens=8000):
     return call_text_model(
         model=WRITER_MODEL,
         max_tokens=max_tokens,
@@ -34,7 +34,7 @@ def call_writer(prompt, max_tokens=16000):
             "You write the FULL chapter -- do not truncate, summarize, or skip ahead."
         ),
         messages=[{"role": "user", "content": prompt}],
-        timeout=600,
+        timeout=1500,
         include_beta=True,
     )
 

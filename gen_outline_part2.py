@@ -14,7 +14,7 @@ WRITER_MODEL = os.environ.get(
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
 
-def call_writer(prompt, max_tokens=16000):
+def call_writer(prompt, max_tokens=8000):
     return call_text_model(
         model=WRITER_MODEL,
         max_tokens=max_tokens,
@@ -26,7 +26,7 @@ def call_writer(prompt, max_tokens=16000):
             "The lie, Word count target."
         ),
         messages=[{"role": "user", "content": prompt}],
-        timeout=600,
+        timeout=1500,
     )
 
 part1 = open('/tmp/outline_output.md').read()

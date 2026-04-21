@@ -1,1 +1,2 @@
 timestamp	phase	score	words	keep_discard	description
+discarded	foundation	-1.0	0	discard	Iteration 2: no improvement (-1.0 <= 0.0)

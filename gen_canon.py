@@ -16,7 +16,7 @@ WRITER_MODEL = os.environ.get(
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
 
-def call_writer(prompt, max_tokens=16000):
+def call_writer(prompt, max_tokens=8000):
     return call_text_model(
         model=WRITER_MODEL,
         max_tokens=max_tokens,
@@ -28,7 +28,7 @@ def call_writer(prompt, max_tokens=16000):
             "specific statement in the source documents."
         ),
         messages=[{"role": "user", "content": prompt}],
-        timeout=300,
+        timeout=1500,
     )
 
 world = (BASE_DIR / "world.md").read_text()

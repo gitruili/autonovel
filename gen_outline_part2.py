@@ -27,7 +27,7 @@ def call_writer(prompt, max_tokens=16000):
         timeout=600,
     )
 
-part1 = open('/tmp/outline_output.md').read()
+part1 = open(BASE_DIR / 'outline.md').read()
 mystery = (BASE_DIR / "MYSTERY.md").read_text()
 
 prompt = f"""这是《钟鸣之家次子》（The Second Son of the House of Bells）24 章大纲的前 17 章。
@@ -71,6 +71,6 @@ print("Calling writer model...", file=sys.stderr)
 result = call_writer(prompt)
 print(result)
 
-# save to file
-with open(BASE_DIR / "outline_part2.md", "w", encoding="utf-8") as f:
-    f.write(result)
+# append to outline.md
+with open(BASE_DIR / "outline.md", "a", encoding="utf-8") as f:
+    f.write("\n" + result)

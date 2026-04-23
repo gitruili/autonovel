@@ -121,6 +121,8 @@ def call_text_model(
     include_beta: bool = False,
     extra_payload: dict | None = None,
 ) -> str:
+    # Reasoning models take a long time to return; enforce a safe minimum timeout
+    timeout = max(timeout, 1800)
     provider = get_provider()
     payload = {
         "model": model,

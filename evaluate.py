@@ -319,14 +319,32 @@ def parse_json_response(text):
         elif c == '}':
             depth -= 1
             if depth == 0:
-                return json.loads(text[start:i+1], strict=False)
+                extracted = text[start:i+1]
+                try:
+                    return json.loads(extracted, strict=False)
+                except json.JSONDecodeError as e:
+                    # Last resort: fix common issues (literal newlines, trailing commas, unescaped internal quotes)
+                    fixed = re.sub(r'(?<!\\)\n', '\\n', extracted)
+                    fixed = re.sub(r',\s*([}\]])', r'\1', fixed)
+                    fixed = re.sub(r'(?<!\\)(?<=[^:\[{,\s])"(?=[^:\]},\s])', r'\\"', fixed)
+                    try:
+                        return json.loads(fixed, strict=False)
+                    except json.JSONDecodeError:
+                        Path("failed_eval.json").write_text(extracted, encoding="utf-8")
+                        raise ValueError(f"Failed to parse JSON (saved to failed_eval.json): {e}")
+
     # Fallback: try loading as-is, with strict=False to handle control chars
     try:
         return json.loads(text, strict=False)
-    except json.JSONDecodeError:
-        # Last resort: fix common issues (literal newlines in strings)
+    except json.JSONDecodeError as e:
         fixed = re.sub(r'(?<!\\)\n', '\\n', text)
-        return json.loads(fixed, strict=False)
+        fixed = re.sub(r',\s*([}\]])', r'\1', fixed)
+        fixed = re.sub(r'(?<!\\)(?<=[^:\[{,\s])"(?=[^:\]},\s])', r'\\"', fixed)
+        try:
+            return json.loads(fixed, strict=False)
+        except json.JSONDecodeError:
+            Path("failed_eval.json").write_text(text, encoding="utf-8")
+            raise ValueError(f"Failed to parse JSON (saved to failed_eval.json): {e}")
 
 
 # --- Foundation Evaluation ---
@@ -439,6 +457,19 @@ FOUNDATION_PROMPT = """评估这些奇幻小说策划文档。
 
 
 def evaluate_foundation():
+    """Evaluate foundation phase documents (WORLD.MD, CHARACTERS.MD, OUTLINE)."""
+    # If there is a manually fixed failed_eval.json, use it to save time
+    failed_eval = Path("failed_eval.json")
+    if failed_eval.exists():
+        try:
+            text = failed_eval.read_text(encoding="utf-8")
+            data = parse_json_response(text)
+            failed_eval.unlink()
+            return data
+        except Exception:
+            pass
+
+    print("Gathering foundation documents...")
     layers = load_layer_files()
     prompt = FOUNDATION_PROMPT.format(**layers)
     raw = call_judge(prompt, max_tokens=16000)

@@ -119,6 +119,8 @@ def run_tool(cmd: str, timeout: int = 600, check: bool = False) -> subprocess.Co
     Uses shell=True so callers can pass full command strings.
     Returns CompletedProcess; never raises unless check=True.
     """
+    # Enforce a safe minimum timeout for reasoning models
+    timeout = max(timeout, 1800)
     step(f"RUN: {cmd}")
     try:
         result = subprocess.run(

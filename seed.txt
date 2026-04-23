@@ -1,13 +1,21 @@
-**10. THE FIRST MOURNER**
+灵魂租户
 
-*HOOK:* The first human to die didn't die—they chose to let go, and their decision created the boundary between life and death that everyone else has been trapped within ever since. Someone wants to undo it.
+**悬念（HOOK）**  
+在这座城市租房子需要两样东西：押金，和一份你不在场证明的副本。什么不在场证明？你活着的时候不在地狱的证明。
 
-*WORLD:* The Threshold—the edge of existence, a place that isn't quite anywhere. Time moves differently; memories drift like sediment. The landscape is made of accumulated deaths: a forest of regret, a river of last words, a mountain of all the things left unsaid.
+**世界（WORLD）**  
+生者之城是一座永远在施工的巨型楼宇，地基深入地狱，屋顶触及天堂。每层楼都是一个时代、一个国家、一个被遗忘的亚文化的废墟的大杂烩。住在上层意味着更接近阳光但也意味着更严格的噪音管制；住在下层意味着黑暗但也意味着更自由——因为天堂的执法者很少下来。
 
-*MAGIC/COST:* Memory-anchor—the ability to hold a death in your mind without being consumed by it. Each death you witness takes up space in you; carry too many and you become a graveyard. The first mourner was the one who learned to witness without becoming.
+**魔法/代价（COST）**  
+活着需要交租。租金不是钱，而是**存在感的碎片**——你的记忆、你的可能性、你本可以成为的人的残影。每个月房东会来收取这些碎片，而租户会变得更薄、更模糊、更难被记住。付不起租金的人会被“清退”——从存在中删除，所有认识他们的人都会忘记他们曾经存在。
 
-*TENSION:* Personal: She has been carrying her mother's death for years, holding it carefully, refusing to let it go. She has become the Threshold's keeper. But her mother wants to move on, and keeping her means keeping her trapped. Cosmic: Someone is trying to undo the first death—unmake the boundary between existence and absence. If they succeed, nothing will ever end. Nothing will ever begin.
+**张力（TENSION）**  
+**个人层面**：他是一个底层租户，已经拖欠了三个月的租金。房东派来的清退员是他的老同学——一个已经完全付清租金、即将搬入天堂的“完全人”。他的同学已经不记得他了，但清退程序需要证人，而这个证人必须是被清退者的熟人。于是他面临一个荒诞的选择：让一个不记得他的人来删除他的存在。
 
-*THEME:* Is the boundary between life and death a prison, or is letting go a kind of mercy?
+**宏观层面**：他发现了一个漏洞——如果一个灵魂在清退前连续说谎，谎话会形成一层“假壳”，让清退员误以为这个灵魂已经不存在了，从而跳过他去找下一个目标。这不是长久之计，因为假壳会吸引“清道夫”——一种以谎言为食的存在，专门清理“伪不存在者”。他必须在被自己的谎言吞噬之前，想出一个真正的解决办法。
 
-*WHY IT'S NOT GENERIC:* A quiet, melancholy meditation on mortality that makes death itself the protagonist's antagonist. No chosen ones, no dark lords—just the universal experience of loss, given a body.
+**主题（THEME）**  
+存在的意义是什么？当我们被遗忘，我们是否还活着？当我们的可能性被一点一点剥夺，我们是否还是我们自己？
+
+**为何不平庸（WHY IT'S NOT GENERIC）**  
+没有魔王攻城，没有学院新生，只有一个被官僚主义压垮的社畜视角的奇幻都市。这是一个关于现代生活异化的寓言，包裹在租约、押金和房东来访的恐怖之中。

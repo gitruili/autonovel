@@ -23,11 +23,9 @@ def call_writer(prompt, max_tokens=16000):
         max_tokens=max_tokens,
         temperature=0.7,
         system=(
-            "You are a character designer for literary fiction with deep knowledge of "
-            "wound/want/need/lie frameworks, Sanderson's three sliders, and dialogue "
-            "distinctiveness. You create characters who feel like real people with "
-            "contradictions, secrets, and speech patterns you can hear. "
-            "You never use AI slop words. You write in clean, direct prose."
+            "你是一位文学创作领域的角色设计师，深谙创伤/欲望/需求/谎言（Wound/Want/Need/Lie）框架、山德森三滑块理论（Sanderson's three sliders）以及对话辨识度理论。 "
+            "你创作的角色应当像真实的人一样，拥有矛盾性、秘密和具有辨识度的说话方式。 "
+            "你从不使用 AI 废话词汇。你使用简洁、直白的散文体写作。"
         ),
         messages=[{"role": "user", "content": prompt}],
         timeout=300,
@@ -42,101 +40,104 @@ voice_lines = voice.split('\n')
 part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
 voice_part2 = '\n'.join(voice_lines[part2_start:])
 
-prompt = f"""Build a complete character registry for this fantasy novel. This is CHARACTERS.MD --
-the definitive reference for WHO exists in this story, what drives them, how they speak,
-and what secrets they carry.
+prompt = f"""为此奇幻小说构建一份完整的角色注册表（Character Registry）。这是 CHARACTERS.MD —— 
+它是关于故事中“谁”存在的权威参考，包括他们的驱动力、说话方式以及携带的秘密。
 
-SEED CONCEPT:
+种子概念 (SEED CONCEPT):
 {seed}
 
-WORLD BIBLE (the world these characters inhabit):
+世界设定集 (WORLD BIBLE，这些角色所处的世界):
 {world}
 
-VOICE IDENTITY (the novel's tone):
+语气标识 (VOICE IDENTITY，小说的基调):
 {voice_part2}
 
-CHARACTER CRAFT REQUIREMENTS (from CRAFT.md):
+角色创作要求 (CHARACTER CRAFT REQUIREMENTS):
 
-### The Three Sliders (Sanderson)
-Every character has three independent dials (0-10):
-  PROACTIVITY -- Do they drive the plot or react to it?
-  LIKABILITY  -- Does the reader empathize with them?
-  COMPETENCE  -- Are they good at what they do?
-Rule: compelling = HIGH on at least TWO, or HIGH on one with clear growth.
+### 山德森三滑块 (Sanderson's Three Sliders)
+每个角色都有三个独立的拨盘 (0-10):
+  主动性 (PROACTIVITY) —— 他们是驱动剧情还是被动反应？
+  好感度 (LIKABILITY) —— 读者会产生共情吗？
+  能力值 (COMPETENCE) —— 他们擅长自己所做的事吗？
+规则：引人入胜的角色通常在至少两个维度上表现突出，或在一个维度表现突出且在其他维度有明显成长。
 
-### Wound / Want / Need / Lie Framework
-A causal chain:
-  GHOST (backstory event) -> WOUND (ongoing damage) -> LIE (false belief to cope)
-    -> WANT (external goal driven by Lie) -> NEED (internal truth, opposes Lie)
-Rules: Want and Need must be IN TENSION. Lie statable in one sentence.
-  Truth is its direct opposite.
+### 创伤 / 欲望 / 需求 / 谎言框架 (Wound / Want / Need / Lie)
+因果链条：
+  往事 (GHOST，背景事件) -> 创伤 (WOUND，持续的情感损伤) -> 谎言 (LIE，为了应对创伤而产生的错误信念)
+    -> 欲望 (WANT，受谎言驱动的外部目标) -> 需求 (NEED，内心深处的真相，与谎言对立)
+规则：欲望与需求必须处于矛盾状态。谎言可以用一句话表述，真相则是它的直接对立面。
 
-### Dialogue Distinctiveness (8 dimensions)
-1. Vocabulary level  2. Sentence length  3. Contractions/formality
-4. Verbal tics  5. Question vs statement ratio  6. Interruption patterns
-7. Metaphor domain  8. Directness vs indirectness
-Test: Remove dialogue tags. Can you tell who's speaking?
+### 对话辨识度 (8 个维度)
+1. 词汇量水平  2. 句子长度  3. 缩写/正式程度
+4. 语言癖好  5. 提问与陈述的比例  6. 插话模式
+7. 隐喻领域  8. 直接与间接程度
+测试：去掉对话标签（如“某某说”），读者是否仍能分辨出是谁在说话？
 
-BUILD THE REGISTRY WITH AT LEAST THESE CHARACTERS:
+请至少包含以下角色来构建注册表：
 
-1. **Cass Bellwright** (protagonist, POV character)
-   - Full wound/want/need/lie chain
-   - Three sliders with justification
-   - Arc type (positive/negative/flat)
-   - Detailed speech pattern (8 dimensions)
-   - Physical habits and tells
-   - At least 2 secrets
-   - Key relationships mapped
+1. **Cass Bellwright** (主角，视角人物)
+   - 完整的“往事/创伤/欲望/需求/谎言”链条
+   - 带有理由的三滑块分值
+   - 弧光类型 (正向/负向/平淡)
+   - 详细的说话模式 (8 个维度)
+   - 身体习惯和下意识的小动作
+   - 至少 2 个秘密
+   - 核心关系图谱
 
-2. **Eddan Bellwright** (father)
-   - Same depth as Cass
-   - His relationship to the sealed journals, the shaking hands
-   - What he knows and what he's hiding
+2. **Eddan Bellwright** (父亲)
+   - 与 Cass 同等的深度
+   - 他与被封存的日志、颤抖的双手的关系
+   - 他知道什么，以及他在隐藏什么
 
-3. **Perin Bellwright** (brother) 
-   - Even though he's absent for much of the story, he needs full depth
-   - What actually happened with the Corda contract
-   - His presence through absence
+3. **Perin Bellwright** (兄弟) 
+   - 尽管他在故事的大部分时间里不在场，但他需要完整的深度
+   - 关于 Corda 合约究竟发生了什么
+   - 他的“缺席式存在”
 
-4. **Maret Corda** (antagonist)
-   - Not a villain -- someone whose interests conflicts with Cass's
-   - Her own wound/want/need/lie (she should be understandable)
+4. **Maret Corda** (对手)
+   - 不是坏人 —— 而是利益与 Cass 冲突的人
+   - 她自己的“往事/创伤/欲望/需求/谎言”（她应当是可以被理解的）
 
-5. **Rector Suvaine** (Academy Chancellor)
-   - The institutional antagonist -- the system personified
-   - She believes she's protecting Cantamura
+5. **Rector Suvaine** (学院院长)
+   - 制度上的对手 —— 体系的化身
+   - 她相信自己是在保护 Cantamura
 
-6. **Torvald Hess** (Compact leader)
-   - The outsider perspective on the system
-   - What he represents thematically
+6. **Torvald Hess** (Compact 领袖)
+   - 体系之外的视角
+   - 他在主题上代表了什么
 
-7. **At least 1-2 additional characters** that the story needs
-   - A peer/friend for Cass at the Academy?
-   - Someone at the House of Corda who knows Perin?
-   - A Court Singer with divided loyalties?
+7. **至少 1-2 个额外角色** 
+   - 比如 Cass 在学院的同龄人/朋友？
+   - House of Corda 中认识 Perin 的人？
+   - 一位忠诚度动摇的宫廷歌手？
 
-FOR EACH CHARACTER INCLUDE:
-- Name, age, role
-- Ghost/Wound/Want/Need/Lie chain (for major characters)
-- Three sliders (proactivity/likability/competence) with numbers and justification
-- Arc type and arc trajectory
-- Speech pattern (all 8 dimensions, with example lines)
-- Physical appearance (specific, not generic)
-- Physical habits and unconscious tells
-- Secrets (what the reader doesn't learn immediately)
-- Key relationships (mapped to other characters)
-- Thematic role (what question does this character embody?)
+每个角色需包含：
+- 姓名、年龄、角色定位
+- 往事/创伤/欲望/需求/谎言链条（针对主要角色）
+- 三滑块分值（主动性/好感度/能力值）及分值理由
+- 弧光类型及轨迹
+- 说话模式（全部 8 个维度，并附带示例文句）
+- 身体外观（具体，而非通用化描述）
+- 身体习惯和下意识的小动作
+- 秘密（读者不会立即知道的事）
+- 核心关系（与其他角色的关联）
+- 主题作用（这个角色体现了什么问题？）
 
-IMPORTANT:
-- Characters must INTERCONNECT. Their wants should conflict with each other.
-- Every secret should be something that would CHANGE the story if revealed.
-- Speech patterns must be distinct enough to pass the no-tags test.
-- Give Cass habits that come from his gift (the pain, the constant listening).
-- The father's shaking hands should connect to something specific.
-- Maret Corda should be as fully realized as Cass -- a worthy antagonist.
-- Target ~3000-4000 words. Dense character work, not padding.
+重要提示 (IMPORTANT):
+- 角色必须互相关联。他们的欲望应当互相冲突。
+- 每个秘密都应该是那种一旦揭开就会改变剧情走向的事。
+- 说话模式必须足够独特，以通过“去标签化”测试。
+- 为 Cass 赋予与其天赋相关的习惯（如疼痛、不断的倾听）。
+- 父亲颤抖的手应当指向某些具体的事情。
+- Maret Corda 应当像 Cass 一样丰满 —— 一个相称的对手。
+- 目标字数约为 3000-4000 字。内容密集，严禁注水。
 """
 
 print("Calling writer model...", file=sys.stderr)
 result = call_writer(prompt)
 print(result)
+
+# save to file
+with open(BASE_DIR / "characters.md", "w", encoding="utf-8") as f:
+    f.write(result)
+

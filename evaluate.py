@@ -278,9 +278,8 @@ def call_judge(prompt, max_tokens=2000):
         max_tokens=max_tokens,
         temperature=0.3,
         system=(
-            "You are a literary critic and novel editor. You evaluate fiction "
-            "with precision. Always respond with valid JSON. No markdown fences, "
-            "no preamble -- just the JSON object."
+            "你是一位文学批评家和小说编辑。你以严谨的态度评估小说作品。 "
+            "请务必以有效的 JSON 格式返回结果。不要包含 Markdown 围栏，不要有前导文字 —— 仅返回 JSON 对象。"
         ),
         messages=[{"role": "user", "content": prompt}],
         timeout=180,
@@ -332,143 +331,86 @@ def parse_json_response(text):
 
 # --- Foundation Evaluation ---
 
-FOUNDATION_PROMPT = """Evaluate these fantasy novel planning documents.
+FOUNDATION_PROMPT = """评估这些奇幻小说策划文档。
 
-SCORING CALIBRATION (read this before scoring anything):
+评分基准（评分前请仔细阅读）：
 
-  9-10: Could not improve this with a month of focused editorial work.
-        Published-novel quality. You can name the specific published
-        novel it competes with. Reserve 10 for work that SURPRISES you.
-  7-8:  Strong. A skilled author could draft from this document with
-        minimal invention. Gaps exist but are minor and enumerable.
-  5-6:  Functional but thin. A writer would need to invent significant
-        material on the fly. Major gaps or generic choices.
-  3-4:  Sketchy. More questions than answers. Would require heavy
-        supplementation before drafting.
-  1-2:  Placeholder or stub. Not usable for drafting.
-  0:    Empty or missing.
+  9-10: 即便投入一个月的专注编辑工作也无法再提升。
+        达到已出版小说的水准。你能指名道姓地说出哪部已出版小说可以与其竞争。
+        只有让你感到“惊喜”的作品才能给 10 分。
+  7-8:  出色。资深作者只需这份文档即可动笔，无需即兴构思。
+        虽有缺失但很轻微且可以罗列。
+  5-6:  具备功能性但内容单薄。作者在动笔时需要即兴创作大量内容。
+        存在重大缺失或平庸的选择。
+  3-4:  草率。问题多于答案。动笔前需要大量补充。
+  1-2:  占位符或存根。无法用于动笔撰写。
+  0:    空白或缺失。
 
-  A score of 8+ requires ZERO major gaps. A score of 9+ requires
-  that you genuinely struggled to find flaws. Err toward lower scores.
+  8 分以上要求没有任何重大缺陷。9 分以上要求你几乎难以找到瑕疵。评分应趋于严苛。
 
-MANDATORY: For EVERY dimension, before scoring, you must identify:
-  (a) The single biggest GAP or WEAKNESS in that area
-  (b) A specific, actionable improvement that would raise the score
-  If you cannot find a gap, explain why you believe one doesn't exist.
+强制要求：对于每一个维度，在评分前你必须确定：
+  (a) 该领域中最大的缺陷（GAP）或弱点（WEAKNESS）
+  (b) 能够提升得分的具体、可操作的改进方案（IMPROVEMENT）
+  如果你找不到缺陷，请解释为什么你认为它不存在。
 
-VOICE DEFINITION:
+语气定义:
 {voice}
 
-WORLD BIBLE:
+世界设定集:
 {world}
 
-CHARACTER REGISTRY:
+角色注册表:
 {characters}
 
-OUTLINE:
+大纲:
 {outline}
 
-CANON (established facts):
+设定准则 (已确立的事实):
 {canon}
 
-CROSS-CHECKS (perform these before scoring):
-1. Check all example dialogue lines against ANTI-SLOP patterns:
-   - Look for structural formulas repeated across characters
-     ("not X, but Y" / "either X, or Y" / "there's a difference")
-   - Check for AI rhetorical tics disguised as character voice
-   - Deduct from character_distinctiveness if multiple characters
-     share the same sentence structures
-2. Check for missing NEGATIVE SPACE -- what's absent?
-   - Are there gaps in the magic system that would block a specific
-     plot scene? (e.g., can Cass hear lies in written documents?
-     What happens during the climax -- what rule resolves it?)
-   - Are there characters needed for the plot who don't exist?
-   - Are there scenes the outline demands that the world can't support?
-3. Check for CONVENIENT GAPS vs DELIBERATE MYSTERY:
-   - Convenient: "the details are unclear" where specifics are needed
-   - Deliberate: withholding information from the READER while the
-     AUTHOR knows the answer. If the planning docs dodge a question
-     that a writer would need answered to draft a scene, that's a gap,
-     not an iceberg.
-4. Check the canon for INTERNAL CONTRADICTIONS:
-   - Cross-reference dates, ages, and timelines
-   - Check if character abilities match magic system rules
-   - Look for factual conflicts between documents
+交叉核对（评分前执行）：
+1. 检查所有对话示例是否符合反 AI 废话（ANTI-SLOP）模式：
+   - 检查不同角色之间是否重复使用结构化句式（如“不是 X，而是 Y” / “要么 X，要么 Y” / “这有区别”）。
+   - 检查伪装成角色语气的 AI 修辞癖好。
+   - 如果多个角色共享相同的句子结构，扣除角色辨识度分数。
+2. 检查缺失的“负空间” —— 漏掉了什么？
+   - 魔法系统中是否存在阻碍特定情节执行的漏洞？（例如：Cass 能听到书面文档中的谎言吗？高潮部分发生了什么 —— 哪条规则解决了它？）
+   - 剧情所需的关键角色是否缺失？
+   - 大纲要求的场景，世界观是否无法支撑？
+3. 检查“便利性漏洞”与“刻意的悬念”：
+   - 便利性漏洞：在需要细节的地方使用了“细节尚不明确”之类的描述。
+   - 刻意悬念：作者知道答案，但对读者保留。如果策划文档规避了作者在撰写场景时必须回答的问题，那就是漏洞，而不是“冰山”。
+4. 检查设定准则中的内部矛盾：
+   - 交叉对比日期、年龄和时间线。
+   - 检查角色能力是否符合魔法系统规则。
+   - 寻找各文档之间事实上的冲突。
 
-Score these dimensions (gap + improvement required for each):
+对以下维度进行评分（每个维度需包含缺陷+改进建议）：
 
-LORE & WORLDBUILDING:
-- magic_system: Hard rules with COSTS and LIMITATIONS per Sanderson's
-  Second Law. Could a writer resolve the CLIMACTIC CONFLICT using only
-  rules already established? Are costs plot-driving, not decorative?
-  Are there at least 3 societal implications explored with specificity?
-  Is the system TESTABLE -- could you write a courtroom scene, a
-  contract negotiation, and a magical confrontation without inventing
-  new rules?
-- world_history: Timeline of events creating PRESENT-DAY tensions.
-  Each historical event should map to a current faction conflict or
-  character motivation. Decorative history (cool but plot-irrelevant)
-  counts against the score, not for it.
-- geography_and_culture: Locations distinct with sensory signatures.
-  Cultures with specific customs that GENERATE CONFLICT. Economy that
-  creates class tension. Check: could two different scenes set in two
-  different locations feel meaningfully different based on what's here?
-- lore_interconnection: Does changing one element force changes in
-  at least two others? Test by mentally removing the magic system --
-  does the political structure collapse? Does the class system change?
-  If elements are modular/detachable, score low.
-- iceberg_depth: Implied depth vs stated depth. But CHECK: does the
-  author actually know the answers to the mysteries, or are they
-  handwaving? If a planning doc says "the answer will be revealed"
-  without specifying WHAT the answer is, that's a gap wearing an
-  iceberg costume.
+设定与世界观 (LORE & WORLDBUILDING):
+- 魔法系统 (magic_system): 遵循山德森第二定律，具有代价和局限性的硬规则。作者是否能仅利用已确立的规则解决高潮冲突？代价是否驱动了情节而非装饰？是否具体探索了至少 3 个社会影响？系统是否可测试 —— 你能否在不临时发明新规则的情况下撰写一场法庭戏、一场合同谈判或一场魔法对抗？
+- 世界历史 (world_history): 创造当前紧张局势的事件时间线。每一个历史事件都应映射到当前的派系冲突或角色动机。装饰性的历史（酷但与情节无关）会扣分。
+- 地理与文化 (geography_and_culture): 地点具有独特的感官特征。文化具有能产生冲突的具体习俗。经济体系产生阶级张力。核对：设定在两个不同地点的场景是否能因这里的内容而让人感到显著不同？
+- 设定关联性 (lore_interconnection): 改变一个元素是否会迫使至少另外两个元素发生改变？测试：如果去掉魔法系统，政治结构会崩溃吗？阶级制度会改变吗？如果各元素是模块化/可分离的，给低分。
+- 冰山深度 (iceberg_depth): 暗示深度 vs 明确深度。核对：作者是否真的知道悬念的答案，还是在敷衍？如果策划文档说“答案将被揭晓”却未指定答案是什么，那就是穿了冰山外衣的漏洞。
 
-CHARACTER:
-- character_depth: Wound/want/need/lie chains that are CAUSALLY LINKED
-  (not just thematically associated). The lie must logically follow
-  from the wound. The want must be the wrong solution to the lie.
-  The need must directly oppose the want. Check each chain for
-  logical gaps. Also check: are ANY characters missing wound/want/need
-  chains who probably need them?
-- character_distinctiveness: Remove all dialogue tags from the example
-  lines. Can you identify the speaker from sentence structure alone?
-  Check for REPEATED STRUCTURAL FORMULAS across characters (e.g.,
-  multiple characters using "X. Not Y." or balanced antithesis).
-  Check that metaphor domains don't overlap. Check that speech
-  patterns reflect character background (a 14-year-old should not
-  sound like a 60-year-old merchant).
-- character_secrets: Each major character's secret should be something
-  that, if revealed, changes the plot's trajectory. Vague secrets
-  ("he knows more than he says") score lower than specific ones
-  ("he knows the harmonic means X, which would invalidate Y").
+角色 (CHARACTER):
+- 角色深度 (character_depth): 具有因果关联（而非仅仅是主题相关）的创伤/欲望/需求/谎言链条。谎言必须逻辑上源自创伤。欲望必须是应对谎言的错误方案。需求必须直接对立于欲望。检查每个链条的逻辑漏洞。同时检查：是否有任何可能需要链条的主要角色缺失了该链条？
+- 角色辨识度 (character_distinctiveness): 去掉对话标签，仅凭句子结构能否辨认说话者？检查不同角色之间是否存在重复的结构化句式。检查隐喻领域是否重叠。检查说话方式是否反映了角色背景（14 岁的孩子说话不应像 60 岁的商人）。
+- 角色秘密 (character_secrets): 每个主要角色的秘密都应该是那种一旦揭露就会改变剧情走向的事情。模糊的秘密（“他知道的比表现出来的多”）得分低于具体的秘密（“他知道谐波意味着 X，这将导致 Y 失效”）。
 
-STRUCTURE:
-- outline_completeness: Chapters with beats, POV, emotional arc,
-  try-fail cycle type. Save the Cat beats at correct % marks.
-  Score 0 if empty. Score 5+ only if act structure exists.
-- foreshadowing_balance: Every planted thread has a planned payoff.
-  Score 0 if ledger is empty regardless of implicit threads in
-  other documents -- foreshadowing must be TRACKED to count.
+结构 (STRUCTURE):
+- 大纲完整性 (outline_completeness): 章节包含节拍、POV、情感弧光、尝试-失败循环类型。《救猫咪》节拍处于正确的百分比标记。如果为空得 0 分，只有存在幕后结构才给 5 分以上。
+- 伏笔平衡 (foreshadowing_balance): 每一个植入的线索都有规划好的回收。如果台账为空得 0 分，无论其他文档中是否暗示了线索 —— 伏笔必须被跟踪记录才算数。
 
-CRAFT:
-- internal_consistency: Actively hunt for contradictions. Cross-ref
-  dates, ages, character counts, named locations. Flag any case
-  where documents disagree. A single major contradiction caps this
-  at 6. Three or more caps at 4.
-- voice_clarity: Voice definition must be specific and ACTIONABLE.
-  Exemplar passages must demonstrate the voice. Anti-exemplars must
-  define boundaries. Check exemplar dialogue for AI slop patterns.
-  A voice doc that is beautiful but contains slop in its own examples
-  is undermined -- deduct.
-- canon_coverage: Facts logged, sourced, and sufficient to catch
-  contradictions. Check: if a writer introduced a NEW fact in
-  chapter 5, could they verify it against the canon? Is the canon
-  granular enough? Are there known facts from other docs that
-  AREN'T in the canon?
+创作素养 (CRAFT):
+- 内部一致性 (internal_consistency): 积极寻找矛盾。交叉核对日期、年龄、人数、命名地点。标记任何文档不一致的情况。一个重大矛盾最高给 6 分，三个及以上最高给 4 分。
+- 语气清晰度 (voice_clarity): 语气定义必须具体且具有可操作性。示例段落必须能体现该语气。反面示例必须划定界限。检查对话示例是否存在 AI 废话模式。如果语气文档本身优美但在示例中包含 AI 废话，会削弱说服力 —— 扣分。
+- 准则覆盖度 (canon_coverage): 事实已被记录、来源明确且足以捕捉矛盾。核对：如果作者在第 5 章引入了一个新事实，他们能通过设定准则验证它吗？准则是否足够细致？是否存在其他文档中已知但未进入准则的事实？
 
-Respond with JSON:
+请以 JSON 格式响应：
 {{
-  "magic_system": {{"score": N, "gap": "biggest weakness", "fix": "specific improvement", "note": "..."}},
+  "magic_system": {{"score": N, "gap": "最大弱点", "fix": "具体改进措施", "note": "..."}},
   "world_history": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "geography_and_culture": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "lore_interconnection": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
@@ -481,21 +423,18 @@ Respond with JSON:
   "internal_consistency": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "voice_clarity": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "canon_coverage": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "slop_in_planning_docs": {{"found": ["list any AI slop patterns found in exemplar dialogue, voice examples, or character descriptions"], "note": "..."}},
-  "contradictions_found": ["list any factual contradictions between documents"],
+  "slop_in_planning_docs": {{"found": ["列出在对话示例、语气示例或角色描述中发现的任何 AI 废话模式"], "note": "..."}},
+  "contradictions_found": ["列出文档之间的任何事实矛盾"],
   "overall_score": N,
   "lore_score": N,
   "weakest_dimension": "...",
-  "top_3_improvements": ["ranked list of the 3 highest-leverage improvements"]
+  "top_3_improvements": ["按优先级排列的 3 个最高杠杆改进方案"]
 }}
 
-WEIGHTING: lore/worldbuilding 40%, character 30%, structure 20%, craft 10%.
-A novel with thin worldbuilding but a complete outline is WORSE than deep
-worldbuilding with an incomplete outline.
+权重：设定/世界观 40%，角色 30%，结构 20%，创作素养 10%。
+世界观单薄但大纲完整的小说，评价要低于世界观深厚但大纲不完整的小说。
 
-FINAL CHECK: If your overall_score is above 7, re-read your gap lists.
-If any gap describes a problem that would force a writer to stop and
-invent something during drafting, your score is too high. Revise down.
+最终核对：如果你的总分高于 7 分，请重新阅读你的缺陷列表。如果任何缺陷描述的问题会迫使作者在动笔时停下来临时发明内容，那么你的评分就太高了。请下调分数。
 """
 
 
@@ -508,149 +447,92 @@ def evaluate_foundation():
 
 # --- Chapter Evaluation ---
 
-CHAPTER_PROMPT = """Evaluate this fantasy novel chapter against the planning docs.
+CHAPTER_PROMPT = """根据策划文档评估此奇幻小说章节。
 
-SCORING CALIBRATION:
-  9-10: Among the best chapters you've read in published fantasy. Name
-        a specific published chapter it competes with, or don't give 9+.
-  7-8:  Strong, publishable with editorial polish. Specific flaws exist
-        but don't break the reading experience.
-  5-6:  Functional but flat. A competent draft that needs substantial revision.
-        Generic where it should be specific. Safe where it should risk.
-  3-4:  Significant problems. Voice breaks, beats missed, prose generic.
-  1-2:  Not usable. Rewrite from scratch.
+评分基准：
+  9-10: 达到已出版奇幻小说中的顶级水平。评分 9+ 必须能指名道姓地说出哪一个已出版章节可以与其竞争。
+  7-8:  优秀，经编辑润色后即可出版。存在具体瑕疵但不会破坏阅读体验。
+  5-6:  具备功能性但平淡。一个合格的初稿，但需要大量修订。平庸，缺乏惊喜。
+  3-4:  存在重大问题。语气脱节、遗漏节拍、文字平庸。
+  1-2:  无法使用。从头重写。
 
-  The MEDIAN score for a competent AI-generated chapter should be 6.
-  A 7 means it does something a generic AI draft wouldn't.
-  An 8 means a human editor would keep it with minor notes.
-  Most dimensions should score 6-7. Reserve 8+ for genuine excellence.
+  合格的 AI 生成章节的中位得分应为 6 分。
+  7 分意味着它做出了一些通用 AI 初稿做不到的事情。
+  8 分意味着人类编辑只需微调即可保留。
+  大多数维度得分应在 6-7 分。8 分以上留给真正的卓越。
 
-MANDATORY: For each dimension, you must identify:
-  (a) The single WEAKEST MOMENT -- quote the specific sentence or passage
-  (b) What would make it better -- a concrete revision, not a vague note
-  If every sentence is perfect, you're not reading carefully enough.
+强制要求：对于每一个维度，你必须确定：
+  (a) 该维度中最薄弱的时刻 —— 引用具体的句子或段落
+  (b) 改进方案 —— 一个具体的修订建议，而不是模糊的评价
+  如果你觉得每一句话都完美，那说明你读得不够仔细。
 
-VOICE DEFINITION:
+语气定义:
 {voice}
 
-WORLD BIBLE (summary):
+世界设定集 (摘要):
 {world}
 
-CHARACTER REGISTRY:
+角色注册表:
 {characters}
 
-CANON (established hard facts -- violations are bugs):
+设定准则 (已确立的硬事实 —— 违反即为 Bug):
 {canon}
 
-CHAPTER OUTLINE ENTRY:
+本章大纲条目:
 {chapter_outline}
 
-PREVIOUS CHAPTER (last 1500 words):
+前一章 (最后 1500 字):
 {prev_chapter_tail}
 
-THE CHAPTER TO EVALUATE:
+待评估章节:
 {chapter_text}
 
-CROSS-CHECKS (perform before scoring):
-1. QUOTE TEST: Find the 3 best sentences and 3 weakest sentences.
-   If you can't find 3 weak ones, lower your standards -- every
-   chapter has weak moments. Look for: generic phrasing where
-   specificity was possible, rhythmic monotony in any paragraph,
-   metaphors that don't come from the character's experience,
-   emotional moments that tell instead of show, transitions that
-   summarize instead of dramatize.
-2. DIALOGUE REALISM: Read all dialogue aloud (mentally). Does it
-   sound like speech or like written prose? Do characters say things
-   a 14-year-old / 60-year-old / etc. would actually say?
-3. SCENE VS SUMMARY: How much of the chapter is in-scene (moment
-   by moment, with dialogue and action) vs summary (narrator
-   compressing time)? Chapters heavy on summary score lower on
-   engagement regardless of prose quality.
-4. AI PATTERN CHECK: Look for these common AI writing patterns:
-   - Every paragraph the same length
-   - Observations always in threes (X, Y, and Z)
-   - Emotional beats that arrive on schedule rather than surprising
-   - Characters who never say the wrong thing or talk past each other
-   - Description that catalogs instead of selecting (listing 5 sensory
-     details when 2 specific ones would be sharper)
-   - Internal monologue explaining what the scene already showed
-5. EARNED VS GIVEN: Is tension earned through scene work or handed to
-   the reader through the narrator's assertions? Is mystery maintained
-   through genuine withholding or through the character conveniently
-   not thinking about things they'd think about?
+交叉核对（评分前执行）：
+1. 引用测试：找出 3 个最强的句子和 3 个最弱的句子。如果你找不出 3 个弱句，请降低你的标准 —— 每一个章节都有弱项。寻找：可以更具体却使用了通用描述的地方、段落中的韵律单调、隐喻不符合角色经历、情感表达“直接陈述”而非“间接展现”、过渡部分“直接总结”而非“戏剧化表现”。
+2. 对话真实性：在脑中大声朗读所有对话。它听起来像说话还是像书面散文？角色说的话是否符合 14 岁/60 岁等身份？
+3. 场景 vs 总结：本章有多少内容是即时场景（伴随对话和动作），有多少是总结（叙述者压缩时间）？总结过多的章节无论文笔多好，吸引力得分都会较低。
+4. AI 模式检查：寻找这些常见的 AI 写作模式：
+   - 每个段落长度相同
+   - 观察结果总是以三元组形式出现 (X, Y, Z)
+   - 情感节拍准时到达而非给人惊喜
+   - 角色从不说错话或各说各话
+   - 描写像在罗列清单（列出 5 个感官细节，而 2 个具体的会更鲜明）
+   - 内心独白在解释场景已经展现的内容
+5. 赢得 vs 赋予：紧张感是通过场景描写“赢得”的，还是通过叙述者的断言直接“赋予”给读者的？悬念是通过真正的保留来维持的，还是由于角色刻意不去想他们本该想到的事情？
 
-Score these dimensions:
+对以下维度进行评分：
 
-- voice_adherence: Does the prose match voice.md Part 2? Check: sentence
-  rhythm variation, vocabulary wells, body-before-emotion principle,
-  the specific tone described. Quote the strongest voice moment AND
-  the weakest. Does ANY passage sound like generic fantasy prose that
-  could appear in any novel? If yes, score 7 max.
+- 语气遵循度 (voice_adherence): 文字是否符合 voice.md 第二部分？核对：句式节奏变化、词汇量运用、身体感受先于情感原则、描述的特定基调。引用最强和最弱的语气瞬间。是否有任何段落听起来像可以出现在任何小说里的通用奇幻散文？如果是，最高给 7 分。
+- 节拍覆盖度 (beat_coverage): 是否完成了大纲中的每一个节拍？节拍是戏剧化展现了还是仅仅被提及？在句子中总结而非在场景中生活的节拍只能算完成了一半。分数反映节拍执行的质量，而不只是存在感。
+- 角色语气 (character_voice): 在脑中去掉对话标签。你能分辨出是谁在说话吗？角色听起来是否相似？对话读起来像说话还是像书面散文？Cass 听起来像一个特定的 14 岁少年，还是像通用的“年轻主角”？是否有人说了令人惊讶的话 —— 不仅仅是正确的话，而是“真实”的话？从不磕绊、犹豫或说错话的角色是 AI 模式角色。
+- 伏笔植入 (plants_seeded): 伏笔元素是否放置得自然？显眼的伏笔比隐形的伏笔更差。根据整合的质量评分，而不只是是否存在。
+- 文笔质量 (prose_quality): 句式多样性（核对：是否有 3 条以上连续的句子开头相同？）。具体性（具体名词 > 抽象名词）。隐喻来自角色经历而非词典。情感高峰处的“展现而非陈述”。引用最弱的句子并解释原因。同时核对：重复短语、过度依赖的句式、可以删掉而不造成损失的段落。
+- 连贯性 (continuity): 逻辑上是否衔接前一章？包括情感连贯性和情节连贯性。角色的心态是否衔接？
+- 准则合规性 (canon_compliance): 对照设定准则检查所有事实。罗列违规项。一个重大违规最高给 6 分。核对：角色名、地点、魔法系统规则、时间线、已发生的事件、身体描写。
+- 设定整合度 (lore_integration): 这个世界在本章中是否有实质作用，还是仅仅作为布景？一个通过查找替换专有名词就能发生在任何奇幻城市的场景最高给 5 分。
+- 吸引力 (engagement): 读者会翻页吗？张力来自哪里 —— 情节、角色、悬念还是文笔？是否有令人惊喜的瞬间？可预测的优秀依然是可预测的。只有在章节做了意料之外的事情时才给 8 分以上。
 
-- beat_coverage: Did it hit every beat from the outline? Were beats
-  dramatized or merely mentioned? A beat that's summarized in a sentence
-  instead of lived in a scene counts as half-hit. Score reflects
-  QUALITY of beat execution, not just presence.
-
-- character_voice: Remove all dialogue tags mentally. Can you tell who's
-  speaking? Do characters ever sound alike? Does dialogue read as speech
-  or as written prose? Does Cass sound like a specific 14-year-old, or
-  like "young protagonist"? Does anyone say something surprising -- not
-  just the right thing, but a REAL thing? Characters who never stumble,
-  hesitate, or say something slightly wrong are AI-pattern characters.
-
-- plants_seeded: Were foreshadowing elements placed naturally? A plant
-  that's obvious is worse than a plant that's invisible. Score based on
-  HOW WELL they're integrated, not just whether they're present.
-
-- prose_quality: Sentence variety (measure: do 3+ consecutive sentences
-  start the same way?). Specificity (concrete nouns > abstract).
-  Metaphors from Cass's experience, not from a thesaurus. Show-don't-tell
-  at emotional peaks. QUOTE the weakest sentence and explain why. Also
-  check for: repeated phrases, leaned-on constructions, paragraphs that
-  could be cut without loss.
-
-- continuity: Does it follow logically from the previous chapter? Emotional
-  continuity as well as plot continuity. Does the character's state of
-  mind track?
-
-- canon_compliance: Check ALL facts against canon. List violations.
-  One major violation caps score at 6. Check: character names, locations,
-  magic system rules, timeline, established events, physical descriptions.
-
-- lore_integration: Does the world do WORK in this chapter, or is it
-  set dressing? A scene that could happen in any fantasy city with
-  find-and-replace on proper nouns scores 5 max.
-
-- engagement: Would a reader turn the page? Where does tension come from --
-  plot, character, mystery, prose? Is there a moment that SURPRISES?
-  Predictable excellence is still predictable. Score 8+ only if the
-  chapter does something unexpected.
-
-Respond with JSON:
+请以 JSON 格式响应：
 {{
-  "voice_adherence": {{"score": N, "weakest_moment": "quote the specific weak passage", "fix": "how to improve it", "note": "..."}},
+  "voice_adherence": {{"score": N, "weakest_moment": "引用具体的弱势段落", "fix": "如何改进", "note": "..."}},
   "beat_coverage": {{"score": N, "weakest_moment": "...", "fix": "...", "note": "..."}},
   "character_voice": {{"score": N, "weakest_moment": "...", "fix": "...", "note": "..."}},
   "plants_seeded": {{"score": N, "weakest_moment": "...", "fix": "...", "note": "..."}},
-  "prose_quality": {{"score": N, "weakest_sentence": "quote it", "fix": "rewrite suggestion", "strongest_sentence": "quote it", "note": "..."}},
+  "prose_quality": {{"score": N, "weakest_sentence": "引用该句", "fix": "修订建议", "strongest_sentence": "引用该句", "note": "..."}},
   "continuity": {{"score": N, "note": "..."}},
-  "canon_compliance": {{"score": N, "violations": ["list any found"], "note": "..."}},
+  "canon_compliance": {{"score": N, "violations": ["列出发现的违规项"], "note": "..."}},
   "lore_integration": {{"score": N, "weakest_moment": "...", "fix": "...", "note": "..."}},
   "engagement": {{"score": N, "weakest_moment": "...", "fix": "...", "note": "..."}},
-  "three_weakest_sentences": ["quote 1", "quote 2", "quote 3"],
-  "three_strongest_sentences": ["quote 1", "quote 2", "quote 3"],
-  "ai_patterns_detected": ["list any AI writing patterns found"],
+  "three_weakest_sentences": ["引用 1", "引用 2", "引用 3"],
+  "three_strongest_sentences": ["引用 1", "引用 2", "引用 3"],
+  "ai_patterns_detected": ["列出发现的 AI 写作模式"],
   "overall_score": N,
   "weakest_dimension": "...",
-  "top_3_revisions": ["specific, actionable revision 1", "revision 2", "revision 3"],
-  "new_canon_entries": ["any new facts established in this chapter"]
+  "top_3_revisions": ["具体、可操作的修订建议 1", "建议 2", "建议 3"],
+  "new_canon_entries": ["本章确立的任何新事实"]
 }}
 
-FINAL CHECK: If your overall_score is above 7, re-read your weakest_moment
-quotes. If any of them describe a problem that an editor would flag, your
-score is too high. The median AI chapter is a 6. An 8 is exceptional. A 9
-is rare. A 10 does not exist for a first draft.
+最终核对：如果你的总分高于 7 分，请重新阅读你的最弱时刻引用。如果其中任何一个描述了编辑会标记的问题，那么你的分数就太高了。中位 AI 章节是 6 分，8 分是杰出的，9 分罕见，初稿不存在 10 分。
 """
 
 
@@ -696,34 +578,34 @@ def evaluate_chapter(chapter_num):
 
 # --- Full Novel Evaluation ---
 
-FULL_NOVEL_PROMPT = """Evaluate this complete fantasy novel holistically.
-You have the planning docs and ALL chapter summaries with their individual scores.
+FULL_NOVEL_PROMPT = """从整体上全面评估这部奇幻小说。
+你拥有策划文档以及每一章的摘要及其个人评分。
 
-VOICE DEFINITION:
+语气定义:
 {voice}
 
-WORLD BIBLE:
+世界设定集摘要:
 {world_summary}
 
-CHARACTER REGISTRY:
+角色注册表:
 {characters}
 
-OUTLINE + FORESHADOWING LEDGER:
+大纲与伏笔台账:
 {outline}
 
-CHAPTER SUMMARIES AND SCORES:
+各章摘要与得分:
 {chapter_summaries}
 
-Score these novel-level dimensions 0-10:
-- arc_completion: Do character arcs resolve satisfyingly?
-- pacing_curve: Does tension build properly across the book?
-- theme_coherence: Are themes explored consistently?
-- foreshadowing_resolution: Are all planted threads harvested?
-- world_consistency: Any lore contradictions across chapters?
-- voice_consistency: Is the voice steady throughout?
-- overall_engagement: Is this a compelling read start to finish?
+对以下小说层面的维度进行 0-10 分的评分：
+- 弧光完成度 (arc_completion): 角色弧光的解决是否令人满意？
+- 节奏曲线 (pacing_curve): 张力是否在整本书中合理构建？
+- 主题连贯性 (theme_coherence): 主题探讨是否始终如一？
+- 伏笔回收 (foreshadowing_resolution): 所有植入的线索是否都得到了回收？
+- 世界观一致性 (world_consistency): 各章节之间是否存在设定矛盾？
+- 语气一致性 (voice_consistency): 语气是否贯穿始终？
+- 整体吸引力 (overall_engagement): 这部小说从头到尾是否引人入胜？
 
-Respond with JSON:
+请以 JSON 格式响应：
 {{
   "arc_completion": {{"score": N, "note": "..."}},
   "pacing_curve": {{"score": N, "note": "..."}},

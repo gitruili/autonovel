@@ -31,10 +31,10 @@ def call_judge(prompt, max_tokens=8000):
         max_tokens=max_tokens,
         temperature=0.3,
         system=(
-            "You are a ruthless literary editor. You cut fat from prose. "
-            "You have no sentiment about good-enough sentences -- if a sentence "
-            "isn't earning its place, it goes. You quote exactly from the text. "
-            "You never invent or paraphrase. Always respond with valid JSON."
+            "你是一位冷酷无情的文学编辑。你的任务是删减散文中的冗余。 "
+            "对于那些“还算凑合”的句子，你绝不手软 —— 如果一个句子不能证明其存在的必要性，就必须删掉。 "
+            "请务必从原文中进行精确引用。绝不编造或改述。 "
+            "请务必以有效的 JSON 格式返回结果。"
         ),
         messages=[{"role": "user", "content": prompt}],
         timeout=300,
@@ -81,46 +81,44 @@ def parse_json(text):
                     return json.loads(text[start:i+1], strict=False)
         return json.loads(text[start:], strict=False)
 
-EDIT_PROMPT = """You are editing a fantasy novel chapter. Your job: identify exactly
-what to cut or rewrite to make this chapter tighter, sharper, more alive.
+EDIT_PROMPT = """你正在编辑一个奇幻小说章节。你的任务：准确识别出
+应该删减或重写的内容，使本章更加紧凑、锋利、富有生命力。
 
-THE CHAPTER ({word_count} words):
+本章内容 ({word_count} 字):
 {chapter_text}
 
-YOUR TASK:
-1. Find 10-20 specific passages that should be CUT or REWRITTEN.
-   For each, quote the EXACT text (minimum 10 words of the quote so
-   it's unambiguous), explain why it's weak, and classify it.
+你的任务：
+1. 找出 10-20 处应该被删减（CUT）或重写（REWRITE）的具体片段。
+   每一处都必须精确引用原文（引文至少 10 个字以确保无歧义），解释其薄弱的原因并进行分类。
 
-2. Classify each cut as one of:
-   - FAT: adds nothing, could be removed with no loss
-   - REDUNDANT: restates what a previous sentence/scene already showed
-   - OVER-EXPLAIN: narrator explaining what the scene already demonstrated
-   - GENERIC: could appear in any novel, not specific to this world/character
-   - TELL: names an emotion or state instead of showing it
-   - STRUCTURAL: paragraph/section that disrupts pacing or rhythm
+2. 将每一处删减归类为以下之一：
+   - 冗余 (FAT): 毫无贡献，删除后没有任何损失
+   - 重复 (REDUNDANT): 重复了前一句或前一场景已经展现过的内容
+   - 过度解释 (OVER-EXPLAIN): 叙述者在解释场景已经演示过的内容
+   - 平庸 (GENERIC): 可能出现在任何小说中，不具有该世界或角色的独特性
+   - 直接陈述 (TELL): 直接命名某种情感或状态，而不是通过场景展现它
+   - 结构问题 (STRUCTURAL): 段落或章节打乱了节奏或韵律
 
-3. For REWRITE candidates (not cuts), provide a specific revision.
+3. 对于建议重写（而非直接删减）的候选项，提供具体的修订版本。
 
-4. Estimate how many words could be cut total without losing anything
-   the chapter needs.
+4. 估算在不损失任何必要内容的情况下，本章总共可以删减多少字。
 
-Respond with JSON:
+请以 JSON 格式响应：
 {{
   "cuts": [
     {{
-      "quote": "exact text from the chapter (10+ words)",
+      "quote": "章节中的精确引文 (10 字以上)",
       "type": "FAT|REDUNDANT|OVER-EXPLAIN|GENERIC|TELL|STRUCTURAL",
-      "reason": "why this should go",
-      "action": "CUT or REWRITE",
-      "rewrite": "replacement text if action is REWRITE, null if CUT"
+      "reason": "为什么要处理这一处",
+      "action": "CUT (删减) 或 REWRITE (重写)",
+      "rewrite": "如果是 REWRITE，则提供替换文本；如果是 CUT，则为 null"
     }}
   ],
   "total_cuttable_words": N,
-  "tightest_passage": "quote the best 2-3 sentences in the chapter -- the ones you'd never touch",
-  "loosest_passage": "quote the worst 2-3 sentences -- the ones that most need work",
+  "tightest_passage": "引用本章中最好的 2-3 句话 —— 那些你绝不会改动的内容",
+  "loosest_passage": "引用本章中最差的 2-3 句话 —— 那些最需要改进的内容",
   "overall_fat_percentage": N,
-  "one_sentence_verdict": "what this chapter does well and what drags it down, in one sentence"
+  "one_sentence_verdict": "用一句话评价本章哪些地方做得好，哪些地方拖了后腿"
 }}
 """
 

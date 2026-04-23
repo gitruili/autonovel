@@ -20,11 +20,10 @@ def call_writer(prompt, max_tokens=16000):
         max_tokens=max_tokens,
         temperature=0.5,
         system=(
-            "You are a novel architect with deep knowledge of Save the Cat beats, "
-            "Sanderson's plotting principles, Dan Harmon's Story Circle, and MICE Quotient. "
-            "You build outlines that an author can draft from without inventing structure "
-            "on the fly. Every chapter has beats, emotional arc, and try-fail cycle type. "
-            "You never use AI slop words. You write in clean, direct prose."
+            "你是一位小说架构师，深谙《救猫咪》（Save the Cat）节拍、山德森（Sanderson）情节设计原则、丹·哈蒙（Dan Harmon）的故事圆环以及 MICE 商数（MICE Quotient）。 "
+            "你构建的大纲应当足以让作者直接进行初稿撰写，而无需在过程中即兴设计结构。 "
+            "每一章都包含节拍、情感弧光和尝试-失败循环（try-fail cycle）类型。 "
+            "你从不使用 AI 废话词汇。你使用简洁、直白的散文体写作。"
         ),
         messages=[{"role": "user", "content": prompt}],
         timeout=600,
@@ -43,86 +42,88 @@ voice_lines = voice.split('\n')
 part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
 voice_part2 = '\n'.join(voice_lines[part2_start:])
 
-prompt = f"""Build a complete chapter outline for this fantasy novel. Target: 22-26 chapters,
-~80,000 words total (~3,000-4,000 words per chapter).
+prompt = f"""为此奇幻小说构建一份完整的章节大纲。目标：22-26 章，
+总字数约 80,000 字（每章约 3,000-4,000 字）。
 
-SEED CONCEPT:
+种子概念 (SEED CONCEPT):
 {seed}
 
-THE CENTRAL MYSTERY (author's eyes only -- reader discovers gradually):
+核心悬念 (THE CENTRAL MYSTERY，仅供作者参考 —— 读者将逐渐发现):
 {mystery}
 
-WORLD BIBLE:
+世界设定集 (WORLD BIBLE):
 {world}
 
-CHARACTER REGISTRY:
+角色注册表 (CHARACTER REGISTRY):
 {characters}
 
-VOICE (tone and register):
+语气标识 (VOICE，基调和语域):
 {voice_part2}
 
-CRAFT REFERENCE (structures to follow):
+创作参考 (CRAFT REFERENCE，需遵循的结构):
 {craft}
 
-BUILD THE OUTLINE WITH:
+请按以下要求构建大纲：
 
-## Act Structure
-Map out Act I (0-23%), Act II Part 1 (23-50%), Act II Part 2 (50-77%), Act III (77-100%).
-State the percentage marks for the key novel.
+## 幕后结构 (Act Structure)
+规划第一幕 (0-23%)、第二幕第一部分 (23-50%)、第二幕第二部分 (50-77%)、第三幕 (77-100%)。
+注明小说关键节点的百分比标记。
 
-## Chapter-by-Chapter Outline
+## 逐章大纲 (Chapter-by-Chapter Outline)
 
-For EACH chapter, provide:
-### Ch N: [Title]
-- **POV:** (always Cass, third-person limited)
-- **Location:** Which districts/locations
-- **Save the Cat beat:** Which beat this chapter serves (Opening Image, Setup, Catalyst, etc.)
-- **% mark:** Where this falls in the novel
-- **Emotional arc:** Starting emotion → ending emotion
-- **Try-fail cycle:** Yes-but / No-and / No-but / Yes-and
-- **Beats:** 3-5 specific scene beats that must happen
-- **Plants:** Foreshadowing elements planted in this chapter
-- **Payoffs:** Foreshadowing elements that pay off here
-- **Character movement:** What changes for Cass (or other characters) by chapter's end
-- **The lie:** How Cass's lie ("if I master the system, I can fix things from inside") is
-  reinforced or challenged in this chapter
-- **~Word count target:** for pacing
+针对每一章，提供：
+### 第 N 章: [标题]
+- **POV:** (始终为 Cass，第三人称限制视角)
+- **地点:** 具体的区域/地点
+- **救猫咪节拍:** 本章服务的节拍（开场画面、铺垫、催化剂等）
+- **% 进度:** 在小说中所处的位置
+- **情感弧光:** 初始情感 → 结束情感
+- **尝试-失败循环:** 是-但是 (Yes-but) / 否-而且 (No-and) / 否-但是 (No-but) / 是-而且 (Yes-and)
+- **情节节拍:** 3-5 个必须发生的具体场景节拍
+- **伏笔植入 (Plants):** 本章中植入的伏笔元素
+- **伏笔回收 (Payoffs):** 在本章得到回收的伏笔元素
+- **角色变动:** 到本章结束时，Cass（或其他角色）发生了什么变化
+- **谎言:** Cass 的谎言（“如果我精通这套体制，我就能从内部解决问题”）在本章中是如何被强化或挑战的
+- **~目标字数:** 用于控制节奏
 
-## Foreshadowing Ledger
+## 伏笔台账 (Foreshadowing Ledger)
 
-A table tracking every planted thread:
-| Thread | Planted (Ch) | Reinforced (Ch) | Payoff (Ch) | Type |
+一个跟踪所有植入线索的表格：
+| 线索 | 植入 (章节) | 强化 (章节) | 回收 (章节) | 类型 |
 
-Include at LEAST 15 threads. Types: object, dialogue, action, symbolic, structural.
+至少包含 15 条线索。类型包括：实物、对话、行动、象征、结构。
 
-KEY PLOT ARCHITECTURE:
+核心情节架构：
 
-Act I (Ch 1-6ish): Establish Cass's world, his pain, his gift, the Academy, his family.
-Plant the mystery early (the locked room, the forbidden bells, father's tremor).
-Catalyst: something forces Cass to investigate Perin's contract.
+第一幕 (约 1-6 章): 建立 Cass 的世界、他的痛苦、他的天赋、学院以及他的家庭。
+尽早植入悬念（上锁的房间、禁忌之钟、父亲的颤抖）。
+催化剂：某些事迫使 Cass 去调查 Perin 的合约。
 
-Act II Part 1 (Ch 7-12ish): Investigation. Cass digs into the Corda contract, encounters
-Maret, allies with Torvald and Lenne, begins hearing the harmonic more clearly.
-Midpoint: Cass learns a partial truth that changes his approach (false victory or defeat).
+第二幕第一部分 (约 7-12 章): 调查阶段。Cass 深入挖掘 Corda 合约，遇到 Maret，与 Torvald 和 Lenne 结盟，开始更清晰地听到谐波。
+中点 (Midpoint): Cass 了解到了一个改变他行动方式的部分真相（虚假的胜利或失败）。
 
-Act II Part 2 (Ch 13-18ish): Pressure mounts. Maret moves against the Bellwrights.
-Father's secrets begin to surface. Cass's lie is increasingly unsustainable.
-All Is Lost: Cass confronts his father and learns the full truth.
+第二幕第二部分 (约 13-18 章): 压力增大。Maret 对 Bellwrights 采取行动。
+父亲的秘密开始浮出水面。Cass 的谎言越来越难以为继。
+跌入谷底 (All Is Lost): Cass 与父亲对峙并得知了全部真相。
 
-Act III (Ch 19-24ish): Cass understands the question. Must choose how to answer.
-The climax plays out using the established intervals of Tonal Law.
-The resolution shows the aftermath of his choice.
+第三幕 (约 19-24 章): Cass 理解了那个问题。必须选择如何回答。
+高潮戏将利用已确立的“律法”音程展开。
+结局展示他选择后的余波。
 
-CONSTRAINTS:
-- The climax must be mechanically resolvable using established Tonal Law intervals
-- Cass's investigation should feel like a mystery plot overlaid on a coming-of-age arc
-- The Stability Trap: bad things must stay bad. Not everything resolves cleanly.
-- Perin must appear in person at some point (not just in memory/letters)
-- At least 3 chapters should be "quiet" -- character-focused, low-action, emotionally rich
-- Vary the try-fail types: 60%+ should be "yes-but" or "no-and"
-- The foreshadowing ledger must have plant-to-payoff distances of at least 3 chapters
+约束条件：
+- 高潮部分必须能利用已确立的“律法”音程在机械逻辑上得到解决。
+- Cass 的调查应当感觉像是一个叠加在成长小说弧光上的悬念/推理情节。
+- 稳定性陷阱：坏事必须保持糟糕的状态。并非所有事情都能圆满解决。
+- Perin 必须在某个时刻亲自现身（而不仅仅是在记忆或信件中）。
+- 至少有 3 章应该是“安静”的 —— 聚焦于角色、低动作量、情感丰富。
+- 改变尝试-失败循环的类型：60% 以上应该是“是-但是”或“否-而且”。
+- 伏笔台账中的“植入”到“回收”之间必须至少间隔 3 章。
 """
 
 print("Calling writer model...", file=sys.stderr)
 result = call_writer(prompt)
 print(result)
+
+# save to file
+with open(BASE_DIR / "outline.md", "w", encoding="utf-8") as f:
+    f.write(result) 

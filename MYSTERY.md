@@ -3,18 +3,18 @@
 
 ---
 
-<!-- Define the central secret of your novel here during the foundation
-phase. This is the thing the reader discovers at the climax — the
-recontextualization that makes everything before it mean something
-different.
+<!-- 
+在基础阶段在此定义小说的核心秘密。
+这是读者在高潮部分会发现的东西 —— 这种“重新语境化”会让之前发生的一切
+都产生完全不同的意义。
 
-Good mysteries have:
-  - A question that can be asked in one sentence
-  - An answer that recontextualizes the entire story
-  - No right answer (moral ambiguity)
-  - A physical manifestation in the world (not just information)
-  - A choice the protagonist must make that has real cost
+优秀的悬念具备：
+  - 一个可以用一句话概括的问题
+  - 一个能重新定义整个故事的答案
+  - 没有绝对正确的答案（道德模糊性）
+  - 在世界中有物理体现（而不仅仅是信息）
+  - 主角必须做出一个付出真实代价的选择
 
-This file should NOT be loaded into the writing agent's context during
-the drafting phase. The mystery should emerge from the world and
-characters, not be stated explicitly in the prose until the reveal. -->
+此文件在初稿撰写阶段**不应**加载到写作代理的上下文中。
+悬念应当从世界观和角色中自然流露，在揭晓之前不应在散文中被明确表述。
+-->

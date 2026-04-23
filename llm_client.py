@@ -93,7 +93,7 @@ def extract_text_from_response(data: dict) -> str:
         if text:
             return text
     if not isinstance(content, list):
-        raise ValueError("LLM response is missing a valid content field")
+        raise ValueError(f"LLM response is missing a valid content field. Response: {data}")
 
     text_blocks = []
     for block in content:
@@ -104,7 +104,9 @@ def extract_text_from_response(data: dict) -> str:
 
     text = "".join(text_blocks).strip()
     if not text:
-        raise ValueError("LLM response did not contain any text blocks")
+        if data.get("stop_reason") == "max_tokens":
+            raise ValueError(f"LLM reached max_tokens limit before outputting text. Please increase max_tokens. Response: {data}")
+        raise ValueError(f"LLM response did not contain any text blocks. Response: {data}")
     return text
 
 

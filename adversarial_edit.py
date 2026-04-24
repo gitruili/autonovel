@@ -81,8 +81,8 @@ def parse_json(text):
                     return json.loads(text[start:i+1], strict=False)
         return json.loads(text[start:], strict=False)
 
-EDIT_PROMPT = """你正在编辑一个奇幻小说章节。你的任务：准确识别出
-应该删减或重写的内容，使本章更加紧凑、锋利、富有生命力。
+EDIT_PROMPT = """你正在编辑一个女频种田经营网文章节。你的任务：准确识别出
+应该删减或重写的内容，使本章更加紧凑、锋利、富有烟火气。
 
 本章内容 ({word_count} 字):
 {chapter_text}

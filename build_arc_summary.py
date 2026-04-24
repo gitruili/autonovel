@@ -2,7 +2,7 @@
 """
 Build a condensed arc summary for full-novel evaluation.
 For each chapter: first 150 words, last 150 words, plus any dialogue.
-Gives the reader panel enough to evaluate the ARC without 72k tokens.
+Gives the reader panel enough to evaluate the ARC without full token cost.
 """
 import os
 import re
@@ -25,9 +25,8 @@ def call_writer(prompt, max_tokens=4000):
         max_tokens=max_tokens,
         temperature=0.1,
         system=(
-            "You summarize novel chapters precisely. State what HAPPENS, what "
-            "CHANGES, and what QUESTIONS are left open. No evaluation. No praise. "
-            "Just events and shifts."
+            "你可以精确地总结小说章节。陈述发生了什么、改变了什么、"
+            "留下了什么悬念。不要进行任何评价或赞美。只关注事件和变化。"
         ),
         messages=[{"role": "user", "content": prompt}],
         timeout=120,
@@ -40,36 +39,70 @@ def extract_key_passages(text):
     closing = ' '.join(words[-150:])
     
     # Extract dialogue lines
-    dialogue = re.findall(r'["""]([^"""]{20,})["""]', text)
+    dialogue = re.findall(r'["“]([^"”]{20,})["”]', text)
     # Pick up to 3 longest dialogue lines
     dialogue.sort(key=len, reverse=True)
     top_dialogue = dialogue[:3]
     
     return opening, closing, top_dialogue
 
+def load_file(path):
+    try:
+        return Path(path).read_text()
+    except FileNotFoundError:
+        return ""
+
+def load_title():
+    seed = load_file(BASE_DIR / "seed.txt")
+    if seed:
+        first_line = seed.strip().split('\n')[0].strip()
+        if first_line:
+            return first_line
+    outline = load_file(BASE_DIR / "outline.md")
+    if outline:
+        first_line = outline.strip().split('\n')[0].strip().lstrip('#').strip()
+        if first_line:
+            return first_line
+    return "本小说"
+
 def main():
     summaries = []
     
-    for ch in range(1, 20):
-        path = CHAPTERS_DIR / f"ch_{ch:02d}.md"
+    # Dynamically find all chapter files
+    chapter_files = sorted(CHAPTERS_DIR.glob("ch_*.md"))
+    if not chapter_files:
+        print("No chapter files found.")
+        return
+
+    total_wc = 0
+    
+    for path in chapter_files:
+        # Extract chapter number
+        m = re.match(r"ch_(\d+)\.md", path.name)
+        if not m:
+            continue
+        ch = int(m.group(1))
+        
         text = path.read_text()
         wc = len(text.split())
+        total_wc += wc
+        
         opening, closing, dialogue = extract_key_passages(text)
         
         # Get a 100-word summary from the model
         summary = call_writer(
-            f"Summarize this chapter in exactly 3 sentences. What happens, what changes, what question is left open.\n\nCHAPTER {ch}:\n{text}",
+            f"用整好3句话总结这个章节。发生了什么，改变了什么，留下了什么悬念。\n\n第 {ch} 章:\n{text}",
             max_tokens=200
         )
         
-        entry = f"""### Chapter {ch} ({wc} words)
-**Summary:** {summary}
+        entry = f"""### 第 {ch} 章 ({wc} 字)
+**总结:** {summary}
 
-**Opening:** {opening}...
+**开场:** {opening}...
 
-**Closing:** ...{closing}
+**结尾:** ...{closing}
 
-**Key dialogue:**
+**核心对话:**
 """
         for d in dialogue:
             entry += f'> "{d}"\n\n'
@@ -77,25 +110,18 @@ def main():
         summaries.append(entry)
         print(f"Ch {ch}: summarized ({wc}w)")
     
-    # Calculate total word count
-    total_wc = sum(len((CHAPTERS_DIR / f"ch_{c:02d}.md").read_text().split()) for c in range(1, 20))
+    title = load_title()
+    seed_text = load_file(BASE_DIR / "seed.txt")
     
     # Assemble
-    full = f"""# THE SECOND SON OF THE HOUSE OF BELLS
-## Full-Arc Summary for Reader Panel
+    full = f"""# {title}
+## 读者评审团全书大纲摘要 (Full-Arc Summary)
 
-This document contains chapter summaries, opening/closing passages,
-and key dialogue for all 23 chapters. Total novel: {total_wc:,} words.
+本文档包含了所有 {len(chapter_files)} 个章节的摘要、开场/结尾段落以及关键对话。
+全书总字数：{total_wc:,} 字。
 
-PREMISE: In Cantamura, a city where law is sung into binding through
-specific musical intervals, 14-year-old Cass Bellwright can hear when
-someone is lying -- a quarter-tone between F and F-sharp that causes
-him physical pain. His older brother Perin has been bound to service
-in the House of Corda for 10 years through a contract their father
-allowed. The bells their family maintains contain a secret: a question
-("Do you consent to be bound?") embedded in the sub-harmonics by the
-city's founder 200 years ago. No one has ever heard it. No one has
-ever answered. Every binding in Cantamura is technically void.
+核心概念与前提：
+{seed_text[:1000]}...
 
 ---
 

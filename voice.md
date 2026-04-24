@@ -1,157 +1,159 @@
-# Voice Profile
+# 文风档案 (Voice Profile)
 
-This file has two parts:
-1. **Guardrails** -- universal rules to avoid AI-generated slop. These
-   apply to ALL voices and are non-negotiable.
-2. **Voice Identity** -- the specific voice for THIS novel. Generated
-   during the foundation phase. Could be anything: dense and mythic,
-   spare and brutal, warm and whimsical. The voice emerges from the
-   story's needs.
-
----
-
-## Part 1: Guardrails (permanent, all novels)
-
-These are the cliff edges. Stay away from them regardless of voice.
-
-### Tier 1: Banned words -- kill on sight
-
-These are statistically overrepresented in LLM output vs. human writing.
-If one appears, rewrite the sentence. No exceptions.
-
-| Kill this         | Use instead                                    |
-|-------------------|------------------------------------------------|
-| delve             | dig into, examine, look at                     |
-| utilize           | use                                            |
-| leverage (verb)   | use, take advantage of                         |
-| facilitate        | help, enable, make possible                    |
-| elucidate         | explain, clarify                               |
-| embark            | start, begin                                   |
-| endeavor          | effort, try                                    |
-| encompass         | include, cover                                 |
-| multifaceted      | complex, varied                                |
-| tapestry          | (describe the actual thing)                    |
-| testament to      | shows, proves, demonstrates                    |
-| paradigm          | model, approach, framework                     |
-| synergy           | (delete the sentence and start over)           |
-| holistic          | whole, complete, full-picture                  |
-| catalyze          | trigger, cause, spark                          |
-| juxtapose         | compare, contrast, set against                 |
-| nuanced (filler)  | (cut it -- if it's nuanced, show how)          |
-| realm             | area, field, domain                            |
-| landscape (metaphorical) | field, space, situation                 |
-| myriad            | many, lots of                                  |
-| plethora          | many, a lot                                    |
-
-### Tier 2: Suspicious in clusters
-
-Fine alone. Three in one paragraph = rewrite that paragraph.
-
-robust, comprehensive, seamless, cutting-edge, innovative, streamline,
-empower, foster, enhance, elevate, optimize, pivotal, intricate,
-profound, resonate, underscore, harness, navigate (metaphorical),
-cultivate, bolster, galvanize, cornerstone, game-changer, scalable
-
-### Tier 3: Filler phrases -- delete on sight
-
-These add zero information. The sentence is always better without them.
-
-- "It's worth noting that..." -> just state it
-- "It's important to note that..." -> just state it
-- "Importantly, ..." / "Notably, ..." / "Interestingly, ..." -> just state it
-- "Let's dive into..." / "Let's explore..." -> start with the content
-- "As we can see..." -> they can see
-- "Furthermore, ..." / "Moreover, ..." / "Additionally, ..." -> and, also, or just start
-- "In today's [fast-paced/digital/modern] world..." -> delete the clause
-- "At the end of the day..." -> delete
-- "It goes without saying..." -> then don't say it
-- "When it comes to..." -> just talk about the thing
-- "One might argue that..." -> argue it or don't
-- "Not just X, but Y" -> restructure (the #1 LLM rhetorical crutch)
-
-### Structural slop patterns
-
-These are the shapes that betray machine origin. Avoid them in any voice.
-
-**Paragraph template machine**: Don't repeat the same paragraph
-structure (topic sentence -> elaboration -> example -> wrap-up).
-Vary it. Sometimes the point comes last. Sometimes a paragraph is
-one sentence. Sometimes three long ones in a row.
-
-**Sentence length uniformity**: If every sentence is 15-25 words,
-it reads as synthetic. Mix in fragments. And long, winding,
-clause-heavy sentences that carry the reader through a thought
-the way a river carries a leaf. Then a short one.
-
-**Transition word addiction**: If consecutive paragraphs start with
-"However," "Furthermore," "Additionally," "Moreover," "Nevertheless"
--- rewrite. Start with the subject. Start with action. Start with
-dialogue. Start with a sense detail.
-
-**Symmetry addiction**: Don't balance everything. Three pros, three
-cons, five steps -- that's a tell. Real writing is lumpy. Some
-sections are long because they need to be. Some are two lines.
-
-**Hedge parade**: "may," "might," "could potentially," "it's possible
-that" -- pick one per page, max. State things or don't.
-
-**Em dash overload**: One or two per page is fine. Five per paragraph
-is a dead giveaway. Use commas, parentheses, or two sentences instead.
-
-**List abuse**: Prose, not bullets. If the scene calls for a list
-(a merchant's inventory, a spell's components), earn it. Don't
-default to bullet points because it's easy.
-
-### The smell test
-
-After writing any passage, ask:
-- Read it aloud. Does it sound like a person talking?
-- Is there a single surprising sentence? Human writing surprises.
-- Does it say something specific? Could you swap the topic and the
-  words would still work? Specificity kills slop.
-- Would a reader think "AI wrote this"? If yes, rewrite.
+本文件分为两部分：
+1. **护栏 (Guardrails)** —— 通用规则，杜绝 AI 生成的废话和套路。
+   适用于所有文风，不可违反。
+2. **文风标识 (Voice Identity)** —— 专为本小说定制的文风。
+   在 Foundation 阶段生成。种田文的文风应当是：有烟火气、接地气、
+   干脆利落、画面感强。让读者仿佛身处那个村镇，闻得到灶头的烟火味。
 
 ---
 
-## Part 2: Voice Identity (generated per novel)
+## Part 1: 护栏（永久生效，所有小说适用）
 
-Everything below is discovered during the foundation phase.
-The agent proposes a voice that serves THIS story, writes exemplar
-passages, and calibrates against them throughout drafting.
+这些是悬崖边的栏杆。无论什么文风，都不要靠近这些雷区。
 
-### Tone
-<!-- Generated during foundation. Examples:
-     "Mythic and weighty, like stone tablets being read aloud."
-     "Warm, slightly breathless, like a traveler telling stories by firelight."
-     "Spare and cold. Sentences like knife cuts." -->
+### 第一梯队：禁用词汇——见到就杀
 
-### Sentence Rhythm
-<!-- Generated during foundation. Not rules -- tendencies.
-     "Long sentences for worldbuilding, short for violence."
-     "Dialogue is clipped. Narration flows." -->
+这些词在 AI 输出中出现频率远高于人类写作。一旦出现，必须改写整个句子，无例外。
 
-### Vocabulary Register
-<!-- Generated during foundation. The word-hoard for this world.
-     What does this world SOUND like? Anglo-Saxon blunt? Latinate
-     baroque? Colloquial modern? A mix? -->
+| 禁用词               | 替代方案                                       |
+|----------------------|------------------------------------------------|
+| 不禁                 | 直接写动作或反应，删掉"不禁"                     |
+| 映入眼帘             | 直接描写看到的东西                               |
+| 一抹微笑/淡笑        | 描写具体的表情动作（嘴角歪了一下、露出牙）        |
+| 心中一动             | 写出具体的念头或身体反应                         |
+| 不由自主             | 删掉，直接写动作                                 |
+| 若有所思             | 写出她在想什么，或写沉默的动作                    |
+| 仿佛/宛如+诗意比喻   | 用具体的、从角色生活经验出发的比喻                |
+| 目光如炬/眸光一闪     | 写眼睛的具体状态（眯起来、瞪大、移开）            |
+| 心下了然             | 用动作或对话暗示她明白了                         |
+| 柔声道/淡淡地说      | 用对话本身的语气传达情绪，或用动作搭配             |
+| 暗自思忖             | 直接写内心独白，或用身体语言表达                   |
+| 缓缓开口             | 直接写说的话，必要时加一个停顿动作                 |
+| 一股暖流涌上心头      | 写具体的身体感受或想法                            |
+| 美眸/玉手/樱唇       | 用正常的身体部位名称（眼睛、手、嘴）               |
+| 宛如仙子/谪仙        | 写具体的外貌特征                                  |
 
-### POV and Tense
-<!-- Generated during foundation.
-     Third limited? First? Rotating? Omniscient?
-     Past tense? Present? Does it shift for effect? -->
+### 第二梯队：扎堆可疑
 
-### Dialogue Conventions
-<!-- Generated during foundation.
-     Tags: "said" only? Action beats? No tags at all?
-     How do characters sound different from each other?
-     Subtext rules: do characters say what they mean? -->
+单独出现没问题。一段话里出现三个以上 = 必须改写该段。
 
-### Exemplar Passages
-<!-- 3-5 paragraphs that ARE the voice. Written during foundation.
-     The agent calibrates every chapter against these.
-     These are the tuning fork. -->
+暗暗、默默、悄悄、淡淡、微微、隐隐、丝丝、幽幽、
+轻轻、款款、盈盈、楚楚、脉脉、袅袅
 
-### Anti-Exemplars
-<!-- 3-5 paragraphs showing what this voice is NOT.
-     Not the generic anti-slop stuff above -- specific to this novel.
-     "This is too flowery for our tone." "This is too modern." -->
+### 第三梯队：废话句式——见到就删
+
+这些句子删掉后，原文一定更好。
+
+- "她心想……" → 直接写想法本身
+- "她不知道的是……" → 不要用全知叙述破坏悬念
+- "时间仿佛在这一刻凝固了" → 写具体的慢动作描写
+- "她从未想过自己会……" → 直接写事件本身
+- "一切都在朝着好的方向发展" → 写具体的进展
+- "这一刻，她终于明白了……" → 用场景和动作展示领悟
+- "生活，不就是这样吗" → 删掉，让读者自己感悟
+- "他/她就这样静静地看着" → 写看的内容和反应
+- "仿佛回到了……的时光" → 写具体的回忆画面
+- "说不出的感觉涌上心头" → 写出具体的感觉
+
+### 结构性 AI 废话模式
+
+这些是暴露机器生成痕迹的文字形状。无论什么文风都要避免。
+
+**模板化段落结构**：不要重复相同的段落结构（主题句→展开→例子→总结）。
+有时候重点放最后。有时候一段话就一句。有时候连续三个长段。
+
+**句式长度均匀化**：如果每句话都是 15-25 字，读起来就像机器写的。
+掺入短句。碎句。以及长的、带着好几个逗号和转折的、
+把读者从句首一路拽到句尾不让喘气的长句。然后一个短句收住。
+
+**转折词成瘾**：如果连续几段的开头都是"然而""不过""此外""与此同时"
+——改写。用人名开头。用动作开头。用对话开头。用一个声音或气味开头。
+
+**对称癖**：不要什么都搞对称。三个优点对三个缺点，
+五步走——这是 AI 的习惯。真实的写作是不均匀的。
+有的段落很长是因为它确实需要那么长。有的就两行。
+
+**破折号滥用**：一页一两个破折号没问题。一段里五个就暴露了。
+用逗号、括号，或者拆成两句话代替。
+
+**列表成瘾**：写散文，不是写PPT。如果场景确实需要清单
+（比如集市上的货品、嫁妆的清单），那就用。
+不要因为偷懒就默认用列表。
+
+### 气味测试
+
+写完任何一段话后，问自己：
+- 大声读出来。像人说话吗？像村里大嫂拉家常的语气吗？
+- 有没有一句话让人意外？人写的东西总有惊喜。
+- 写的内容是具体的吗？如果把主语换成别人，这段话还能用吗？
+  具体性是杀死 AI 味的最佳武器。
+- 读者会不会觉得"这是 AI 写的"？如果会，改写。
+
+---
+
+## Part 2: 文风标识（Foundation 阶段为本小说生成）
+
+以下所有内容在 Foundation 阶段发现和填充。
+大模型会为这个故事量身提炼文风，写出示范段落，
+并在后续的章节撰写中以这些段落为标尺校准。
+
+### 基调 (Tone)
+<!-- Foundation 阶段生成。种田文的基调参考：
+     "有烟火气的温暖。像冬天坐在灶台边听隔壁大娘讲八卦，
+      手里剥着瓜子，偶尔被呛到。"
+     "先苦后甜的踏实。文字像手里的活计——一针一线看得见。"
+     "不矫情、不煽情，但该扎心的时候一句话扎到骨头里。" -->
+
+### 句式节奏 (Sentence Rhythm)
+<!-- Foundation 阶段生成。不是死规则——是倾向。
+     "日常场景用松散的、带着口语感的中长句。
+      情感爆发用短句。对话干脆利落，不拖泥带水。"
+     "种田/经营段落允许详细描写（工序、手感、气味），
+      但人际冲突段落要快，像吵架一样来回打。" -->
+
+### 词汇域 (Vocabulary Register)
+<!-- Foundation 阶段生成。这个世界听起来/读起来像什么？
+     禁用现代词汇（比如"效率""流量""赋能"）。
+     使用古代日常口语，但不要文言文。
+     农具、织具、食材、布料的专业术语要准确。
+     人物称呼要符合身份（大伯、婶娘、掌柜的、小姐、姑娘等）。 -->
+
+### 视角与时态 (POV and Tense)
+<!-- Foundation 阶段生成。
+     第三人称有限视角？第一人称？
+     过去时？现在时？
+     锁定女主视角还是偶尔切换？
+     种田文通常使用第三人称有限视角、过去时态，
+     紧紧跟着女主的所见所闻所想。 -->
+
+### 对话规范 (Dialogue Conventions)
+<!-- Foundation 阶段生成。
+     对话标签：只用"说""道"？还是用动作代替标签？
+     角色之间的说话方式有什么不同？
+     婶娘说话是不是绵里藏针？男主是不是话少但句句重点？
+     村里人是不是爱用俗语和歇后语？
+     女主的内心独白是不是带着现代人的吐槽感？ -->
+
+### 示范段落 (Exemplar Passages)
+<!-- Foundation 阶段写出 3-5 段"就是这个味道"的段落。
+     后续每一章的写作都以这些段落为标尺校准。
+     这些段落是调音叉——写出来之后，摸着它的频率走。
+
+     种田文示范段落应覆盖以下场景：
+     1. 一段种田/经营场景（有工序细节、有身体感受）
+     2. 一段家庭冲突场景（有对话交锋、有情绪暗流）
+     3. 一段情感暗涌场景（有心动描写、有克制、有日常感）
+     4. 一段集市/社交场景（有烟火气、有人情世故）
+     5. 一段逆袭/爽点场景（有打脸、有扬眉吐气、但不过火） -->
+
+### 反面示范 (Anti-Exemplars)
+<!-- Foundation 阶段写出 3-5 段"绝对不是这个味道"的段落。
+     不是上面通用的反 AI 废话——是专门针对本小说的。
+     比如：
+     "这段太文艺了，我们的女主不会这么想。"
+     "这段太现代了，用了'赋能''共情'这种词。"
+     "这段太煽情了，种田文不是苦情戏，别往死里虐。"
+     "这段太爽了，一章之内从穷光蛋变成镇首富，不真实。"
+     "这段对话太书面了，村里人不会这么说话。" -->

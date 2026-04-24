@@ -2,6 +2,7 @@
 """Shared Anthropic-compatible LLM client for Anthropic and MiniMax."""
 
 import os
+import sys
 from pathlib import Path
 
 import httpx
@@ -107,6 +108,9 @@ def extract_text_from_response(data: dict) -> str:
         if data.get("stop_reason") == "max_tokens":
             raise ValueError(f"LLM reached max_tokens limit before outputting text. Please increase max_tokens. Response: {data}")
         raise ValueError(f"LLM response did not contain any text blocks. Response: {data}")
+    elif data.get("stop_reason") == "max_tokens":
+        print(f"\n[WARNING] LLM output was truncated because it reached the max_tokens limit! This might result in incomplete json/text.", file=sys.stderr)
+        
     return text
 
 

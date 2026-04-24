@@ -41,81 +41,78 @@ EVAL_LOG_DIR = BASE_DIR / "eval_logs"
 EVAL_LOG_DIR.mkdir(exist_ok=True)
 
 
-# ---- Mechanical Slop Detection (no LLM needed) ----
+# ---- 机械化 AI 废话检测（不需要 LLM） ----
 
+# 第一梯队：见到就杀的中文 AI 高频词
 TIER1_BANNED = [
-    "delve", "utilize", "leverage", "facilitate", "elucidate",
-    "embark", "endeavor", "encompass", "multifaceted", "tapestry",
-    "paradigm", "synergy", "synergize", "holistic", "catalyze",
-    "catalyst", "juxtapose", "myriad", "plethora",
+    "不禁", "映入眼帘", "心中一动", "不由自主", "若有所思",
+    "心下了然", "暗自思忖", "缓缓开口", "一股暖流涌上心头",
+    "美眸", "玉手", "樱唇", "宛如仙子", "谪仙",
+    "目光如炬", "眸光一闪",
 ]
 
+# 第二梯队：扎堆可疑的叠词（单独出现没问题，一段 3 个以上 = 扣分）
 TIER2_SUSPICIOUS = [
-    "robust", "comprehensive", "seamless", "seamlessly", "cutting-edge",
-    "innovative", "streamline", "empower", "foster", "enhance", "elevate",
-    "optimize", "pivotal", "intricate", "profound", "resonate",
-    "underscore", "harness", "cultivate", "bolster", "galvanize",
-    "cornerstone", "game-changer", "scalable",
+    "暗暗", "默默", "悄悄", "淡淡", "微微", "隐隐",
+    "丝丝", "幽幽", "轻轻", "款款", "盈盈", "楚楚",
+    "脉脉", "袅袅",
 ]
 
+# 第三梯队：废话句式（删掉后原文一定更好）
 TIER3_FILLER = [
-    r"it'?s worth noting that",
-    r"it'?s important to note that",
-    r"^importantly,?\s",
-    r"^notably,?\s",
-    r"^interestingly,?\s",
-    r"let'?s dive into",
-    r"let'?s explore",
-    r"as we can see",
-    r"^furthermore,?\s",
-    r"^moreover,?\s",
-    r"^additionally,?\s",
-    r"in today'?s .*(fast-paced|digital|modern)",
-    r"at the end of the day",
-    r"it goes without saying",
-    r"when it comes to",
-    r"one might argue that",
-    r"not just .+, but",
+    r"她心想",
+    r"她不知道的是",
+    r"时间仿佛.{0,6}凝固",
+    r"她从未想过自己会",
+    r"一切都在朝着好的方向发展",
+    r"这一刻.*终于明白",
+    r"生活.*不就是这样吗",
+    r"他就这样静静地看着",
+    r"仿佛回到了.*的时光",
+    r"说不出的感觉涌上心头",
 ]
 
+# 中文转折词成瘾：连续几段用同一个转折词开头
 TRANSITION_OPENERS = [
-    "however", "furthermore", "additionally", "moreover",
-    "nevertheless", "consequently", "nonetheless", "similarly",
+    "然而", "不过", "此外", "与此同时",
+    "紧接着", "随后", "就在这时", "说来也巧",
 ]
 
-# Fiction-specific AI tells (prose clichés that betray machine origin)
+# 中文网文特有的 AI 废话（散文中见到就杀）
 FICTION_AI_TELLS = [
-    r"a sense of \w+",
-    r"couldn'?t help but feel",
-    r"the weight of \w+",
-    r"the air was thick with",
-    r"eyes widened",
-    r"a wave of \w+ washed over",
-    r"a pang of \w+",
-    r"heart pounded in (?:his|her|their) chest",
-    r"(?:raven|dark|golden|silver) (?:hair|tresses) (?:spilled|cascaded|tumbled|fell)",
-    r"piercing (?:blue|green|gray|grey|dark) eyes",
-    r"a knowing (?:smile|grin|look|glance)",
-    r"(?:he|she|they) felt a (?:surge|rush|wave|pang|flicker) of",
-    r"the silence (?:was|hung|stretched|grew) (?:heavy|thick|oppressive|deafening)",
-    r"let out a breath (?:he|she|they) didn'?t (?:know|realize)",
-    r"something (?:dark|ancient|primal|unnamed) stirred",
+    r"一抹微笑浮上嘴角",
+    r"心中涌起一股暖流",
+    r"不禁对[她他]刮目相看",
+    r"眼中闪过一丝精光",
+    r"仿佛被施了定身咒",
+    r"美眸流转",
+    r"玉手纤纤",
+    r"樱唇微启",
+    r"顿时觉得不虚此行",
+    r"周围的人都投来了.*的目光",
+    r"从未见过如此.*的女子",
+    r"柔声道",
+    r"淡淡地说",
+    r"宛如.*仙[子女]",
+    r"一道倩影",
+    r"心头一[颤震]",
+    r"不由得.*一[呆愣怔]",
 ]
 
-# Structural AI tics -- rhetorical formulas that betray AI composition
+# 结构性 AI 写作模式
 STRUCTURAL_AI_TICS = [
-    r"(?:I'm|I am) not (?:saying|asking|suggesting) .{3,40}(?:I'm|I am) (?:saying|asking|suggesting)",  # "I'm not saying X. I'm saying Y"
-    r"(?:which|that) means either .{3,40} or ",  # "which means either X, or Y"
-    r"[Tt]here'?s a (?:difference|distinction)\.",  # formula capper
-    r"[Tt]hose are (?:different|not the same) things\.",  # formula capper
-    r"[Nn]ot (?:just|merely|simply) .{3,40}, but ",  # "not just X, but Y"
-    r"[Nn]ot (?:from|by|because of) .{3,40}, but (?:from|by|because)",  # "not from X, but from Y" in narration
+    r"不是.*而是",  # "不是X，而是Y" 反复使用
+    r"要么.*要么",  # "要么X，要么Y" 反复使用
+    r"一方面.*另一方面",  # 八股对称结构
+    r"她知道.*但她更知道",  # AI 式内心独白
+    r"不仅仅是.*更是",  # "不仅X，更是Y"
 ]
 
-# Show-don't-tell detectors: emotion TELLING patterns
+# 展示不讲述：直接告诉读者情绪的模式
 TELLING_PATTERNS = [
-    r"\b(?:he|she|they|I|we|[A-Z]\w+) (?:felt|was|seemed|looked|appeared) (?:angry|sad|happy|scared|nervous|excited|jealous|guilty|anxious|lonely|desperate|furious|terrified|elated|miserable|hopeful|confused|relieved|horrified|disgusted|ashamed|proud|bitter|defeated|triumphant)\b",
-    r"\b(?:angrily|sadly|happily|nervously|excitedly|desperately|furiously|anxiously|guiltily|bitterly|wearily|miserably)\b",
+    r"[她他]感到[了一]?[阵股丝].{0,4}(高兴|愤怒|悲伤|害怕|紧张|兴奋|嫉妒|内疚|焦虑|孤独|绝望|愧疚|骄傲|苦涩|委屈|心酸|欣慰|感动|震惊|失落)",
+    r"[她他]的心[里中]充满了",
+    r"[她他]觉得[很十分非常].*[高兴开心难过伤心]",
 ]
 
 
@@ -349,7 +346,7 @@ def parse_json_response(text):
 
 # --- Foundation Evaluation ---
 
-FOUNDATION_PROMPT = """评估这些奇幻小说策划文档。
+FOUNDATION_PROMPT = """评估这些女频种田网文的策划文档。
 
 评分基准（评分前请仔细阅读）：
 
@@ -387,72 +384,64 @@ FOUNDATION_PROMPT = """评估这些奇幻小说策划文档。
 {canon}
 
 交叉核对（评分前执行）：
-1. 检查所有对话示例是否符合反 AI 废话（ANTI-SLOP）模式：
-   - 检查不同角色之间是否重复使用结构化句式（如“不是 X，而是 Y” / “要么 X，要么 Y” / “这有区别”）。
-   - 检查伪装成角色语气的 AI 修辞癖好。
-   - 如果多个角色共享相同的句子结构，扣除角色辨识度分数。
-2. 检查缺失的“负空间” —— 漏掉了什么？
-   - 魔法系统中是否存在阻碍特定情节执行的漏洞？（例如：Cass 能听到书面文档中的谎言吗？高潮部分发生了什么 —— 哪条规则解决了它？）
-   - 剧情所需的关键角色是否缺失？
-   - 大纲要求的场景，世界观是否无法支撑？
-3. 检查“便利性漏洞”与“刻意的悬念”：
-   - 便利性漏洞：在需要细节的地方使用了“细节尚不明确”之类的描述。
-   - 刻意悬念：作者知道答案，但对读者保留。如果策划文档规避了作者在撰写场景时必须回答的问题，那就是漏洞，而不是“冰山”。
-4. 检查设定准则中的内部矛盾：
-   - 交叉对比日期、年龄和时间线。
-   - 检查角色能力是否符合魔法系统规则。
-   - 寻找各文档之间事实上的冲突。
+1. 经济数据交叉验证：物价、收入、支出是否自洽？女主的种田升级速度是否合理？
+2. 角色对话检查：不同角色是否共享相同句式？去掉标签能分辨谁在说话吗？
+3. 季节农时检查：故事时间线是否与农事周期对应？
+4. 金手指规则检查：局限性、冷却期是否明确？是否有规避不写的漏洞？
+5. 文档间矛盾检查：交叉对比年龄、地点、物价、关系。
 
 对以下维度进行评分（每个维度需包含缺陷+改进建议）：
 
-设定与世界观 (LORE & WORLDBUILDING):
-- 魔法系统 (magic_system): 遵循山德森第二定律，具有代价和局限性的硬规则。作者是否能仅利用已确立的规则解决高潮冲突？代价是否驱动了情节而非装饰？是否具体探索了至少 3 个社会影响？系统是否可测试 —— 你能否在不临时发明新规则的情况下撰写一场法庭戏、一场合同谈判或一场魔法对抗？
-- 世界历史 (world_history): 创造当前紧张局势的事件时间线。每一个历史事件都应映射到当前的派系冲突或角色动机。装饰性的历史（酷但与情节无关）会扣分。
-- 地理与文化 (geography_and_culture): 地点具有独特的感官特征。文化具有能产生冲突的具体习俗。经济体系产生阶级张力。核对：设定在两个不同地点的场景是否能因这里的内容而让人感到显著不同？
-- 设定关联性 (lore_interconnection): 改变一个元素是否会迫使至少另外两个元素发生改变？测试：如果去掉魔法系统，政治结构会崩溃吗？阶级制度会改变吗？如果各元素是模块化/可分离的，给低分。
-- 冰山深度 (iceberg_depth): 暗示深度 vs 明确深度。核对：作者是否真的知道悬念的答案，还是在敷衍？如果策划文档说“答案将被揭晓”却未指定答案是什么，那就是穿了冰山外衣的漏洞。
+设定与世界观 (SETTING):
+- 经济体系 (economic_system): 物价清单是否完整自洽？女主每笔收支能否在物价表中找到依据？经济升级速度是否合理？
+- 社会礼法 (social_rules): 婚姻、分家、女性地位等规则是否明确？是否既能制造冲突又留有突破口？
+- 地理物产 (geography_products): 地点是否有独特感官特征？物产是否与种田线直接相关？
+- 金手指规则 (cheat_rules): 能力边界是否清晰？局限性和冷却期是否明确？代价是否驱动情节？
 
 角色 (CHARACTER):
-- 角色深度 (character_depth): 具有因果关联（而非仅仅是主题相关）的创伤/欲望/需求/谎言链条。谎言必须逻辑上源自创伤。欲望必须是应对谎言的错误方案。需求必须直接对立于欲望。检查每个链条的逻辑漏洞。同时检查：是否有任何可能需要链条的主要角色缺失了该链条？
-- 角色辨识度 (character_distinctiveness): 去掉对话标签，仅凭句子结构能否辨认说话者？检查不同角色之间是否存在重复的结构化句式。检查隐喻领域是否重叠。检查说话方式是否反映了角色背景（14 岁的孩子说话不应像 60 岁的商人）。
-- 角色秘密 (character_secrets): 每个主要角色的秘密都应该是那种一旦揭露就会改变剧情走向的事情。模糊的秘密（“他知道的比表现出来的多”）得分低于具体的秘密（“他知道谐波意味着 X，这将导致 Y 失效”）。
+- 角色深度 (character_depth): 每个主要角色是否有完整驱动力链条？极品亲戚是否立体（不纯坏）？
+- 角色辨识度 (character_distinctiveness): 去掉对话标签能否辨认说话者？不同身份的说话方式是否有区分？
+- 角色秘密 (character_secrets): 秘密是否具体？暴露后是否会改变至少一条关系线？
 
 结构 (STRUCTURE):
-- 大纲完整性 (outline_completeness): 章节包含节拍、POV、情感弧光、尝试-失败循环类型。《救猫咪》节拍处于正确的百分比标记。如果为空得 0 分，只有存在幕后结构才给 5 分以上。
-- 伏笔平衡 (foreshadowing_balance): 每一个植入的线索都有规划好的回收。如果台账为空得 0 分，无论其他文档中是否暗示了线索 —— 伏笔必须被跟踪记录才算数。
+- 大纲完整性 (outline_completeness): 每章是否有核心推进线、种田进展、章尾钩子？四幕节拍是否在对应%位置？
+- 种田升级线 (farming_progression): 升级台阶是否清晰、可见、有代价？经济数据是否与world.md匹配？
+- 打脸铺垫 (face_slap_setup): 每个打脸/爽点是否有至少1-2章的铺垫？
+- 伏笔平衡 (foreshadowing_balance): 伏笔台账是否存在？植入到回收是否间隔3章以上？
 
 创作素养 (CRAFT):
-- 内部一致性 (internal_consistency): 积极寻找矛盾。交叉核对日期、年龄、人数、命名地点。标记任何文档不一致的情况。一个重大矛盾最高给 6 分，三个及以上最高给 4 分。
-- 语气清晰度 (voice_clarity): 语气定义必须具体且具有可操作性。示例段落必须能体现该语气。反面示例必须划定界限。检查对话示例是否存在 AI 废话模式。如果语气文档本身优美但在示例中包含 AI 废话，会削弱说服力 —— 扣分。
-- 准则覆盖度 (canon_coverage): 事实已被记录、来源明确且足以捕捉矛盾。核对：如果作者在第 5 章引入了一个新事实，他们能通过设定准则验证它吗？准则是否足够细致？是否存在其他文档中已知但未进入准则的事实？
+- 内部一致性 (internal_consistency): 积极寻找矛盾。交叉核对物价、时间线、角色年龄。
+- 语气清晰度 (voice_clarity): 语气定义是否具体？是否有烟火气？对话示例是否存在AI废话模式？
+- 准则覆盖度 (canon_coverage): 事实是否被完整记录？是否有遗漏的硬性事实？
 
 请以 JSON 格式响应：
 {{
-  "magic_system": {{"score": N, "gap": "最大弱点", "fix": "具体改进措施", "note": "..."}},
-  "world_history": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "geography_and_culture": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "lore_interconnection": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "iceberg_depth": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "economic_system": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "social_rules": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "geography_products": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "cheat_rules": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "character_depth": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "character_distinctiveness": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "character_secrets": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "outline_completeness": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "farming_progression": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "face_slap_setup": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "foreshadowing_balance": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "internal_consistency": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "voice_clarity": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
   "canon_coverage": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "slop_in_planning_docs": {{"found": ["列出在对话示例、语气示例或角色描述中发现的任何 AI 废话模式"], "note": "..."}},
-  "contradictions_found": ["列出文档之间的任何事实矛盾"],
+  "slop_in_planning_docs": {{"found": ["列出发现的AI废话模式"], "note": "..."}},
+  "contradictions_found": ["列出文档之间的事实矛盾"],
   "overall_score": N,
   "lore_score": N,
   "weakest_dimension": "...",
   "top_3_improvements": ["按优先级排列的 3 个最高杠杆改进方案"]
 }}
 
-权重：设定/世界观 40%，角色 30%，结构 20%，创作素养 10%。
-世界观单薄但大纲完整的小说，评价要低于世界观深厚但大纲不完整的小说。
+权重：设定/世界观 35%，角色 25%，结构 30%，创作素养 10%。
+种田文的结构权重高于奇幻文，因为升级台阶和打脸铺垫是读者追更的核心动力。
 
-最终核对：如果你的总分高于 7 分，请重新阅读你的缺陷列表。如果任何缺陷描述的问题会迫使作者在动笔时停下来临时发明内容，那么你的评分就太高了。请下调分数。
+最终核对：如果你的总分高于 7 分，请重新阅读你的缺陷列表。如果任何缺陷会迫使作者动笔时临时发明内容，评分就太高了。
 """
 
 
@@ -478,10 +467,10 @@ def evaluate_foundation():
 
 # --- Chapter Evaluation ---
 
-CHAPTER_PROMPT = """根据策划文档评估此奇幻小说章节。
+CHAPTER_PROMPT = """根据策划文档评估此女频种田网文章节。
 
 评分基准：
-  9-10: 达到已出版奇幻小说中的顶级水平。评分 9+ 必须能指名道姓地说出哪一个已出版章节可以与其竞争。
+  9-10: 达到已出版优质种田网文的顶级水平。
   7-8:  优秀，经编辑润色后即可出版。存在具体瑕疵但不会破坏阅读体验。
   5-6:  具备功能性但平淡。一个合格的初稿，但需要大量修订。平庸，缺乏惊喜。
   3-4:  存在重大问题。语气脱节、遗漏节拍、文字平庸。
@@ -533,14 +522,14 @@ CHAPTER_PROMPT = """根据策划文档评估此奇幻小说章节。
 
 对以下维度进行评分：
 
-- 语气遵循度 (voice_adherence): 文字是否符合 voice.md 第二部分？核对：句式节奏变化、词汇量运用、身体感受先于情感原则、描述的特定基调。引用最强和最弱的语气瞬间。是否有任何段落听起来像可以出现在任何小说里的通用奇幻散文？如果是，最高给 7 分。
+- 语气遵循度 (voice_adherence): 文字是否符合 voice.md 第二部分？核对：句式节奏变化、感官细节优先于情感标签、烟火气基调。是否有段落像通用AI网文散文？如果是，最高给 7 分。
 - 节拍覆盖度 (beat_coverage): 是否完成了大纲中的每一个节拍？节拍是戏剧化展现了还是仅仅被提及？在句子中总结而非在场景中生活的节拍只能算完成了一半。分数反映节拍执行的质量，而不只是存在感。
-- 角色语气 (character_voice): 在脑中去掉对话标签。你能分辨出是谁在说话吗？角色听起来是否相似？对话读起来像说话还是像书面散文？Cass 听起来像一个特定的 14 岁少年，还是像通用的“年轻主角”？是否有人说了令人惊讶的话 —— 不仅仅是正确的话，而是“真实”的话？从不磕绊、犹豫或说错话的角色是 AI 模式角色。
+- 角色语气 (character_voice): 去掉对话标签能分辨谁在说话吗？婶娘说话像婶娘吗？村妇像村妇吗？对话读起来像人说话还是像写作文？是否有人说了真实的、令人意外的话？从不说错话的角色是AI模式角色。
 - 伏笔植入 (plants_seeded): 伏笔元素是否放置得自然？显眼的伏笔比隐形的伏笔更差。根据整合的质量评分，而不只是是否存在。
 - 文笔质量 (prose_quality): 句式多样性（核对：是否有 3 条以上连续的句子开头相同？）。具体性（具体名词 > 抽象名词）。隐喻来自角色经历而非词典。情感高峰处的“展现而非陈述”。引用最弱的句子并解释原因。同时核对：重复短语、过度依赖的句式、可以删掉而不造成损失的段落。
 - 连贯性 (continuity): 逻辑上是否衔接前一章？包括情感连贯性和情节连贯性。角色的心态是否衔接？
-- 准则合规性 (canon_compliance): 对照设定准则检查所有事实。罗列违规项。一个重大违规最高给 6 分。核对：角色名、地点、魔法系统规则、时间线、已发生的事件、身体描写。
-- 设定整合度 (lore_integration): 这个世界在本章中是否有实质作用，还是仅仅作为布景？一个通过查找替换专有名词就能发生在任何奇幻城市的场景最高给 5 分。
+- 准则合规性 (canon_compliance): 对照设定准则检查所有事实。核对：角色名、地点、物价、金手指规则、时间线、季节农时。一个重大违规最高给 6 分。
+- 设定整合度 (lore_integration): 种田/经营细节在本章中是否有实质作用？经济逻辑是否自洽？换掉地名就能发生在任何古代村镇的场景最高给 5 分。
 - 吸引力 (engagement): 读者会翻页吗？张力来自哪里 —— 情节、角色、悬念还是文笔？是否有令人惊喜的瞬间？可预测的优秀依然是可预测的。只有在章节做了意料之外的事情时才给 8 分以上。
 
 请以 JSON 格式响应：
@@ -576,7 +565,7 @@ def evaluate_chapter(chapter_num):
 
     # Extract this chapter's outline entry (rough heuristic)
     outline = layers["outline"]
-    ch_pattern = rf'###\s*Ch\s*{chapter_num}\b.*?(?=###\s*Ch\s*\d|## Act|## Foreshadowing|$)'
+    ch_pattern = rf'###\s*第\s*{chapter_num}\s*章.*?(?=###\s*第\s*\d+\s*章|##\s*第|##\s*[一二三四五]|$)'
     ch_match = re.search(ch_pattern, outline, re.DOTALL)
     chapter_outline = ch_match.group(0) if ch_match else "(outline entry not found)"
 
@@ -609,7 +598,7 @@ def evaluate_chapter(chapter_num):
 
 # --- Full Novel Evaluation ---
 
-FULL_NOVEL_PROMPT = """从整体上全面评估这部奇幻小说。
+FULL_NOVEL_PROMPT = """从整体上全面评估这部女频种田网文。
 你拥有策划文档以及每一章的摘要及其个人评分。
 
 语气定义:

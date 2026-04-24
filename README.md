@@ -15,6 +15,9 @@ The text stack supports either Anthropic directly or MiniMax through its
 Anthropic-compatible endpoint. The default sample config targets MiniMax
 China (`https://api.minimaxi.com/anthropic`).
 
+### Known Limitations
+- **MiniMax Token Limits**: When using MiniMax models (like `MiniMax-M2.5-highspeed`), the output token limit is typically capped at 4096. Highly detailed prompts (like the current `seed.py`) may cause truncation if requesting more than 2-3 items at once. If you see truncated output, decrease the `--count` parameter.
+
 ---
 
 ## Quick Start

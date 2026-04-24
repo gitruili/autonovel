@@ -17,21 +17,47 @@ WRITER_MODEL = os.environ.get(
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
 
+
 def call_writer(prompt, max_tokens=16000):
     return call_text_model(
         model=WRITER_MODEL,
         max_tokens=max_tokens,
         temperature=0.8,
         system=(
-            "You are rewriting a fantasy novel chapter based on a specific revision brief. "
-            "You follow the brief exactly. You preserve the voice, world, and characters "
-            "from the existing draft while making the structural changes specified. "
-            "You write the FULL chapter. Do not truncate or summarize."
+            "你是一位正在撰写女频种田经营网文的小说家。"
+            "你正在根据特定的《修订任务书(Revision Brief)》重写一个章节。"
+            "你必须严格遵循该任务书的要求。在进行结构性修改的同时，"
+            "你要保持现有草稿的语气、世界观和角色设定（烟火气、经济逻辑等）。"
+            "你必须撰写完整的章节，绝对不要截断或总结情节。"
         ),
         messages=[{"role": "user", "content": prompt}],
         timeout=600,
         include_beta=True,
     )
+
+
+def load_file(path):
+    try:
+        return Path(path).read_text()
+    except FileNotFoundError:
+        return ""
+
+
+def load_title():
+    """从 seed.txt 或 outline.md 中提取小说标题。"""
+    seed = load_file(BASE_DIR / "seed.txt")
+    if seed:
+        first_line = seed.strip().split('\n')[0].strip()
+        if first_line:
+            return first_line
+    # fallback: 从 outline.md 第一行提取
+    outline = load_file(BASE_DIR / "outline.md")
+    if outline:
+        first_line = outline.strip().split('\n')[0].strip().lstrip('#').strip()
+        if first_line:
+            return first_line
+    return "本小说"
+
 
 def main():
     ch_num = int(sys.argv[1])
@@ -41,53 +67,53 @@ def main():
     characters = (BASE_DIR / "characters.md").read_text()
     world = (BASE_DIR / "world.md").read_text()
     brief = Path(brief_file).read_text()
+    title = load_title()
     
     # Load adjacent chapters for continuity
     prev_path = BASE_DIR / "chapters" / f"ch_{ch_num - 1:02d}.md"
     next_path = BASE_DIR / "chapters" / f"ch_{ch_num + 1:02d}.md"
-    prev_tail = prev_path.read_text()[-2000:] if prev_path.exists() else "(first chapter)"
-    next_head = next_path.read_text()[:1500] if next_path.exists() else "(last chapter)"
+    prev_tail = prev_path.read_text()[-2000:] if prev_path.exists() else "(第一章——无前文)"
+    next_head = next_path.read_text()[:1500] if next_path.exists() else "(最后一章)"
     
     # Load old version if exists
     old_path = BASE_DIR / "chapters" / f"ch_{ch_num:02d}.md"
-    old_text = old_path.read_text() if old_path.exists() else "(no existing draft)"
+    old_text = old_path.read_text() if old_path.exists() else "(尚未起草)"
     
-    prompt = f"""Rewrite Chapter {ch_num} of "The Second Son of the House of Bells."
+    prompt = f"""重写《{title}》的第 {ch_num} 章。
 
-REVISION BRIEF (follow this exactly):
+=== 修订任务书 REVISION BRIEF (请严格遵循此文档进行修改) ===
 {brief}
 
-VOICE DEFINITION:
+=== 语气定义 VOICE DEFINITION ===
 {voice}
 
-CHARACTER REGISTRY:
+=== 角色信息 CHARACTER REGISTRY ===
 {characters}
 
-WORLD BIBLE:
+=== 世界设定集 WORLD BIBLE ===
 {world}
 
-PREVIOUS CHAPTER ENDING (maintain continuity):
+=== 前一章结尾 (用于保持连贯性) ===
 {prev_tail}
 
-NEXT CHAPTER OPENING (end so this flows into it):
+=== 下一章开头 (结尾应顺滑过渡到这里) ===
 {next_head}
 
-THE EXISTING DRAFT (use as raw material -- keep what works, cut what doesn't):
+=== 现有草稿 (作为原材料——保留好的部分，剪掉坏的部分) ===
 {old_text}
 
-ANTI-PATTERN RULES:
-- NO triadic sensory lists (X. Y. Z.)
-- NO "He did not [verb]" more than once
-- NO "He thought about [X]" constructions
-- NO "the way [X] did [Y]" more than twice
-- NO "not X, but Y" formula in narration
-- NO over-explaining after showing
-- MAX 2 section breaks
-- At least one moment that genuinely surprises
-- 70%+ in-scene (dialogue and action, not summary)
-- Dialogue should sound like speech, not prose
+=== 避免的负面模式 (ANTI-PATTERN RULES) ===
+- 禁止使用三元组感官列表 (例如: 看到X，听到Y，闻到Z)
+- 每一章中"不由自主地"或类似词汇不得出现超过一次
+- 禁止"她心想/她暗想"——让想法本身作为独立的句子融入叙事
+- 禁止过度解释（如果动作或对话已经展示了，就不要再用旁白解释一遍）
+- 每章最多 2 个小节分隔符(---)，仅在真正的时空跳转时使用
+- 必须包含至少一个令人惊喜/符合人设但打破常规的瞬间
+- 至少 70% 的内容必须是即时场景（带对话和动作），而不是干巴巴的叙述总结
+- 对话要像真正的说话：带有地方特色、有潜台词，而不是书面语或演讲
+- 绝不使用烂俗 AI 网文词汇："不禁"、"映入眼帘"、"心中涌起暖流"、"美眸"等
 
-Write the FULL revised chapter now."""
+现在，请写出完整的修订章节。"""
 
     print(f"Rewriting Chapter {ch_num}...", file=sys.stderr)
     result = call_writer(prompt)

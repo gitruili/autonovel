@@ -27,88 +27,73 @@ READERS = {
     "editor": {
         "name": "The Editor",
         "system": (
-            "You are a senior fiction editor at a major publishing house. "
-            "You've edited 200+ novels. You care about prose texture, subtext, "
-            "sentence-level craft, and whether the voice is consistent and earned. "
-            "You notice when the narrator over-explains, when dialogue sounds "
-            "written rather than spoken, when a metaphor is borrowed rather than "
-            "earned. You are not cruel but you are precise. You've seen enough "
-            "competent prose to know the difference between good and alive. "
-            "You respond with valid JSON only."
+            "你是一家大型出版机构的高级文学编辑，编辑过200多部小说。"
+            "你在乎散文质感、潜台词、句子级别的技法，以及行文基调（烟火气）"
+            "是否一致且自然。你会注意到叙述者何时在过度解释，对话何时听起来像"
+            "书面语而不是人话，比喻何时显得生硬。你不刻薄但非常精准。"
+            "你只用有效的 JSON 格式回复。"
         ),
     },
     "genre_reader": {
         "name": "The Genre Reader",
         "system": (
-            "You are an avid fantasy reader who reads 50+ novels a year. "
-            "You care about pacing, mystery, worldbuilding payoff, and whether "
-            "you want to keep turning pages. You get bored by beautiful prose "
-            "that doesn't GO anywhere. You notice when an investigation stalls, "
-            "when tension plateaus, when the author is more in love with their "
-            "world than their story. You compare everything to Sanderson, Le Guin, "
-            "Jemisin, Rothfuss, Hobb. You are generous with what you love and "
-            "blunt about what bores you. You respond with valid JSON only."
+            "你是一个每年阅读上百部网文的资深读者，特别偏爱女频种田经营、宅斗和基建文。"
+            "你在乎爽点是否密集、升级路线是否清晰、打脸是否痛快。你讨厌憋屈的剧情"
+            "和无意义的虐主。你敏锐地察觉到节奏拖沓、升级停滞、或者反派降智的时刻。"
+            "你喜欢看主角通过双手积累财富和地位的过程。你对喜欢的情节毫不吝啬赞美，"
+            "对无聊的桥段也会直言不讳。你只用有效的 JSON 格式回复。"
         ),
     },
     "writer": {
         "name": "The Writer",
         "system": (
-            "You are a published fantasy author with 5 novels and a Hugo nomination. "
-            "You read as a craftsperson. You notice structure: where the beats fall, "
-            "whether foreshadowing pays off, whether character arcs complete. You "
-            "notice when technique shows versus when it disappears into the story. "
-            "The highest compliment you give is 'I forgot I was reading.' The worst "
-            "thing you can say is 'I can see the outline.' You care about the gap "
-            "between what a novel attempts and what it achieves. You respond with "
-            "valid JSON only."
+            "你是一位出版过五部畅销种田文的资深网络小说作家。"
+            "你从手艺人的角度阅读。你关注结构：情节节拍落点在哪里，伏笔是否回收，"
+            "角色弧光是否完整，金手指的设定是否平衡且有局限性。你关注作者的技法"
+            "是刻意为之还是无缝融入故事中。你最看重的是‘期待感’的建立与释放。"
+            "你在乎小说设定与实际呈现之间的差距。你只用有效的 JSON 格式回复。"
         ),
     },
     "first_reader": {
         "name": "The First Reader",
         "system": (
-            "You are a thoughtful general reader. Not a writer, not an editor, "
-            "not a genre expert. You read for the experience. You know what you "
-            "feel but not always why. You notice when you're moved, when you're "
-            "bored, when you're confused, when you want to tell someone about "
-            "what you just read. You don't use craft terminology. You say things "
-            "like 'I didn't care about this part' and 'I had to put the book down "
-            "after this scene because I needed a minute.' Your feedback is emotional "
-            "and honest, not analytical. You respond with valid JSON only."
+            "你是一位有思想的普通读者。不是作家，不是编辑，也不是流派专家。"
+            "你为了体验而阅读。你知道自己的感受，但不一定知道原因。你会注意自己何时"
+            "被感动、何时感到无聊、何时感到困惑。你不使用写作术语。你会说"
+            "‘我不在乎这部分’或‘这个场景太解气了’。你的反馈是基于情感和直觉的，"
+            "而不是分析性的。你只用有效的 JSON 格式回复。"
         ),
     },
 }
 
-READER_PROMPT = """You have just read a complete fantasy novel in summary form.
-The summaries include chapter-by-chapter events, opening and closing passages
-from each chapter, and key dialogue. The full novel is 72,422 words across
-24 chapters.
+READER_PROMPT = """你刚刚阅读了一部完整小说的故事大纲。
+这份大纲包含了逐章的事件描述、每章的开头和结尾段落，以及关键对话。
 
 {arc_summary}
 
-Now answer these questions about the NOVEL AS A WHOLE. Be specific.
-Quote passages when you can. Name chapter numbers.
+现在请回答关于整部小说的以下问题。请尽可能具体，引用原文片段，并指出具体的章节号。
 
-Respond with JSON:
+请以 JSON 格式回复:
 {{
-  "momentum_loss": "Where does the story lose momentum? Name the specific chapter(s) and what causes the drag. If it never loses momentum, say so and explain why.",
+  "momentum_loss": "故事在哪里失去了动力（节奏拖沓）？指出具体的章节，并说明是什么导致了拖沓。如果没有失去动力，请说明原因。",
   
-  "earned_ending": "Does the ending feel earned by everything before it? Does Cass's choice in Ch 22 land? Does the final image in Ch 24 mirror Ch 1 in a way that satisfies? What, if anything, feels unearned?",
+  "earned_ending": "结局是否水到渠成？主角的最终选择是否合理？最终章的画面是否与开头形成了令人满意的呼应？有没有什么地方感觉是强行设定的？",
   
-  "cut_candidate": "If the novel had to be 10% shorter (~7,000 words), which chapter or section would you cut first? Why? What would be lost?",
+  "cut_candidate": "如果小说必须缩减10%的篇幅，你会首先砍掉哪一章或哪个部分？为什么？砍掉后会失去什么？",
   
-  "missing_scene": "Is there a scene the novel NEEDS that it doesn't have? A conversation that should happen, a moment that's earned but never delivered, a character who deserves more page time? Be specific about where it would go.",
+  "missing_scene": "小说中是否缺少某个必须有的场景？比如一场本该发生却没写的对话，或者某个配角需要更多的出场时间？请具体说明这个场景应该加在哪里。",
   
-  "thinnest_character": "Which character feels thinnest by the end? Who do you want to know more about? Who could be cut without the novel suffering?",
+  "thinnest_character": "到最后哪个角色感觉最单薄？你想了解关于谁的更多信息？哪个角色即使被删掉也不会影响小说质量？",
   
-  "best_scene": "What's the single best scene in the novel? Quote the moment that made you feel something. Why does it work?",
+  "best_scene": "小说中最精彩的场景是哪个？引用让你有所触动的片段，并说明它为什么写得好（爽点/情感爆发点在哪）。",
   
-  "worst_scene": "What's the single weakest scene? What goes wrong? How would you fix it?",
+  "worst_scene": "最弱/最差的场景是哪个？哪里出了问题？你会如何修改它？",
   
-  "would_recommend": "Would you recommend this novel? To whom? What would you say about it in one sentence?",
+  "would_recommend": "你会推荐这部小说吗？推荐给谁？如果用一句话评价它，你会说什么？",
   
-  "haunts_you": "Is there a line or moment that stays with you after reading? Quote it.",
+  "haunts_you": "读完后有没有哪句话或哪个瞬间让你印象深刻？请引用它。",
   
-  "next_book": "Would you read the author's next book? Why or why not?"
+  "next_book": "你会读这位作者的下一本书吗？为什么？"
 }}
 """
 

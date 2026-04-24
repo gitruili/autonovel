@@ -69,18 +69,16 @@ def extract_voice_rules() -> list[str]:
 
     rules: list[str] = []
 
-    # Part 2 identity rules we always want
-    rules.append("Body-first emotion (jaw, ribs, tongue before naming the feeling)")
-    rules.append("No telling after showing")
-    rules.append("No triadic sensory lists")
-    rules.append("70%+ in-scene (dialogue and action, not summary)")
-    rules.append("Dialogue: clipped, subtext-heavy, 'said' default, no adverb tags")
-    rules.append("Sentence rhythm: mixed meter, fragments for pain, long for perception")
-    rules.append("Vocabulary from craft/trade/body wells — no generic fantasy diction")
-
-    # Part 1 structural slop
-    rules.append("No paragraph-template-machine (vary structure)")
-    rules.append("Max 1-2 em dashes per page")
+    # 核心语气与写作规则（自动附加到所有 Brief 中）
+    rules.append("拒绝空洞的情感形容词（如'心中一动'、'暗暗吃惊'），用具体的身体反应和动作代替")
+    rules.append("展示之后不要过度解释")
+    rules.append("禁止使用三元组感官列表")
+    rules.append("至少 70% 的内容必须在场景中（有对话、有动作、有环境互动），而不是干巴巴的叙述总结")
+    rules.append("对话要像真正的人类说话：有潜台词，有打断，带有地方或阶级特色，不要冗长的书面语演讲")
+    rules.append("改变句子长度。短句用于情绪冲击，长句用于铺陈日常")
+    rules.append("比喻和意象必须来自角色的生活经验（如手工艺、种田、算账），严禁使用奇幻或现代词汇")
+    rules.append("每一笔经济账必须算清楚，物价要有质感，符合设定")
+    rules.append("不要使用'不禁'、'映入眼帘'、'美眸'等烂俗 AI 网文词汇")
 
     return rules
 

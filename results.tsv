@@ -7,3 +7,5 @@ discarded	ch01	5.0	172	discard	Chapter 1 attempt 2
 b42ef52	ch01	?	172	forced	Chapter 1: kept after max attempts
 discarded	ch02	5.0	278	discard	Chapter 2 attempt 1
 discarded	ch02	-1.0	925	discard	Chapter 2 attempt 2
+4770c2e	ch02	?	925	forced	Chapter 2: kept after max attempts
+discarded	ch04	0.0	89	discard	Chapter 4 attempt 3

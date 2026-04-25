@@ -31,8 +31,8 @@ def spot_eval(ch):
     return None, None
 
 # Chapters to draft
-chapters = list(range(11, 25))
-spot_check_chapters = {13, 17, 20, 24}  # midpoint, all-is-lost, break-into-3, finale
+chapters = list(range(9, 10))
+spot_check_chapters = {9, 10}  # midpoint, all-is-lost, break-into-3, finale
 
 results = []
 

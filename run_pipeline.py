@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-run_pipeline.py — Fully automated novel pipeline orchestrator.
+run_pipeline.py — 全自动小说生产管线编排器。
 
-Runs the complete autonovel pipeline from seed concept to finished novel.
-Manages state, git commits, evaluation, and retry logic.
+运行完整的 autonovel 流水线：从种子概念到最终完稿。
+管理状态、Git 提交、自动评估以及失败重试逻辑。
 
-Usage:
-  python run_pipeline.py                    # run from current state
-  python run_pipeline.py --from-scratch     # start fresh from seed.txt
-  python run_pipeline.py --phase foundation # run only foundation
-  python run_pipeline.py --phase drafting   # run only drafting
-  python run_pipeline.py --phase revision   # run only revision
-  python run_pipeline.py --phase export     # run only export
-  python run_pipeline.py --max-cycles 4     # limit revision cycles
+用法:
+  python run_pipeline.py                    # 从当前状态继续运行
+  python run_pipeline.py --from-scratch     # 从 seed.txt 开始全新的运行
+  python run_pipeline.py --phase foundation # 仅运行设定阶段
+  python run_pipeline.py --phase drafting   # 仅运行起草阶段
+  python run_pipeline.py --phase revision   # 仅运行修订阶段
+  python run_pipeline.py --phase export     # 仅运行导出阶段
+  python run_pipeline.py --max-cycles 4     # 限制修订循环次数
 """
 
 import argparse
@@ -242,57 +242,57 @@ def run_foundation(state: dict) -> dict:
     Build planning documents (world, characters, outline, voice, canon).
     Loop until foundation_score > threshold or max iterations reached.
     """
-    banner("PHASE 1: FOUNDATION", "=")
+    banner("阶段 1: 设定基石 (FOUNDATION)", "=")
 
     best_score = state.get("foundation_score", 0.0)
     iteration = state.get("iteration", 0)
 
     for i in range(iteration + 1, MAX_FOUNDATION_ITERS + 1):
-        banner(f"Foundation Iteration {i}", "-")
+        banner(f"设定迭代 {i}", "-")
         state["iteration"] = i
 
-        # 1. Generate planning documents
-        step("Generating world bible...")
+        # 1. 生成规划文档
+        step("正在生成世界观设定集...")
         uv_run("gen_world.py", timeout=300)
 
-        step("Generating characters...")
+        step("正在生成角色注册表...")
         uv_run("gen_characters.py", timeout=300)
 
-        step("Generating outline (part 1)...")
+        step("正在生成大纲 (第一部分)...")
         uv_run("gen_outline.py", timeout=300)
 
-        step("Generating outline (part 2 — foreshadowing)...")
+        step("正在生成大纲 (第二部分 — 伏笔)...")
         uv_run("gen_outline_part2.py", timeout=300)
 
-        step("Generating canon...")
+        step("正在生成事实库 (Canon)...")
         uv_run("gen_canon.py", timeout=300)
 
-        step("Running voice fingerprint...")
+        step("正在提取文风指纹...")
         uv_run("voice_fingerprint.py", timeout=300)
 
-        # 2. Evaluate
-        step("Evaluating foundation...")
+        # 2. 评估
+        step("正在评估设定质量...")
         eval_result = uv_run("evaluate.py --phase=foundation", timeout=300)
         score = parse_score(eval_result.stdout, "overall_score")
         lore = parse_lore_score(eval_result.stdout)
 
-        step(f"Foundation score: {score}  (lore: {lore}, prev best: {best_score})")
+        step(f"设定得分: {score}  (逻辑一致性: {lore}, 此前最高分: {best_score})")
 
-        # 3. Keep or discard
+        # 3. 保留或丢弃
         if score > best_score:
             commit_hash = git_add_commit(
                 f"foundation iter {i}: score {score} (lore {lore})")
             log_result(commit_hash, "foundation", score, 0, "keep",
-                       f"Iteration {i}: score improved {best_score} -> {score}")
+                       f"第 {i} 次迭代: 分数从 {best_score} 提升至 {score}")
             best_score = score
             state["foundation_score"] = score
             state["lore_score"] = lore
             save_state(state)
         else:
-            step(f"Score did not improve ({score} <= {best_score}), discarding")
+            step(f"分数未提升 ({score} <= {best_score})，丢弃本次改动")
             git_reset_hard("HEAD")
             log_result("discarded", "foundation", score, 0, "discard",
-                       f"Iteration {i}: no improvement ({score} <= {best_score})")
+                       f"第 {i} 次迭代: 无提升 ({score} <= {best_score})")
 
         # 4. Check exit condition
         if best_score >= FOUNDATION_THRESHOLD:
@@ -321,7 +321,7 @@ def run_drafting(state: dict) -> dict:
     """
     Draft each chapter sequentially, evaluating and retrying as needed.
     """
-    banner("PHASE 2: DRAFTING", "=")
+    banner("阶段 2: 初稿起草 (DRAFTING)", "=")
 
     total = get_total_chapters(state)
     start_chapter = state.get("chapters_drafted", 0) + 1
@@ -333,41 +333,41 @@ def run_drafting(state: dict) -> dict:
         drafted = False
 
         for attempt in range(1, MAX_CHAPTER_ATTEMPTS + 1):
-            step(f"Attempt {attempt}/{MAX_CHAPTER_ATTEMPTS}")
+            step(f"尝试 {attempt}/{MAX_CHAPTER_ATTEMPTS}")
 
-            # Draft
+            # 起草
             draft_result = uv_run(f"draft_chapter.py {ch}", timeout=600)
             if draft_result.returncode != 0:
-                step(f"Draft failed (exit {draft_result.returncode}), retrying...")
+                step(f"起草失败 (退出码 {draft_result.returncode})，正在重试...")
                 continue
 
-            # Check the chapter file exists and has content
+            # 检查文件
             ch_file = CHAPTERS_DIR / f"ch_{ch:02d}.md"
             if not ch_file.exists() or ch_file.stat().st_size < 100:
-                step("Chapter file missing or too short, retrying...")
+                step("章节文件缺失或内容太少，正在重试...")
                 continue
 
             word_count = len(ch_file.read_text().split())
-            step(f"Drafted {word_count} words")
+            step(f"已起草 {word_count} 字")
 
-            # Evaluate
+            # 评估
             eval_result = uv_run(f"evaluate.py --chapter={ch}", timeout=300)
             score = parse_score(eval_result.stdout, "overall_score")
-            step(f"Chapter {ch} score: {score}")
+            step(f"第 {ch} 章 得分: {score}")
 
             if score >= CHAPTER_THRESHOLD:
                 commit_hash = git_add_commit(
                     f"ch{ch:02d}: score {score}, {word_count}w")
                 log_result(commit_hash, f"ch{ch:02d}", score, word_count,
-                           "keep", f"Chapter {ch} (attempt {attempt})")
+                           "keep", f"第 {ch} 章 (第 {attempt} 次尝试)")
                 state["chapters_drafted"] = ch
                 save_state(state)
                 drafted = True
                 break
             else:
-                step(f"Score {score} < {CHAPTER_THRESHOLD}, discarding attempt")
+                step(f"得分 {score} < {CHAPTER_THRESHOLD}，丢弃本次起草")
                 log_result("discarded", f"ch{ch:02d}", score, word_count,
-                           "discard", f"Chapter {ch} attempt {attempt}")
+                           "discard", f"第 {ch} 章 第 {attempt} 次尝试")
                 # Remove the bad chapter file so next attempt starts fresh
                 if ch_file.exists():
                     run_tool(f"git checkout -- chapters/ch_{ch:02d}.md 2>/dev/null || true")
@@ -470,7 +470,7 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
     """
     Revision phase: adversarial editing, reader panel, targeted revisions.
     """
-    banner("PHASE 3: REVISION", "=")
+    banner("阶段 3: 自动化修订 (REVISION)", "=")
 
     BRIEFS_DIR.mkdir(exist_ok=True)
     EDIT_LOGS_DIR.mkdir(exist_ok=True)
@@ -480,23 +480,23 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
     max_cycles = min(max_cycles, MAX_REVISION_CYCLES)
 
     for cycle in range(start_cycle, max_cycles + 1):
-        banner(f"Revision Cycle {cycle}/{max_cycles}", "-")
+        banner(f"修订循环 {cycle}/{max_cycles}", "-")
 
-        # -- Step 1: Adversarial editing pass --
-        step("Running adversarial editing on all chapters...")
+        # -- 步骤 1: 对抗性编辑 pass --
+        step("正在对所有章节运行对抗性编辑分析...")
         uv_run("adversarial_edit.py all", timeout=900)
 
-        # -- Step 2: Apply mechanical cuts (only if apply_cuts.py exists) --
+        # -- 步骤 2: 应用机械性剪裁 --
         apply_cuts = BASE_DIR / "apply_cuts.py"
         if apply_cuts.exists():
-            step("Applying mechanical cuts (OVER-EXPLAIN, REDUNDANT)...")
+            step("正在应用机械剪裁 (OVER-EXPLAIN, REDUNDANT)...")
             run_tool("uv run python apply_cuts.py all "
                      "--types OVER-EXPLAIN REDUNDANT --min-fat 15", timeout=300)
         else:
-            step("apply_cuts.py not found, skipping mechanical cuts")
+            step("未找到 apply_cuts.py，跳过机械剪裁")
 
-        # -- Step 3: Reader panel --
-        step("Running reader panel evaluation...")
+        # -- 步骤 3: 读者评审团 --
+        step("正在运行虚拟读者评审团评估...")
         uv_run("reader_panel.py", timeout=600)
 
         # -- Step 4: Parse panel consensus --
@@ -704,7 +704,7 @@ def run_export(state: dict) -> dict:
     """
     Build final deliverables: outline, arc summary, manuscript, PDF.
     """
-    banner("PHASE 4: EXPORT", "=")
+    banner("阶段 4: 导出 (EXPORT)", "=")
 
     # 1. Rebuild outline from chapters
     build_outline = BASE_DIR / "build_outline.py"

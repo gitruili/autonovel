@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
 Deep manuscript review via the configured review model.
+通过配置的审阅模型进行深度全书审阅。
 
-Sends the full novel to the configured review model for dual-persona review:
-  1. Literary critic (newspaper book review style)
-  2. Professor of fiction (specific, actionable craft suggestions)
+发送全本书稿给模型，进行双重人格审阅：
+  1. 文学评论家 (报纸书评风格)
+  2. 创意写作教授 (提供具体、可操作的创作建议)
 
-Usage:
-  python review.py                    # Review, save to edit_logs/
-  python review.py --output reviews.md  # Also save human-readable copy
-  python review.py --parse            # Parse last review into actionable items
+用法:
+  python review.py                    # 进行审阅，保存至 edit_logs/
+  python review.py --output reviews.md  # 同时保存一份人类可读的副本
+  python review.py --parse            # 解析最近一次审阅结果为可操作项
 """
 import os
 import sys
@@ -29,7 +30,7 @@ from llm_client import (
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env", override=True)
 
-# The review model defaults by provider and can be overridden in .env.
+# 审阅模型，默认为配置的角色，可以在 .env 中覆盖
 REVIEW_MODEL = os.environ.get(
     "AUTONOVEL_REVIEW_MODEL",
     default_model_for_role("review", "claude-opus-4-6"),
@@ -38,14 +39,25 @@ REVIEW_MODEL = os.environ.get(
 CHAPTERS_DIR = BASE_DIR / "chapters"
 LOGS_DIR = BASE_DIR / "edit_logs"
 
-REVIEW_PROMPT = """Read the below novel, "{title}". Review it first as a literary critic (like a newspaper book review) and then as a professor of fiction. In the later review, give specific, actionable suggestions for any defects you find. Be fair but honest. You don't *have* to find defects.
+REVIEW_PROMPT = """请阅读下面的小说《{title}》。
+首先请作为一名【文学评论家】（类似报纸书评风格）撰写一段综述；
+然后请作为一名【创意写作教授】，针对你发现的任何缺陷提供具体、可操作的修改建议。
+
+请保持公正但诚实的态度。如果你认为小说已经非常完美，不必强行寻找缺陷。
+
+在【创意写作教授】的建议部分，请务必使用以下格式：
+1. [严重程度] 建议标题
+   - 问题描述：...
+   - 修改建议：...
+
+严重程度请标注为：重大、中等、轻微。
 
 {manuscript}"""
 
 
 def call_opus(prompt, max_tokens=8000):
-    """Call the configured review model with the full manuscript."""
-    print(f"Sending to {REVIEW_MODEL} ({len(prompt):,} chars)...", file=sys.stderr)
+    """调用配置的审阅模型处理全本手稿。"""
+    print(f"正在发送至 {REVIEW_MODEL} ({len(prompt):,} 字符)...", file=sys.stderr)
     return call_text_model(
         model=REVIEW_MODEL,
         max_tokens=max_tokens,
@@ -57,7 +69,7 @@ def call_opus(prompt, max_tokens=8000):
 
 
 def get_title():
-    """Extract novel title from first chapter or outline."""
+    """从第一章或大纲中提取小说标题。"""
     outline = BASE_DIR / "outline.md"
     if outline.exists():
         first_line = outline.read_text().split("\n")[0]
@@ -68,14 +80,14 @@ def get_title():
     if ch1.exists():
         first_line = ch1.read_text().split("\n")[0]
         return first_line.lstrip("# ").strip()
-    return "Untitled Novel"
+    return "未命名小说"
 
 
 def build_manuscript():
-    """Concatenate all chapters into a single text."""
+    """将所有章节合并为一个文本。"""
     chapters = sorted(CHAPTERS_DIR.glob("ch_*.md"))
     if not chapters:
-        print("ERROR: No chapters found.", file=sys.stderr)
+        print("错误：未找到任何章节文件。", file=sys.stderr)
         sys.exit(1)
     
     parts = []
@@ -84,75 +96,80 @@ def build_manuscript():
     
     manuscript = "\n\n---\n\n".join(parts)
     wc = len(manuscript.split())
-    print(f"Manuscript: {len(chapters)} chapters, {wc:,} words", file=sys.stderr)
+    print(f"手稿：{len(chapters)} 章节, {wc:,} 字/词", file=sys.stderr)
     return manuscript
 
 
 def parse_review(review_text):
-    """Parse a review into structured actionable items."""
+    """将审阅文本解析为结构化的可操作项。"""
     items = []
     
-    # Split into critic and professor sections
-    sections = re.split(r'(?:Professor|PROFESSOR|professor).*?(?:Review|Assessment|Analysis|Craft)', 
+    # 分割评论家和教授部分
+    sections = re.split(r'(?:教授|PROFESSOR|professor|写作建议|建议部分)', 
                         review_text, maxsplit=1)
     
     critic_text = sections[0] if sections else review_text
     professor_text = sections[1] if len(sections) > 1 else ""
     
-    # Extract star rating
-    star_match = re.search(r'★+½?|(\d+\.?\d*)\s*/?\s*(?:out of\s*)?(?:five|5)', critic_text)
+    # 提取星级评分 (寻找 ★ 或 "评分: X/5")
+    star_match = re.search(r'★+½?|评分[:：]\s*(\d+\.?\d*)', review_text)
     stars = None
     if star_match:
         star_str = star_match.group(0)
-        stars = star_str.count('★') + (0.5 if '½' in star_str else 0)
+        if '★' in star_str:
+            stars = star_str.count('★') + (0.5 if '½' in star_str else 0)
+        else:
+            try:
+                stars = float(star_match.group(1))
+            except: pass
     
-    # Extract professor's numbered items
-    # Look for patterns like "1. Title" or "Problem:" or "Suggestion:"
-    prof_items = re.split(r'\n(?=\d+\.\s+[A-Z])', professor_text)
+    # 提取教授的编号条目
+    prof_items = re.split(r'\n(?=\d+[\.、]\s*[\[【])', professor_text)
     
     for section in prof_items:
         if not section.strip():
             continue
         
-        # Extract the item title/number
-        title_match = re.match(r'(\d+)\.\s+(.+?)(?:\n|$)', section)
+        # 提取条目编号、严重程度和标题
+        # 匹配格式如: 1. [重大] 建议标题
+        title_match = re.search(r'(\d+)[\.、]\s*[\[【](.+?)[\]】]\s*(.+?)(?:\n|$)', section)
         if not title_match:
             continue
         
         num = int(title_match.group(1))
-        title = title_match.group(2).strip()
+        severity_raw = title_match.group(2).strip()
+        title = title_match.group(3).strip()
         
-        # Classify severity based on language
+        # 映射严重程度
+        sev_map = {"重大": "major", "中等": "moderate", "轻微": "minor"}
+        severity = "moderate"
+        for k, v in sev_map.items():
+            if k in severity_raw:
+                severity = v
+                break
+        
+        # 尝试分类修改类型
         text_lower = section.lower()
-        if any(w in text_lower for w in ['major', 'significant', 'primary', 'most important']):
-            severity = "major"
-        elif any(w in text_lower for w in ['minor', 'small', 'slight', 'cosmetic']):
-            severity = "minor"
-        else:
-            severity = "moderate"
-        
-        # Classify type
-        if any(w in text_lower for w in ['cut', 'compress', 'trim', 'reduce', 'consolidate']):
+        if any(w in text_lower for w in ['删减', '冗余', '瘦身', '压缩', 'cut', 'compress']):
             fix_type = "compression"
-        elif any(w in text_lower for w in ['add', 'expand', 'introduce', 'give', 'more']):
+        elif any(w in text_lower for w in ['增加', '展开', '细节', '补充', 'add', 'expand']):
             fix_type = "addition"  
-        elif any(w in text_lower for w in ['repetit', 'recurring', 'frequency', 'tic', 'gesture']):
+        elif any(w in text_lower for w in ['重复', '惯用语', '口癖', '重复性', 'repetit']):
             fix_type = "mechanical"
-        elif any(w in text_lower for w in ['restructur', 'rearrang', 'move', 'reorganiz']):
+        elif any(w in text_lower for w in ['结构', '节奏', '调整', '顺序', 'structur']):
             fix_type = "structural"
         else:
             fix_type = "revision"
         
-        # Check if this is qualified/hedged (diminishing returns signal)
+    # 检查是否为“带有保留意见/委婉的” (作为停止信号)
         qualified = any(phrase in text_lower for phrase in [
-            'individually fine', 'largely successful', 'each instance works',
-            'minor relative to', 'small complaint', 'costs of ambition',
-            'not a flaw', 'deliberate choice', 'thematically coherent'
+            '本身很好', '基本成功', '算不上缺陷', '有意的选择', '符合设定',
+            '已经不错', '瑕不掩瑜', '作为权衡'
         ])
         
-        # Extract specific suggestion
+        # 提取具体建议
         suggestion = ""
-        sugg_match = re.search(r'(?:Specific\s+)?[Ss]uggestion[s]?:?\s*\n?(.*?)(?=\n\d+\.|\n\n[A-Z]|\Z)', 
+        sugg_match = re.search(r'(?:修改建议|建议)[:：]\s*\n?(.*?)(?=\n\d+[\.、]|\n\n[A-Z]|\Z)', 
                                section, re.DOTALL)
         if sugg_match:
             suggestion = sugg_match.group(1).strip()[:500]
@@ -179,12 +196,12 @@ def parse_review(review_text):
 
 
 def should_stop(parsed_review):
-    """Determine if the novel is done being revised.
+    """判断小说是否修订完成。
     
-    Stopping conditions:
-    - Stars >= 4
-    - No major unqualified items
-    - More than half the items are qualified/hedged
+    停止条件：
+    - 评分 >= 4.5 且无重大缺陷
+    - 或者 评分 >= 4 且超过一半的建议是委婉的/建议性的
+    - 或者 总建议数 <= 2
     """
     stars = parsed_review.get("stars", 0) or 0
     total = parsed_review["total_items"]
@@ -192,17 +209,17 @@ def should_stop(parsed_review):
     qualified = parsed_review["qualified_items"]
     
     if stars >= 4.5 and major == 0:
-        return True, "★★★★½ with no major items"
+        return True, "评分 4.5 且无重大缺陷"
     if stars >= 4 and total > 0 and qualified / total > 0.5:
-        return True, f"★{'★' * int(stars)} with {qualified}/{total} items qualified"
+        return True, f"评分 {stars} 且 {qualified}/{total} 条建议为保留意见"
     if total <= 2:
-        return True, f"Only {total} items found"
+        return True, f"仅发现 {total} 条建议"
     
-    return False, f"{major} major items, {total - qualified} unqualified"
+    return False, f"仍有 {major} 个重大问题，{total - qualified} 个非保留意见"
 
 
 def cmd_review(args):
-    """Generate a review."""
+    """执行审阅。"""
     title = get_title()
     manuscript = build_manuscript()
     
@@ -210,7 +227,7 @@ def cmd_review(args):
     
     review_text = call_opus(prompt)
     
-    # Save raw review
+    # 保存原始审阅结果
     LOGS_DIR.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_path = LOGS_DIR / f"{timestamp}_review.json"
@@ -220,63 +237,63 @@ def cmd_review(args):
     parsed["title"] = title
     parsed["word_count"] = len(manuscript.split())
     
-    log_path.write_text(json.dumps(parsed, indent=2, default=str))
-    print(f"\nReview saved to {log_path}", file=sys.stderr)
+    log_path.write_text(json.dumps(parsed, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"\n审阅报告已保存至 {log_path}", file=sys.stderr)
     
-    # Save human-readable copy
+    # 保存可读副本
     if args.output:
-        Path(args.output).write_text(review_text)
-        print(f"Human-readable copy: {args.output}", file=sys.stderr)
+        Path(args.output).write_text(review_text, encoding="utf-8")
+        print(f"人类可读副本：{args.output}", file=sys.stderr)
     
-    # Print summary
+    # 打印摘要
     stop, reason = should_stop(parsed)
     print(f"\n{'='*50}")
-    print(f"REVIEW SUMMARY")
-    print(f"  Stars: {parsed['stars']}")
-    print(f"  Items: {parsed['total_items']} ({parsed['major_items']} major)")
-    print(f"  Qualified: {parsed['qualified_items']}/{parsed['total_items']}")
-    print(f"  Stop revising? {'YES — ' + reason if stop else 'NO — ' + reason}")
+    print(f"审阅摘要 (REVIEW SUMMARY)")
+    print(f"  星级: {parsed['stars'] or '?'}")
+    print(f"  建议数: {parsed['total_items']} (重大问题: {parsed['major_items']})")
+    print(f"  保留意见比例: {parsed['qualified_items']}/{parsed['total_items']}")
+    print(f"  是否停止修订? {'是 —— ' + reason if stop else '否 —— ' + reason}")
     print(f"{'='*50}")
     
     return parsed
 
 
 def cmd_parse(args):
-    """Parse the most recent review into actionable items."""
+    """解析最近一次审阅结果。"""
     LOGS_DIR.mkdir(exist_ok=True)
     reviews = sorted(LOGS_DIR.glob("*_review.json"), reverse=True)
     if not reviews:
-        print("No reviews found. Run: review.py first")
+        print("未找到审阅报告。请先运行: review.py")
         sys.exit(1)
     
-    latest = json.loads(reviews[0].read_text())
+    latest = json.loads(reviews[0].read_text(encoding="utf-8"))
     
-    print(f"Latest review: {latest.get('timestamp', 'unknown')}")
-    print(f"Stars: {latest.get('stars', '?')}")
-    print(f"\nACTIONABLE ITEMS ({latest['total_items']}):")
+    print(f"最新审阅时间: {latest.get('timestamp', '未知')}")
+    print(f"星级: {latest.get('stars', '?')}")
+    print(f"\n待处理项 ({latest['total_items']}):")
     
     for item in latest.get("professor_items", []):
-        qual = " [QUALIFIED]" if item["qualified"] else ""
+        qual = " [已达到较好水平/保留意见]" if item["qualified"] else ""
         print(f"\n  {item['number']}. [{item['severity'].upper()}] [{item['type']}]{qual}")
-        print(f"     {item['title']}")
+        print(f"     标题: {item['title']}")
         if item["suggestion"]:
-            print(f"     Suggestion: {item['suggestion'][:120]}...")
+            print(f"     建议: {item['suggestion'][:120]}...")
     
     stop, reason = should_stop(latest)
     print(f"\n{'='*50}")
-    print(f"Stop revising? {'YES — ' + reason if stop else 'NO — ' + reason}")
+    print(f"是否停止修订? {'是 —— ' + reason if stop else '否 —— ' + reason}")
     print(f"{'='*50}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Deep manuscript review")
-    parser.add_argument("--output", "-o", default=None, help="Save human-readable review to file")
-    parser.add_argument("--parse", action="store_true", help="Parse most recent review")
+    parser = argparse.ArgumentParser(description="深度书稿审阅工具")
+    parser.add_argument("--output", "-o", default=None, help="将可读审阅结果保存至文件")
+    parser.add_argument("--parse", action="store_true", help="解析最近一次审阅结果")
     
     args = parser.parse_args()
     
     if not get_api_key():
-        print(f"ERROR: {provider_api_key_env()} not set in .env", file=sys.stderr)
+        print(f"错误：.env 中未设置 {provider_api_key_env()}", file=sys.stderr)
         sys.exit(1)
     
     if args.parse:

@@ -788,18 +788,18 @@ def build_auto_brief() -> tuple[int, str]:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Auto-generate revision briefs from feedback sources."
+        description="从反馈源自动生成修订任务书 (Revision Briefs)。"
     )
     parser.add_argument("--panel", type=int, metavar="CH",
-                        help="Generate brief from reader panel feedback for chapter CH")
+                        help="根据读者评审团(reader panel)的反馈为第 CH 章生成任务书")
     parser.add_argument("--eval", type=int, metavar="CH",
-                        help="Generate brief from eval callouts for chapter CH")
+                        help="根据评估(eval)的意见为第 CH 章生成任务书")
     parser.add_argument("--cuts", type=int, metavar="CH",
-                        help="Generate brief from adversarial cuts for chapter CH")
+                        help="根据对抗性删减(adversarial cuts)为第 CH 章生成任务书")
     parser.add_argument("--auto", action="store_true",
-                        help="Auto-detect weakest chapter and generate combined brief")
+                        help="自动检测最弱的章节并生成综合任务书")
     parser.add_argument("--dry-run", action="store_true",
-                        help="Print brief to stdout without saving")
+                        help="仅在控制台打印任务书而不保存文件")
 
     args = parser.parse_args()
 

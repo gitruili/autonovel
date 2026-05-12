@@ -8,3 +8,11 @@ __pycache__/
 typeset/*.pdf
 typeset/chapters_content.tex
 *.pdf
+
+# Pipeline State & Generated Logs
+state.json
+results.tsv
+failed_eval.json
+outline_back.md
+cannon_back.md
+chapters/*.md

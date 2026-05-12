@@ -1,214 +1,203 @@
 # autonovel
 
-Autonomous fantasy novel writing pipeline. The agent writes and refines
-a novel across 5 co-evolving layers, guided by automated evaluation.
+自主的奇幻小说写作流水线。智能体在 5 个共同演进的层级上，在自动化评估的指导下，进行小说的编写和修改。
 
-## Required Reading
+## 必读内容
 
-Before ANY writing or evaluation, the agent must internalize:
-  - `voice.md` -- Part 1 (guardrails) is permanent. Part 2 is per-novel.
-  - `CRAFT.md` -- Operationalizable frameworks for plot, character,
-    worldbuilding, foreshadowing, prose quality. This is the education.
-  - `ANTI-SLOP.md` -- Full reference on AI writing tells.
+在进行**任何**写作或评估之前，智能体必须内化：
+  - `voice.md` -- 第 1 部分（护栏）是永久性的。第 2 部分是针对每本小说的。
+  - `CRAFT.md` -- 关于情节、角色、世界构建、伏笔、散文质量的**可操作**框架。这是必须要接受的教育。
+  - `ANTI-SLOP.md` -- 关于 AI 写作痕迹的完整参考。
 
-## The Layer Stack
+## 层级堆栈
 
 ```
-  Layer 5:  voice.md          -- HOW we write (style, tone, vocabulary)
-  Layer 4:  world.md          -- WHAT exists (lore, magic, geography, history)
-  Layer 3:  characters.md     -- WHO acts (registry, arcs, relationships)
-  Layer 2:  outline.md        -- WHAT HAPPENS (beats, foreshadowing map)
-  Layer 1:  chapters/ch_NN.md -- THE ACTUAL PROSE (one file per chapter)
-  Cross-cutting: canon.md     -- WHAT IS TRUE (hard facts, consistency DB)
+  第5层:  voice.md          -- 我们怎么写（风格、基调、词汇）
+  第4层:  world.md          -- 有什么（传说、魔法、地理、历史）
+  第3层:  characters.md     -- 谁来做（注册表、情节弧、关系）
+  第2层:  outline.md        -- 发生什么（节拍、伏笔图）
+  第1层:  chapters/ch_NN.md -- 实际的文字内容（每章一个文件）
+  交叉切面: canon.md        -- 什么是真实的（硬事实，一致性数据库）
 ```
 
-## Setup
+## 准备阶段 (Setup)
 
-1. **Tag the run**: Create branch `autonovel/<tag>` from master.
-2. **Read all layer files** for full context.
-3. **Verify state.json** shows phase=foundation.
-4. **Confirm and go**.
+1. **给运行打标签**: 从 master 分支创建 `autonovel/<tag>` 分支。
+2. **阅读所有的层级文件** 以获取完整的上下文。
+3. **验证 state.json** 显示 phase=foundation。
+4. **确认并执行**。
 
-## Phase 1: Foundation (no prose yet)
+## 阶段 1：基础构建（尚未产生正文文字）
 
-LOOP until foundation_score > 7.5 AND lore_score > 7.0:
-  1. Run `python evaluate.py --phase=foundation`
-  2. Identify the weakest layer/dimension from the eval output
-  3. Expand or revise that layer's document
-  4. When adding facts to world.md or characters.md, ALSO log them
-     in canon.md as canonical entries
-  5. git commit with description of what changed
-  6. Re-evaluate
-  7. If score improved -> keep. If worse -> git reset --hard HEAD~1, discard.
-  8. Log to results.tsv
+循环，直到 foundation_score > 7.5 且 lore_score > 7.0:
+  1. 运行 `python evaluate.py --phase=foundation`
+  2. 从评估输出中识别出最弱的层/维度
+  3. 扩展或修改该层的文档
+  4. 当向 world.md 或 characters.md 添加事实时，**同时**
+     将其作为规范条目记录在 canon.md 中
+  5. 带有变更描述的 git commit
+  6. 重新评估
+  7. 如果分数提高了 -> 保留。如果更糟 -> git reset --hard HEAD~1，丢弃。
+  8. 记录到 results.tsv 中
 
-Lore priorities (the foundation evaluator weights these at 40%):
-  - Magic system: hard rules, costs, limitations, societal implications
-  - History: timeline that creates PRESENT-DAY TENSIONS, not decoration
-  - Geography/culture: distinct locations, specific customs and taboos
-  - Interconnection: magic affects politics, history explains factions,
-    geography shapes culture. Pulling one thread should move everything.
-  - Iceberg depth: more implied than stated. Hints at deeper systems.
+设定（Lore）优先级（基础评估器将其权重设定为 40%）：
+  - 魔法系统：硬性规则、代价、限制、社会影响
+  - 历史：能够制造**当今紧张局势**的时间线，而不是仅仅为了装饰
+  - 地理/文化：独特的地点，具体的风俗和禁忌
+  - 相互联系：魔法影响政治，历史解释阵营，
+    地理塑造文化。牵一发而动全身。
+  - 冰山深度：暗示多于明示。暗示着更深层次的系统。
 
-Cross-layer consistency checks on every iteration:
-  - Outline references only lore that exists in world.md
-  - Character arcs align with outline beats
-  - Character abilities match magic system rules
-  - Foreshadowing ledger balances (every plant has a payoff)
-  - Voice exemplars exist and are non-generic
-  - Canon.md is populated with all hard facts from world.md and
-    characters.md
+每次迭代都进行跨层一致性检查：
+  - 大纲引用的设定必须是 world.md 中存在的
+  - 角色弧线与大纲的节拍对齐
+  - 角色能力符合魔法系统规则
+  - 伏笔账本保持平衡（每一个埋点都有收获）
+  - 叙事声音示例存在且非泛泛之谈
+  - Canon.md 汇集了 world.md 和 characters.md 中的所有硬事实
 
-Exit: When foundation_score > 7.5 AND lore_score > 7.0, update
-state.json phase to "drafting".
+退出条件：当 foundation_score > 7.5 且 lore_score > 7.0 时，
+将 state.json 的 phase 更新为 "drafting"。
 
-## Phase 2: First Draft (sequential chapter writing)
+## 阶段 2：初稿写作（按顺序编写章节）
 
-FOR each chapter in outline order:
-  LOOP until chapter_score > 6.0 or attempts > 5:
-    1. Load context: voice.md + world.md + characters.md
-       + this chapter's outline entry
-       + previous chapter's last ~1000 words
-       + next chapter's outline (for continuity)
-    2. Write chapters/ch_NN.md
-    3. Run `python evaluate.py --chapter=NN`
-    4. Keep/discard based on score
-    5. If writing reveals a lore gap or inconsistency, log a debt
-       in state.json
-    6. After evaluation, check new_canon_entries in the eval output.
-       Add any new facts established in the chapter to canon.md.
-    7. Log to results.tsv
+按照大纲顺序遍历每一章：
+  循环，直到 chapter_score > 6.0 且重试次数 attempts > 5:
+    1. 加载上下文：voice.md + world.md + characters.md
+       + 本章的大纲条目
+       + 上一章的最后约 1000 字
+       + 下一章的大纲（用于保持连贯性）
+    2. 编写 chapters/ch_NN.md
+    3. 运行 `python evaluate.py --chapter=NN`
+    4. 根据分数决定保留/丢弃
+    5. 如果写作揭示了设定空白或不一致，在 state.json 中
+       记录一笔债务
+    6. 评估后，检查输出中的 new_canon_entries。
+       将本章建立的任何新事实添加到 canon.md 中。
+    7. 记录到 results.tsv 中
     8. git commit
 
-Canon grows during drafting. Every chapter establishes facts (a
-character reveals something, a place is described, an event occurs).
-These get logged in canon.md so future chapters stay consistent.
+正典 (Canon) 在写作过程中增长。每一章都会确立事实（角色揭露了某事，描述了一个地方，发生了一个事件）。
+这些都会被记录在 canon.md 中，以便后续章节保持一致。
 
-After all chapters drafted, update state.json phase to "revision".
+所有章节起草完毕后，将 state.json 的 phase 更新为 "revision"。
 
-## Phase 3: Revision (infinite refinement)
+## 阶段 3：修改（无限打磨）
 
-LOOP FOREVER:
-  1. Run `python evaluate.py --full`
-  2. Identify weakest point:
-     - Lowest-scoring chapter
-     - Unresolved foreshadowing thread
-     - Consistency violation
-     - Voice deviation
-     - Pacing problem
-     - Pending debt from state.json
-  3. Decide action:
-     a. Revise a weak chapter
-     b. Fix a consistency violation (may touch lore + chapters)
-     c. Strengthen a foreshadowing thread (plant + payoff chapters)
-     d. Refine voice in the most-deviant chapter
-     e. Adjust pacing (split/merge chapters)
-     f. Update planning docs to reflect reality
-  4. Make the change(s)
+无限循环：
+  1. 运行 `python evaluate.py --full`
+  2. 识别最弱点：
+     - 得分最低的章节
+     - 未解决的伏笔线索
+     - 一致性冲突
+     - 叙事声音偏离
+     - 节奏问题
+     - state.json 中待处理的债务
+  3. 决定采取的行动：
+     a. 修改薄弱的章节
+     b. 修复一致性冲突（可能涉及设定 + 章节）
+     c. 加强伏笔线索（埋点 + 收获章节）
+     d. 在偏离最严重的章节中改善叙事声音
+     e. 调整节奏（拆分/合并章节）
+     f. 更新规划文档以反映当前实际情况
+  4. 执行更改
   5. git commit
-  6. Re-evaluate affected scope
-  7. Keep/discard
-  8. Log to results.tsv
+  6. 重新评估受影响的范围
+  7. 保留/丢弃
+  8. 记录到 results.tsv 中
 
-### Propagation Rules
+### 传播规则 (Propagation Rules)
 
-When a layer changes, check downstream:
-  - voice.md changes    -> re-evaluate ALL chapters for voice adherence
-  - world.md changes    -> check all chapters for lore consistency
-  - characters.md changes -> check affected chapters for dialogue/behavior
-  - outline.md changes  -> re-evaluate affected chapters for beat coverage
-  - chapter changes     -> check foreshadowing ledger, check adjacent chapters
+当某一层次发生变化时，检查下游：
+  - voice.md 更改    -> 重新评估**所有**章节的叙事声音连贯性
+  - world.md 更改    -> 检查所有章节的设定一致性
+  - characters.md 更改 -> 检查受影响章节的对话/行为
+  - outline.md 更改  -> 重新评估受影响章节的节拍覆盖率
+  - 章节内容 更改    -> 检查伏笔账本，检查相邻章节
 
-When writing reveals upstream issues, log a debt in state.json:
+当写作揭示了上游的问题时，在 state.json 中记录一笔债务：
 ```json
-{"trigger": "ch_07: magic system needs teleportation rules",
+{"trigger": "ch_07: 魔法系统需要瞬间移动的规则",
  "affected": ["world.md", "ch_03.md"],
  "status": "pending"}
 ```
 
-## Context Window Strategy
+## 上下文窗口策略
 
-ALWAYS loaded (~8k tokens):
-  - voice.md (full)
-  - characters.md (full)
-  - world.md (key rules summary)
-  - outline.md (full)
-  - foreshadowing ledger (full)
+**始终**加载（约 8k tokens）：
+  - voice.md（完整）
+  - characters.md（完整）
+  - world.md（关键规则摘要）
+  - outline.md（完整）
+  - 伏笔账本（完整）
 
-PER TASK (~20-30k tokens):
-  - Target chapter(s)
-  - Adjacent chapters (prev + next)
-  - Chapters connected by foreshadowing threads
+按任务加载（约 20-30k tokens）：
+  - 目标章节
+  - 相邻章节（前一章 + 后一章）
+  - 由伏笔线索连接的章节
 
-## Evaluation Dimensions
+## 评估维度 (Evaluation Dimensions)
 
-Foundation: world_depth, character_depth, outline_completeness,
-  foreshadowing_balance, internal_consistency
+基础构建 (Foundation)：world_depth（世界观深度）, character_depth（角色深度）, outline_completeness（大纲完整性）,
+  foreshadowing_balance（伏笔平衡）, internal_consistency（内部一致性）
 
-Chapter: voice_adherence, beat_coverage, character_voice,
-  plants_seeded, prose_quality, continuity
+章节 (Chapter)：voice_adherence（声音连贯性）, beat_coverage（节拍覆盖）, character_voice（角色声音）,
+  plants_seeded（伏笔埋下）, prose_quality（散文质量）, continuity（连贯性）
 
-Full novel: all above + arc_completion, pacing_curve,
-  theme_coherence, foreshadowing_resolution, overall_engagement
+完整小说 (Full novel)：上述所有项 + arc_completion（弧线完成度）, pacing_curve（节奏曲线）,
+  theme_coherence（主题连贯性）, foreshadowing_resolution（伏笔回收）, overall_engagement（整体吸引力）
 
-## The Stability Trap (CRITICAL)
+## 稳定陷阱（极其重要！）
 
-AI's worst tendency is FAVOURING STABILITY OVER CHANGE. This kills
-fiction. Actively fight it at every phase:
+AI 最坏的倾向是**偏好稳定胜过改变**。这会杀死小说。必须在每个阶段积极对抗它：
 
-- Characters must end TRULY different from how they began.
-- Let bad things stay bad. Not everything gets fixed.
-- Allow irreversible decisions and irreversible loss.
-- Withhold information from the reader. Maintain mystery.
-- Create genuine moral ambiguity. The "right" choice should be unclear.
-- Vary emotional intensity: quiet/explosive/dread/relief/wonder/horror.
-- If a choice has no real cost, it's not a real choice.
-- Conflicts should NOT resolve too quickly or too cleanly.
-- Resist the urge to round off sharp edges into something safer.
+- 角色结束时必须与开始时**真正**有所不同。
+- 让糟糕的事情保持糟糕。不是所有事情都会被解决。
+- 允许不可逆转的决定和不可逆转的损失。
+- 向读者隐瞒信息。保持神秘感。
+- 制造真正的道德模糊性。“正确”的选择应该是不明确的。
+- 改变情感的强度：安静/爆发/恐惧/宽慰/惊奇/恐怖。
+- 如果一个选择没有真正的代价，那它就不是一个真正的选择。
+- 冲突**不应**解决得太快或太干净。
+- 抵抗将尖锐的棱角磨平变成安全事物的冲动。
 
-## Foundation Phase: Voice Discovery
+## 基础阶段：声音发现 (Voice Discovery)
 
-During foundation, the agent must DISCOVER the voice for this novel:
-1. Read the world concept and initial ideas
-2. Write 5 trial passages in different registers (mythic, spare,
-   warm, cold, whimsical, etc.)
-3. Evaluate which register best serves THIS story's world and tone
-4. Select the best, refine it, write exemplar and anti-exemplar passages
-5. Fill in voice.md Part 2 with the discovered voice
+在基础阶段，智能体必须为这本小说**发现**叙事声音：
+1. 阅读世界观设定和最初的想法
+2. 用不同的语域（神话的、简练的、温暖的、冷峻的、异想天开的等）写 5 段测试段落
+3. 评估哪种语域最能服务于**这个**故事的世界和基调
+4. 选择最好的，并对其进行完善，写出示例段落和反面示例段落
+5. 将发现的叙事声音填写到 voice.md 第 2 部分
 
-The voice should feel like it BELONGS in the world (Le Guin's insight:
-in fantasy, the language creates the world, not just describes it).
+叙事声音应该让人感觉它**属于**这个世界（借用 Le Guin 的见解：在奇幻小说中，是语言创造了世界，而不仅仅是描述它）。
 
-## Foundation Phase: Character Framework
+## 基础阶段：角色框架 (Character Framework)
 
-Every POV character must have documented before drafting begins:
-- Wound/Want/Need/Lie chain (see CRAFT.md)
-- Three-slider profile (proactivity, likability, competence)
-- Arc type (positive, negative, or flat)
-- Speech pattern distinct from every other character
-- At least one secret the reader doesn't learn immediately
+每个 POV 角色都必须在开始写作前记录以下内容：
+- 创伤/渴望/需求/谎言 (Wound/Want/Need/Lie) 链条（参见 CRAFT.md）
+- 三大滑块档案（主动性、讨喜度、能力）
+- 弧线类型（积极的、消极的或扁平的）
+- 区分于其他每一个角色的说话模式
+- 至少有一个读者不能立刻知道的秘密
 
-## Foundation Phase: Plot Framework
+## 基础阶段：情节框架 (Plot Framework)
 
-The outline must demonstrate:
-- Save the Cat beats at roughly correct percentage marks
-- Try-fail cycle types planned for each chapter (yes-but / no-and)
-- Foreshadowing ledger with every plant and its planned payoff
-- MICE threads identified and planned to close in reverse order
-- Escalating stakes through Act 2
+大纲必须展示：
+- 大致在正确百分比标记处的“救猫咪” (Save the Cat) 节拍
+- 计划在每一章中进行的尝试-失败循环类型（是-但是 / 否-而且）
+- 记录着每个埋点及其计划收获的伏笔账本
+- 识别出的 MICE 线索，并计划以相反的顺序收尾
+- 贯穿第二幕的不断升级的赌注
 
-## Rules
+## 规则
 
-- **NEVER STOP** during a phase. Keep looping until interrupted.
-- **Simpler is better**: Don't add complexity for marginal gains.
-- **Forward progress over perfection**: In Phase 2, a 6.0 chapter
-  is good enough. Phase 3 is for polish.
-- **Log everything**: Every experiment goes in results.tsv.
-- **Different judge**: Evaluation model should differ from writing model
-  when possible to avoid self-congratulation bias.
-- **Fight stability**: Actively push toward transformation, cost, and
-  genuine consequence. See "The Stability Trap" above.
-- **Specificity over abstraction**: "a jay" not "a bird." "lupine" not
-  "flowers." "the smell of hot iron" not "a metallic scent."
-- **Earn every metaphor**: Metaphors come from character experience.
-  A blacksmith thinks in terms of heat and metal. A sailor in tides.
+- 在一个阶段执行期间**永远不要停止**。保持循环直到被中断。
+- **越简单越好**：不要为了微小的收益而增加复杂性。
+- **前进的进度优先于完美**：在第 2 阶段，一个 6.0 分的章节
+  已经足够好了。第 3 阶段才是用来打磨的。
+- **记录一切**：每一次实验都要记录在 results.tsv 中。
+- **不同的裁判**：评估模型在可能的情况下应不同于写作模型，以避免自我祝贺的偏见。
+- **对抗稳定**：积极推动转变、代价和真正的后果。参见上文的“稳定陷阱”。
+- **具体优于抽象**：写“一只松鸦”而不是“一只鸟”。写“羽扇豆”而不是“花”。写“热铁的气味”而不是“金属味”。
+- **让每个隐喻都实至名归**：隐喻来自角色的经历。铁匠会用热量和金属来思考。水手会用潮汐来思考。

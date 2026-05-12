@@ -1,115 +1,114 @@
-# WORKFLOW
+# 工作流 (WORKFLOW)
 
-Step-by-step guide to running autonovel.
+运行 autonovel 的详细步骤指南。
 
-For the full technical pipeline specification, see [PIPELINE.md](PIPELINE.md).
+有关完整的技术流水线规范，请参阅 [PIPELINE.md](PIPELINE.md)。
 
 ---
 
-## Quick Start
+## 快速开始
 
 ```bash
-# 1. Setup
+# 1. 设置
 cd ~/autonovel
-cp .env.example .env   # Add your Anthropic or MiniMax API key
+cp .env.example .env   # 添加你的 Anthropic 或 MiniMax API 密钥
 
-# 2. Generate a seed concept (or write your own in seed.txt)
+# 2. 生成灵感种子（或在 seed.txt 中自己写一个）
 uv run python seed.py
 
-# 3. Create a branch for your novel
+# 3. 为你的小说创建一个分支
 git checkout -b autonovel/my-novel
 
-# 4. Run the full pipeline
+# 4. 运行完整的流水线
 uv run python run_pipeline.py --from-scratch
 ```
 
-The pipeline will:
-1. Build the world, characters, outline, and voice (Phase 1)
-2. Draft all chapters sequentially (Phase 2)
-3. Revise through automated cycles + review loop (Phase 3)
-4. Export to manuscript, PDF, ePub (Phase 4)
+流水线将：
+1. 构建世界观、角色、大纲和叙事声音（阶段 1）
+2. 顺序起草所有章节（阶段 2）
+3. 通过自动循环 + 审查循环进行修改（阶段 3）
+4. 导出为手稿、PDF、ePub（阶段 4）
 
 ---
 
-## Running Phases Individually
+## 单独运行各个阶段
 
 ```bash
-# Foundation only
+# 仅运行基础构建
 uv run python run_pipeline.py --phase foundation
 
-# Drafting only
+# 仅运行写作
 uv run python run_pipeline.py --phase drafting
 
-# Revision only (with max cycle limit)
+# 仅运行修改（带最大循环限制）
 uv run python run_pipeline.py --phase revision --max-cycles 5
 
-# Export only
+# 仅运行导出
 uv run python run_pipeline.py --phase export
 ```
 
 ---
 
-## Manual Tools
+## 手动工具
 
-### Evaluation
+### 评估 (Evaluation)
 ```bash
-uv run python evaluate.py --phase=foundation   # Score planning docs
-uv run python evaluate.py --chapter=5           # Score a chapter
-uv run python evaluate.py --full                # Score the whole novel
+uv run python evaluate.py --phase=foundation   # 对规划文档评分
+uv run python evaluate.py --chapter=5           # 对某一章评分
+uv run python evaluate.py --full                # 对整本小说评分
 ```
 
-### Revision
+### 修改 (Revision)
 ```bash
-uv run python adversarial_edit.py all           # Find cuts in all chapters
+uv run python adversarial_edit.py all           # 在所有章节中寻找可删减部分
 uv run python apply_cuts.py all --types OVER-EXPLAIN REDUNDANT
-uv run python reader_panel.py                   # 4-persona evaluation
-uv run python review.py                         # Dual-persona review
-uv run python gen_brief.py --auto               # Auto-generate revision brief
-uv run python gen_revision.py 5 briefs/ch05.md  # Rewrite chapter from brief
+uv run python reader_panel.py                   # 4个角色的评估
+uv run python review.py                         # 双重角色审查
+uv run python gen_brief.py --auto               # 自动生成修改简报
+uv run python gen_revision.py 5 briefs/ch05.md  # 根据简报重写章节
 ```
 
-### Art (requires FAL_KEY)
+### 美术 (Art) (需要 FAL_KEY)
 ```bash
-uv run python gen_art.py style                  # Derive visual style
-uv run python gen_art.py curate cover --n=6     # Generate cover variants
-uv run python gen_art.py pick cover 3           # Select variant #3
-uv run python gen_art.py ornaments-all          # Generate chapter ornaments
-uv run python gen_art.py vectorize              # Convert to SVG → PDF
+uv run python gen_art.py style                  # 派生视觉风格
+uv run python gen_art.py curate cover --n=6     # 生成封面的多个变体
+uv run python gen_art.py pick cover 3           # 选择第 3 个变体
+uv run python gen_art.py ornaments-all          # 生成章节装饰图案
+uv run python gen_art.py vectorize              # 转换为 SVG → PDF
 uv run python gen_cover_print.py art/cover.png --canvas-width 11.889 --canvas-height 8.75 --spine-width 0.639
 ```
 
-### Audiobook (requires ELEVENLABS_API_KEY)
+### 有声书 (Audiobook) (需要 ELEVENLABS_API_KEY)
 ```bash
-uv run python gen_audiobook_script.py           # Parse all chapters
-uv run python gen_audiobook.py --list-voices    # Browse voices
-uv run python gen_audiobook.py --test 1         # Test chapter 1
-uv run python gen_audiobook.py                  # Generate all
-uv run python gen_audiobook.py --assemble       # Concatenate
+uv run python gen_audiobook_script.py           # 解析所有章节
+uv run python gen_audiobook.py --list-voices    # 浏览声音
+uv run python gen_audiobook.py --test 1         # 测试第一章
+uv run python gen_audiobook.py                  # 生成所有章节
+uv run python gen_audiobook.py --assemble       # 拼接音频
 ```
 
-### Export
+### 导出 (Export)
 ```bash
-uv run python build_outline.py                  # Rebuild outline
-uv run python build_arc_summary.py              # Rebuild summaries
+uv run python build_outline.py                  # 重新构建大纲
+uv run python build_arc_summary.py              # 重新构建情节摘要
 python3 typeset/build_tex.py && cd typeset && tectonic novel.tex  # PDF
 ```
 
 ---
 
-## The Three Loops
+## 三个循环 (The Three Loops)
 
 ```
-INNER LOOP (agent, runs overnight):
-  modify → evaluate → keep/discard → repeat
+内部循环 (INNER LOOP) (智能体负责，彻夜运行):
+  修改 → 评估 → 保留/丢弃 → 重复
 
-OUTER LOOP (you, when you check in):
-  read results → steer program.md / evaluate.py / layer files
-  → let the agent run again
+外部循环 (OUTER LOOP) (你负责，当你查看时):
+  阅读结果 → 引导 program.md / evaluate.py / 各个层级文件
+  → 让智能体再次运行
 
-REVIEW LOOP (after automated revision):
-  send to review model → parse review → fix top items → repeat
-  → stop when no major unqualified items remain
+审查循环 (REVIEW LOOP) (在自动修改之后):
+  发送给审查模型 → 解析审查结果 → 修复首要问题 → 重复
+  → 当没有留下重大的无条件缺陷时停止
 ```
 
-You're not writing the novel. You're programming the system that
-writes the novel.
+你不是在写小说。你是在编写**写小说**的系统。

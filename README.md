@@ -126,6 +126,25 @@ uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --resume
 uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --continue-on-failure
 ```
 
+#### 批量章纲生成（推荐）
+
+逐章生成时，每章的章纲是独立生成的，前后章节之间靠状态机传递上下文。
+批量章纲模式在一次 LLM 调用中生成多章章纲，让模型在单次推理中保持跨章连贯性——
+伏笔的埋/收节奏、情节起伏、钩子衔接都会更自然。
+
+```bash
+# 默认生成 20 章章纲
+uv run python autonovel_cli.py plan batch --start 1
+
+# 自定义数量
+uv run python autonovel_cli.py plan batch --start 21 --count 10
+
+# 之后正常跑流水线，会自动使用已生成的章纲
+uv run python autonovel_cli.py run --volume 1 --chapters 1-20
+```
+
+已存在的章纲文件不会被覆盖，可安全重复运行。
+
 每章执行 11 步事务闭环：
 1. 生成章纲 → 2. 拼装上下文 → 3. 撰写正文 → 4. 抽取 delta → 5. 网文审计 → 6. 校验 delta → 7. 应用状态 → 8. 快照提交 → 9. FTS5 索引 → 10. 更新投影 → 11. 周期校验
 
@@ -224,6 +243,7 @@ uv run python autonovel_cli.py run --chapter 1 --audit-warn
 | `validate_state.py` | 状态校验（`--full` 全量 / `--delta` 增量） |
 | `gen_volume_plan.py` | 生成卷计划 YAML |
 | `gen_chapter_plan.py` | 生成章计划 YAML + intent.md |
+| `gen_batch_chapter_plans.py` | 批量生成章计划（单次 LLM 调用，跨章连贯） |
 | `memory_orchestrator.py` | 拼装 context.json（token 预算内） |
 | `memory_retrieval.py` | SQLite FTS5 索引和检索 |
 | `draft_chapter.py` | 撰写单章（支持 `--context` 新路径 / 无参 legacy 路径） |

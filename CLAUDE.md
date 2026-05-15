@@ -29,6 +29,7 @@ uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --resume
 uv run python autonovel_cli.py validate                  # State validation
 uv run python autonovel_cli.py plan volume --volume 1
 uv run python autonovel_cli.py plan chapter --chapter 1
+uv run python autonovel_cli.py plan batch --start 1 --count 20  # Batch chapter plans (default 20)
 uv run python autonovel_cli.py report                    # Progress report
 
 # Direct script invocation (also valid)
@@ -53,7 +54,7 @@ uv run python smoke_llm.py
 **Legacy pipeline** (`run_pipeline.py`): Reads `voice.md`, `world.md`, `characters.md`, `outline.md`, `canon.md` directly. No structured state. Chapters go to `chapters/ch_XX.md`.
 
 **Webnovel pipeline** (`run_webnovel_pipeline.py`): 11-step chapter transaction loop. Foundation phase auto-detects short-form (gen_world.py → gen_outline.py, 24 chapters) vs long-form (gen_world_lf.py → gen_master_outline.py → gen_outline_v1.py → init_state.py, 500+ chapters) based on `target_chapters >= 100` in project.json.
-1. Generate chapter plan (`gen_chapter_plan.py`)
+1. Generate chapter plan (`gen_chapter_plan.py` or `gen_batch_chapter_plans.py` for batch mode)
 2. Assemble context (`memory_orchestrator.py`)
 3. Draft chapter (`draft_chapter.py`)
 4. Extract delta (`extract_delta.py`)

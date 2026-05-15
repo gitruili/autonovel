@@ -37,7 +37,127 @@ uv run python run_pipeline.py --from-scratch
 
 ---
 
-## 流水线 (The Pipeline)
+## 网文长篇流水线使用说明
+
+### 统一 CLI 入口
+
+所有操作通过 `autonovel_cli.py` 统一入口：
+
+```bash
+uv run python autonovel_cli.py <命令> [参数]
+```
+
+### 1. 初始化项目
+
+```bash
+uv run python autonovel_cli.py init --title "我的小说" --genre "古言" --words 1000000 --chapters 500
+```
+
+这会在 `story/` 下创建完整的目录结构和空状态文件。
+
+### 2. 准备素材
+
+在项目根目录创建以下文件（模板已存在，填入你的内容）：
+
+| 文件 | 说明 |
+|------|------|
+| `outline.md` | 总纲（卷、章级节拍） |
+| `world.md` | 世界观设定（物价、地理、礼法） |
+| `characters.md` | 角色档案（性格、说话方式、关系） |
+| `voice.md` | 语气定义（禁用词、风格规则） |
+
+### 3. 生成卷计划
+
+```bash
+uv run python autonovel_cli.py plan volume --volume 1
+```
+
+输出 `story/plans/volume_001.yaml`，定义本卷的章节范围和剧情走向。
+
+### 4. 逐章生成
+
+```bash
+# 单章
+uv run python autonovel_cli.py run --chapter 1
+
+# 批量（第1卷前20章）
+uv run python autonovel_cli.py run --volume 1 --chapters 1-20
+
+# 多卷
+uv run python autonovel_cli.py run --volume-range 1-3
+
+# 断点续写（跳过已完成的章节）
+uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --resume
+
+# 失败继续（不因单章失败而中断）
+uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --continue-on-failure
+```
+
+每章执行 11 步事务闭环：
+1. 生成章纲 → 2. 拼装上下文 → 3. 撰写正文 → 4. 抽取 delta → 5. 网文审计 → 6. 校验 delta → 7. 应用状态 → 8. 快照提交 → 9. FTS5 索引 → 10. 更新投影 → 11. 周期校验
+
+### 5. 查看状态
+
+```bash
+# 仪表盘（进度、角色、伏笔、状态健康）
+uv run python autonovel_cli.py status
+
+# 写作报告（章节字数、钩子债务、支线进度）
+uv run python autonovel_cli.py report
+
+# 状态校验
+uv run python autonovel_cli.py validate
+```
+
+### 6. 回滚
+
+```bash
+# 查看快照列表
+ls story/memory/snapshots/
+
+# 恢复到某个 commit
+uv run python autonovel_cli.py snapshot restore --commit <hash>
+```
+
+### 7. FTS5 检索管理
+
+```bash
+# 索引单章
+uv run python autonovel_cli.py index --chapter 1
+
+# 重建全部索引
+uv run python autonovel_cli.py rebuild
+```
+
+### 审计模式
+
+默认模式下，账本违规（凭空物品、越级突破、未来信息）会阻断提交。开发调试时可降级为警告：
+
+```bash
+uv run python autonovel_cli.py run --chapter 1 --audit-warn
+```
+
+### 状态文件说明
+
+所有状态存储在 `story/state/` 下，以 JSON 格式保存，由 Pydantic 强校验：
+
+| 文件 | 内容 |
+|------|------|
+| `character_matrix.json` | 角色信息、关系、性格 |
+| `current_state.json` | 时间线位置、近期事件 |
+| `pending_hooks.json` | 伏笔债务（植入/推进/回收） |
+| `chapter_summaries.json` | 每章摘要和关键事件 |
+| `power_ledger.json` | 战力等级、资源、物品账本 |
+| `subplot_board.json` | 支线追踪 |
+| `emotional_arcs.json` | 角色情感弧 |
+
+每条记录带有时序字段：`source_chapter`、`valid_from_chapter`、`valid_until_chapter`，确保续写时不会读取未来信息。
+
+---
+
+## 短篇流水线 (Legacy Pipeline)
+
+适用于 8-10 万字中短篇。通过 `run_pipeline.py --from-scratch` 运行，读取 `voice.md`、`world.md`、`characters.md`、`outline.md`、`canon.md` 直接构建。
 
 ### 第一阶段：基础构建 (Phase 1: Foundation)
 根据灵感种子构建世界观、角色、大纲、叙事声音和正典(canon)。
@@ -59,9 +179,31 @@ uv run python run_pipeline.py --from-scratch
 
 ---
 
-## 工具 (27 个 Python 脚本)
+## 工具
 
-### 基础构建 (Foundation)
+### 网文长篇流水线
+
+| 工具 | 用途 |
+|------|------|
+| `autonovel_cli.py` | 统一 CLI 入口（status, run, validate, plan, report 等 13 个子命令） |
+| `run_webnovel_pipeline.py` | 章节事务编排器（11 步闭环） |
+| `story_schema.py` | 所有状态的 Pydantic schema、`count_cn_words()`、JSON/YAML 工具函数 |
+| `validate_state.py` | 状态校验（`--full` 全量 / `--delta` 增量） |
+| `gen_volume_plan.py` | 生成卷计划 YAML |
+| `gen_chapter_plan.py` | 生成章计划 YAML + intent.md |
+| `memory_orchestrator.py` | 拼装 context.json（token 预算内） |
+| `memory_retrieval.py` | SQLite FTS5 索引和检索 |
+| `draft_chapter.py` | 撰写单章（支持 `--context` 新路径 / 无参 legacy 路径） |
+| `extract_delta.py` | 从正文中抽取状态变化 delta |
+| `webnovel_audit.py` | 网文专项审计（钩子、注水、账本合规） |
+| `snapshot_state.py` | 状态快照创建/恢复 |
+| `run_compaction.py` | 卷末记忆压缩 |
+| `gen_volume_summary.py` | 卷级摘要生成 |
+| `update_projections.py` | 人类可读投影文档 |
+
+### 短篇流水线 (Legacy)
+
+#### 基础构建 (Foundation)
 | 工具 | 用途 |
 |------|---------|
 | `seed.py` | 生成灵感种子 |
@@ -72,13 +214,13 @@ uv run python run_pipeline.py --from-scratch
 | `gen_canon.py` | 交叉引用硬性事实 |
 | `voice_fingerprint.py` | 声音特征分析和发现 |
 
-### 写作 (Drafting)
+#### 写作 (Drafting)
 | 工具 | 用途 |
 |------|---------|
 | `draft_chapter.py` | 编写单章，带反模式规则 |
 | `run_drafts.py` | 批处理顺序章节编写器 |
 
-### 评估 (Evaluation)
+#### 评估 (Evaluation)
 | 工具 | 用途 |
 |------|---------|
 | `evaluate.py` | 机械式AI痕迹(slop)评分器 + LLM 裁判 |
@@ -87,14 +229,14 @@ uv run python run_pipeline.py --from-scratch
 | `reader_panel.py` | 4角色整本小说评估 |
 | `review.py` | 带有停止条件的双重角色审查 |
 
-### 修改 (Revision)
+#### 修改 (Revision)
 | 工具 | 用途 |
 |------|---------|
 | `gen_brief.py` | 根据反馈自动生成修改简报 |
 | `gen_revision.py` | 根据修改简报重写一章 |
 | `apply_cuts.py` | 批处理对抗性删减应用器 |
 
-### 美术与封面 (Art & Cover)
+#### 美术与封面 (Art & Cover)
 | 工具 | 用途 |
 |------|---------|
 | `gen_art.py` | 美术流水线：风格、策展、装饰图案、矢量化 |
@@ -102,13 +244,13 @@ uv run python run_pipeline.py --from-scratch
 | `gen_cover_composite.py` | 在封面图上叠加文本 |
 | `gen_cover_print.py` | 准备打印的全幅封面（符合 Lulu/KDP 规范） |
 
-### 有声书 (Audiobook)
+#### 有声书 (Audiobook)
 | 工具 | 用途 |
 |------|---------|
 | `gen_audiobook_script.py` | 解析章节为带说话人归属的脚本 |
 | `gen_audiobook.py` | 通过 ElevenLabs 生成多声部音频 |
 
-### 编排 (Orchestration)
+#### 编排 (Orchestration)
 | 工具 | 用途 |
 |------|---------|
 | `run_pipeline.py` | 完整的流水线编排器（种子 → 完成的小说） |

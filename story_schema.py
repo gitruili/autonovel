@@ -230,7 +230,7 @@ class Resource(TemporalFields):
     id: str
     name: str
     category: str = ""  # currency | material | food | tool | artifact
-    quantity: float = 0.0
+    quantity: float = Field(default=0.0, ge=0.0)
     unit: str = ""
     owner: str = ""  # character_id
     location: str = ""

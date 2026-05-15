@@ -390,6 +390,7 @@ def step_apply_delta(chapter: int) -> bool:
             for k, v in update.items():
                 if k not in ("action", "id") and hasattr(res, k):
                     setattr(res, k, v)
+            res.quantity = max(0.0, res.quantity)
             res.last_seen_chapter = chapter
         elif action == "consume":
             if res_id and res_id not in power_ledger.resources:

@@ -214,15 +214,21 @@ def check_ledger_compliance(delta: ChapterDelta) -> dict:
 
     # Check resource consumption doesn't go negative
     for update in delta.resource_updates:
-        if update.get("action") == "consume":
-            res_id = update.get("id", "")
-            if res_id in power_ledger.resources:
-                current = power_ledger.resources[res_id].quantity
-                consumed = update.get("quantity", 0)
-                if current - consumed < 0:
-                    issues.append(
-                        f"Resource {res_id} would go negative: {current} - {consumed}"
-                    )
+        action = update.get("action", "")
+        res_id = update.get("id", "")
+        if action == "consume" and res_id in power_ledger.resources:
+            current = power_ledger.resources[res_id].quantity
+            consumed = update.get("quantity", 0)
+            if current - consumed < 0:
+                issues.append(
+                    f"Resource {res_id} would go negative: {current} - {consumed}"
+                )
+        elif action == "update" and res_id in power_ledger.resources:
+            new_qty = update.get("quantity")
+            if new_qty is not None and new_qty < 0:
+                issues.append(
+                    f"Resource {res_id} update would set negative quantity: {new_qty}"
+                )
 
     # Check item consistency
     for update in delta.item_updates:

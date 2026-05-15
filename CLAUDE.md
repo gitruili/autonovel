@@ -21,6 +21,8 @@ uv sync                 # Install dependencies
 # Unified CLI (preferred for webnovel pipeline)
 uv run python autonovel_cli.py status                    # Dashboard
 uv run python autonovel_cli.py init --title "书名" --genre "古言"
+uv run python autonovel_cli.py generate seed              # Generate story concepts
+uv run python autonovel_cli.py generate foundation        # Generate world/characters/outline from seed.txt
 uv run python autonovel_cli.py run --chapter 1           # Single chapter
 uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --resume
 uv run python autonovel_cli.py validate                  # State validation

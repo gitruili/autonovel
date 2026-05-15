@@ -13,13 +13,16 @@
 cd ~/autonovel
 cp .env.example .env   # 添加你的 Anthropic 或 MiniMax API 密钥
 
-# 2. 生成灵感种子（或在 seed.txt 中自己写一个）
-uv run python seed.py
+# 2. 初始化项目
+uv run python autonovel_cli.py init --title "我的小说" --genre "古言"
 
-# 3. 为你的小说创建一个分支
-git checkout -b autonovel/my-novel
+# 3. 生成灵感种子（或在 seed.txt 中自己写一个）
+uv run python autonovel_cli.py generate seed
 
-# 4. 运行完整的流水线
+# 4. 将喜欢的构思复制到 seed.txt，然后生成设定文件
+uv run python autonovel_cli.py generate foundation
+
+# 5. 运行完整的流水线
 uv run python run_pipeline.py --from-scratch
 ```
 

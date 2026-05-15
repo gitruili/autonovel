@@ -4,6 +4,8 @@ autonovel_cli.py — Unified CLI entry point for the autonovel system.
 
 Usage:
   uv run python autonovel_cli.py status
+  uv run python autonovel_cli.py init --title "My Novel" --genre "古言"
+  uv run python autonovel_cli.py generate foundation
   uv run python autonovel_cli.py run --chapter 1
   uv run python autonovel_cli.py run --volume 1 --chapters 1-20
   uv run python autonovel_cli.py validate
@@ -429,9 +431,82 @@ def cmd_init(args):
         print(f"  Title: {args.title}")
     print(f"  Target: {proj.target_words:,} words / {proj.target_chapters} chapters")
     print(f"\nNext steps:")
-    print(f"  1. Create outline.md, world.md, characters.md, voice.md")
+    print(f"  1. Create seed.txt with your story concept, then run:")
+    print(f"     uv run python autonovel_cli.py generate foundation")
     print(f"  2. Run: uv run python autonovel_cli.py plan volume --volume 1")
     print(f"  3. Run: uv run python autonovel_cli.py run --chapter 1")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# generate — generate foundation material files
+# ---------------------------------------------------------------------------
+
+def cmd_generate(args):
+    """Generate seed concepts or foundation material files."""
+    if args.gen_type == "seed":
+        seed_args = []
+        if args.count:
+            seed_args += ["--count", str(args.count)]
+        if args.riff:
+            seed_args += ["--riff", args.riff]
+        return _run_script("seed.py", seed_args)
+
+    if args.gen_type != "foundation":
+        print(f"[ERROR] Unknown generate type: {args.gen_type}")
+        return 1
+
+    seed_path = Path(args.seed) if args.seed else BASE_DIR / "seed.txt"
+    if not seed_path.exists():
+        print(f"[ERROR] Seed file not found: {seed_path}")
+        print(f"  Run 'uv run python autonovel_cli.py generate seed' to generate concepts,")
+        print(f"  then save your chosen concept to seed.txt.")
+        return 1
+
+    # Check voice.md exists (generators read it)
+    voice_path = BASE_DIR / "voice.md"
+    if not voice_path.exists():
+        print(f"[ERROR] voice.md not found. It ships with the project template.")
+        return 1
+
+    steps = [
+        ("gen_world.py", "世界观设定集 (world.md)"),
+        ("gen_characters.py", "角色注册表 (characters.md)"),
+        ("gen_outline.py", "章节大纲 (outline.md)"),
+        ("gen_outline_part2.py", "伏笔追加 (outline.md part 2)"),
+    ]
+
+    print("=" * 60)
+    print("  生成设定基石 (FOUNDATION)")
+    print("=" * 60)
+    print(f"  Seed: {seed_path}")
+    print()
+
+    for i, (script, desc) in enumerate(steps, 1):
+        print(f"[{i}/{len(steps)}] 正在生成 {desc}...")
+        rc = _run_script(script, [])
+        if rc != 0:
+            print(f"[ERROR] {script} failed with exit code {rc}")
+            return rc
+        print(f"[{i}/{len(steps)}] {desc} 完成")
+        print()
+
+    print("=" * 60)
+    print("  设定基石生成完成!")
+    print("=" * 60)
+    generated = ["world.md", "characters.md", "outline.md"]
+    for f in generated:
+        path = BASE_DIR / f
+        if path.exists():
+            size = path.stat().st_size
+            print(f"  ✓ {f} ({size:,} bytes)")
+        else:
+            print(f"  ✗ {f} (missing!)")
+    print()
+    print("Next steps:")
+    print("  1. Review and edit the generated files")
+    print("  2. Run: uv run python autonovel_cli.py plan volume --volume 1")
+    print("  3. Run: uv run python autonovel_cli.py run --chapter 1")
     return 0
 
 
@@ -448,6 +523,7 @@ def main():
 Examples:
   uv run python autonovel_cli.py status
   uv run python autonovel_cli.py init --title "My Novel" --genre "古言"
+  uv run python autonovel_cli.py generate foundation
   uv run python autonovel_cli.py run --chapter 1
   uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --resume
   uv run python autonovel_cli.py validate
@@ -538,6 +614,13 @@ Examples:
     p_init.add_argument("--chars", type=int, help="Chars per chapter")
     p_init.add_argument("--force", action="store_true", help="Overwrite existing project")
 
+    # generate
+    p_gen = subparsers.add_parser("generate", help="Generate seed concepts or foundation files")
+    p_gen.add_argument("gen_type", choices=["seed", "foundation"], help="What to generate")
+    p_gen.add_argument("--seed", type=str, help="Path to seed file (default: seed.txt)")
+    p_gen.add_argument("--count", type=int, help="Number of seed concepts to generate (default: 3)")
+    p_gen.add_argument("--riff", type=str, help="Expand on an existing idea")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -558,6 +641,7 @@ Examples:
         "rebuild": cmd_rebuild,
         "report": cmd_report,
         "init": cmd_init,
+        "generate": cmd_generate,
     }
 
     handler = dispatch.get(args.command)

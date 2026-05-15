@@ -29,7 +29,10 @@ uv sync
 uv run python smoke_llm.py
 
 # 生成灵感种子（或在 seed.txt 中自己写一个）
-uv run python seed.py
+uv run python autonovel_cli.py generate seed
+
+# 将喜欢的构思复制到 seed.txt，然后生成设定文件
+uv run python autonovel_cli.py generate foundation
 
 # 运行完整的流水线
 uv run python run_pipeline.py --from-scratch
@@ -56,6 +59,22 @@ uv run python autonovel_cli.py init --title "我的小说" --genre "古言" --wo
 这会在 `story/` 下创建完整的目录结构和空状态文件。
 
 ### 2. 准备素材
+
+**方式一：自动生成（推荐）**
+
+```bash
+# 1. 生成种子构思（3个创意供挑选）
+uv run python autonovel_cli.py generate seed
+
+# 2. 将喜欢的构思复制到 seed.txt，然后生成设定文件
+uv run python autonovel_cli.py generate foundation
+```
+
+也可以基于已有想法扩展：`generate seed --riff "穿越古代当渔娘" --count 5`
+
+这会自动生成 `world.md`、`characters.md`、`outline.md`。`voice.md` 已随项目模板提供（Part 1 为通用规则，Part 2 可按需微调）。
+
+**方式二：手动创建**
 
 在项目根目录创建以下文件（模板已存在，填入你的内容）：
 
@@ -185,7 +204,7 @@ uv run python autonovel_cli.py run --chapter 1 --audit-warn
 
 | 工具 | 用途 |
 |------|------|
-| `autonovel_cli.py` | 统一 CLI 入口（status, run, validate, plan, report 等 13 个子命令） |
+| `autonovel_cli.py` | 统一 CLI 入口（status, run, validate, plan, generate, report 等 14 个子命令） |
 | `run_webnovel_pipeline.py` | 章节事务编排器（11 步闭环） |
 | `story_schema.py` | 所有状态的 Pydantic schema、`count_cn_words()`、JSON/YAML 工具函数 |
 | `validate_state.py` | 状态校验（`--full` 全量 / `--delta` 增量） |

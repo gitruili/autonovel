@@ -28,6 +28,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
 STORY_DIR = BASE_DIR / "story"
+STATE_DIR = STORY_DIR / "state"
 
 
 def _run_script(script: str, args: list[str]) -> int:
@@ -450,7 +451,16 @@ def cmd_generate(args):
             seed_args += ["--count", str(args.count)]
         if args.riff:
             seed_args += ["--riff", args.riff]
-        return _run_script("seed.py", seed_args)
+        # Use long-form seed generator if --long-form flag or project targets 500+ chapters
+        long_form = getattr(args, 'long_form', False)
+        if not long_form:
+            proj_path = STORY_DIR / "project.json"
+            if proj_path.exists():
+                from story_schema import ProjectConfig, load_json
+                proj = ProjectConfig(**load_json(proj_path))
+                long_form = proj.target_chapters >= 100
+        script = "seed_lf.py" if long_form else "seed.py"
+        return _run_script(script, seed_args)
 
     if args.gen_type != "foundation":
         print(f"[ERROR] Unknown generate type: {args.gen_type}")
@@ -469,15 +479,35 @@ def cmd_generate(args):
         print(f"[ERROR] voice.md not found. It ships with the project template.")
         return 1
 
-    steps = [
-        ("gen_world.py", "世界观设定集 (world.md)"),
-        ("gen_characters.py", "角色注册表 (characters.md)"),
-        ("gen_outline.py", "章节大纲 (outline.md)"),
-        ("gen_outline_part2.py", "伏笔追加 (outline.md part 2)"),
-    ]
+    # Determine short-form vs long-form based on project config
+    proj_path = STORY_DIR / "project.json"
+    long_form = False
+    if proj_path.exists():
+        from story_schema import ProjectConfig, load_json
+        proj = ProjectConfig(**load_json(proj_path))
+        long_form = proj.target_chapters >= 100
+
+    if long_form:
+        steps = [
+            ("gen_world_lf.py", "世界观设定集 (world.md)"),
+            ("gen_characters_lf.py", "角色注册表 (characters.md)"),
+            ("gen_master_outline.py", "全书总纲 (master_plan.yaml + outline.md)"),
+            ("gen_outline_v1.py", "第一卷详细大纲 (outline.md)"),
+            ("gen_outline_v1_part2.py", "第一卷大纲续写 (outline.md)"),
+            ("gen_canon.py", "设定准则数据库 (canon.md)"),
+            ("init_state.py", "状态初始化 (story/state/*.json)"),
+        ]
+    else:
+        steps = [
+            ("gen_world.py", "世界观设定集 (world.md)"),
+            ("gen_characters.py", "角色注册表 (characters.md)"),
+            ("gen_outline.py", "章节大纲 (outline.md)"),
+            ("gen_outline_part2.py", "伏笔追加 (outline.md part 2)"),
+        ]
 
     print("=" * 60)
-    print("  生成设定基石 (FOUNDATION)")
+    mode_label = "长篇 FOUNDATION (100万字+)" if long_form else "生成设定基石 (FOUNDATION)"
+    print(f"  {mode_label}")
     print("=" * 60)
     print(f"  Seed: {seed_path}")
     print()
@@ -495,6 +525,8 @@ def cmd_generate(args):
     print("  设定基石生成完成!")
     print("=" * 60)
     generated = ["world.md", "characters.md", "outline.md"]
+    if long_form:
+        generated += ["story/plans/master_plan.yaml", "canon.md"]
     for f in generated:
         path = BASE_DIR / f
         if path.exists():
@@ -502,6 +534,19 @@ def cmd_generate(args):
             print(f"  ✓ {f} ({size:,} bytes)")
         else:
             print(f"  ✗ {f} (missing!)")
+
+    if long_form:
+        print()
+        print("状态文件:")
+        for sf in ["character_matrix.json", "pending_hooks.json", "subplot_board.json",
+                    "current_state.json", "power_ledger.json", "chapter_summaries.json",
+                    "emotional_arcs.json"]:
+            path = STATE_DIR / sf
+            if path.exists():
+                print(f"  ✓ {sf}")
+            else:
+                print(f"  ✗ {sf} (missing!)")
+
     print()
     print("Next steps:")
     print("  1. Review and edit the generated files")
@@ -620,6 +665,8 @@ Examples:
     p_gen.add_argument("--seed", type=str, help="Path to seed file (default: seed.txt)")
     p_gen.add_argument("--count", type=int, help="Number of seed concepts to generate (default: 3)")
     p_gen.add_argument("--riff", type=str, help="Expand on an existing idea")
+    p_gen.add_argument("--long-form", action="store_true",
+                       help="Generate long-form seed concepts (500+ chapters)")
 
     args = parser.parse_args()
 

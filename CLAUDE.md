@@ -21,8 +21,9 @@ uv sync                 # Install dependencies
 # Unified CLI (preferred for webnovel pipeline)
 uv run python autonovel_cli.py status                    # Dashboard
 uv run python autonovel_cli.py init --title "书名" --genre "古言"
-uv run python autonovel_cli.py generate seed              # Generate story concepts
-uv run python autonovel_cli.py generate foundation        # Generate world/characters/outline from seed.txt
+uv run python autonovel_cli.py generate seed              # Generate story concepts (short-form)
+uv run python autonovel_cli.py generate seed --long-form  # Generate long-form seeds (500+ chapters)
+uv run python autonovel_cli.py generate foundation        # Generate foundation (auto-detects short/long)
 uv run python autonovel_cli.py run --chapter 1           # Single chapter
 uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --resume
 uv run python autonovel_cli.py validate                  # State validation
@@ -51,7 +52,7 @@ uv run python smoke_llm.py
 
 **Legacy pipeline** (`run_pipeline.py`): Reads `voice.md`, `world.md`, `characters.md`, `outline.md`, `canon.md` directly. No structured state. Chapters go to `chapters/ch_XX.md`.
 
-**Webnovel pipeline** (`run_webnovel_pipeline.py`): 11-step chapter transaction loop:
+**Webnovel pipeline** (`run_webnovel_pipeline.py`): 11-step chapter transaction loop. Foundation phase auto-detects short-form (gen_world.py → gen_outline.py, 24 chapters) vs long-form (gen_world_lf.py → gen_master_outline.py → gen_outline_v1.py → init_state.py, 500+ chapters) based on `target_chapters >= 100` in project.json.
 1. Generate chapter plan (`gen_chapter_plan.py`)
 2. Assemble context (`memory_orchestrator.py`)
 3. Draft chapter (`draft_chapter.py`)

@@ -72,7 +72,21 @@ uv run python autonovel_cli.py generate foundation
 
 也可以基于已有想法扩展：`generate seed --riff "穿越古代当渔娘" --count 5`
 
-这会自动生成 `world.md`、`characters.md`、`outline.md`。`voice.md` 已随项目模板提供（Part 1 为通用规则，Part 2 可按需微调）。
+**长篇模式（100万字+/500+章）**：当 `project.json` 的 `target_chapters >= 100` 时，
+`generate seed` 和 `generate foundation` 自动切换为长篇管线：
+
+```bash
+# 长篇种子（含多卷升级线、反派轮换、感情线6阶段、超长线伏笔）
+uv run python autonovel_cli.py generate seed --long-form
+
+# 长篇 foundation（7步：世界观→角色→总纲→第一卷大纲→续写→正典→状态初始化）
+uv run python autonovel_cli.py generate foundation
+```
+
+长篇管线自动生成 `story/plans/master_plan.yaml`（结构化25卷总纲）并初始化全部 7 个状态 JSON 文件，
+foundation 完成后即可直接运行 `plan volume` 和 `run --chapter`。
+
+`voice.md` 已随项目模板提供（Part 1 为通用规则，Part 2 可按需微调）。
 
 **方式二：手动创建**
 
@@ -222,16 +236,27 @@ uv run python autonovel_cli.py run --chapter 1 --audit-warn
 
 ### 短篇流水线 (Legacy)
 
-#### 基础构建 (Foundation)
+#### 基础构建 (Foundation) — 短篇
 | 工具 | 用途 |
 |------|---------|
-| `seed.py` | 生成灵感种子 |
-| `gen_world.py` | 种子 → 世界观设定集 (world bible) |
+| `seed.py` | 生成灵感种子（8-10万字/20-24章） |
+| `gen_world.py` | 种子 → 世界观设定集 |
 | `gen_characters.py` | 种子 + 世界观 → 角色注册表 |
-| `gen_outline.py` | 包含节拍(beats)和伏笔的大纲 |
+| `gen_outline.py` | 包含节拍和伏笔的24章大纲 |
 | `gen_outline_part2.py` | 伏笔账本 |
 | `gen_canon.py` | 交叉引用硬性事实 |
 | `voice_fingerprint.py` | 声音特征分析和发现 |
+
+#### 基础构建 (Foundation) — 长篇（100万字+/500+章）
+| 工具 | 用途 |
+|------|---------|
+| `seed_lf.py` | 长篇种子（多卷升级线、反派轮换、感情线6阶段） |
+| `gen_world_lf.py` | 长篇世界观（核心设定 + 扩展路线图） |
+| `gen_characters_lf.py` | 长篇角色（三层体系：核心/卷级/反派轮换） |
+| `gen_master_outline.py` | 全书总纲（master_plan.yaml + outline.md） |
+| `gen_outline_v1.py` | 第一卷详细大纲（~20章逐章 + 台账） |
+| `gen_outline_v1_part2.py` | 第一卷大纲续写 |
+| `init_state.py` | 状态初始化（7个 JSON state 文件） |
 
 #### 写作 (Drafting)
 | 工具 | 用途 |

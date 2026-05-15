@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """
 Draft a single chapter using the writer model.
-Usage: python draft_chapter.py 1
+
+Usage (webnovel / new pipeline):
+  python draft_chapter.py 1 --context story/runtime/ch_0001/context.json --out story/runtime/ch_0001/draft.md
+
+Usage (legacy / short story):
+  python draft_chapter.py 1
 """
+import argparse
+import json
 import os
 import re
 import sys
@@ -18,6 +25,7 @@ WRITER_MODEL = os.environ.get(
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
 CHAPTERS_DIR = BASE_DIR / "chapters"
+STORY_DIR = BASE_DIR / "story"
 
 
 def call_writer(prompt, max_tokens=16000):
@@ -51,12 +59,19 @@ def load_file(path):
 
 def load_title():
     """从 seed.txt 或 outline.md 中提取小说标题。"""
+    # Try webnovel project.json first
+    proj_path = STORY_DIR / "project.json"
+    if proj_path.exists():
+        with open(proj_path) as f:
+            proj = json.load(f)
+        if proj.get("title"):
+            return proj["title"]
+
     seed = load_file(BASE_DIR / "seed.txt")
     if seed:
         first_line = seed.strip().split('\n')[0].strip()
         if first_line:
             return first_line
-    # fallback: 从 outline.md 第一行提取
     outline = load_file(BASE_DIR / "outline.md")
     if outline:
         first_line = outline.strip().split('\n')[0].strip().lstrip('#').strip()
@@ -81,10 +96,86 @@ def extract_next_chapter_outline(outline_text, chapter_num):
     return '\n'.join(lines)
 
 
-def main():
-    chapter_num = int(sys.argv[1])
+def build_prompt_from_context(chapter_num: int, context: dict) -> str:
+    """Build writing prompt from context.json (webnovel pipeline)."""
+    title = context.get("metadata", {}).get("project_title", "本小说")
+    target_chars = context.get("metadata", {}).get("target_chars", 4000)
+    intent = context.get("metadata", {}).get("intent", "")
 
-    # Load all context
+    # State slice
+    state = context.get("state_slice", {})
+    state_text = ""
+    if state.get("characters"):
+        state_text += "=== 角色信息 ===\n"
+        for cid, c in state["characters"].items():
+            state_text += f"- {c['name']} ({c['role']}): {c.get('personality', '')}\n"
+            if c.get("speech_pattern"):
+                state_text += f"  说话方式: {c['speech_pattern']}\n"
+    if state.get("active_hooks"):
+        state_text += "\n=== 活跃伏笔 ===\n"
+        for hid, h in state["active_hooks"].items():
+            state_text += f"- {h['description']}\n"
+    if state.get("resources"):
+        state_text += "\n=== 资源 ===\n"
+        for rid, r in state["resources"].items():
+            state_text += f"- {r['name']}: {r['quantity']} {r.get('unit', '')}\n"
+    if state.get("items"):
+        state_text += "\n=== 重要物品 ===\n"
+        for iid, i in state["items"].items():
+            state_text += f"- {i['name']} ({i.get('rarity', 'common')}): {i.get('description', '')}\n"
+
+    # Recent summaries
+    summaries_text = ""
+    for s in context.get("recent_summaries", []):
+        summaries_text += f"- 第{s['chapter']}章: {s.get('summary', '')[:200]}\n"
+
+    prompt = f"""撰写《{title}》的第 {chapter_num} 章。
+
+=== 写作意图 ===
+{intent}
+
+=== 本章计划 ===
+{context.get('chapter_plan', '')}
+
+=== 卷级计划（参考） ===
+{context.get('volume_contract', '')[:2000]}
+
+=== 前一章结尾（从此处继续） ===
+{context.get('previous_chapter_tail', '(第一章——无前文)')}
+
+{state_text}
+
+=== 最近章节摘要 ===
+{summaries_text or '(第一章)'}
+
+=== 语气规则 ===
+{context.get('voice_rules', '')}
+
+=== 写作指令 ===
+1. 撰写完整的章节。目标字数约 {target_chars} 字。不要截断或总结。
+2. 第三人称限制视角，过去时态，紧贴章计划中指定的视角人物。
+3. 按顺序完成章计划中所有节拍。
+4. 展示感官细节：触觉、嗅觉、听觉融入场景。
+5. 对话遵循角色信息中定义的说话模式。
+6. 不要使用语气规则中禁用的词汇和句式。
+7. 不要出现 AI 网文腔调：不要用"不禁"、"映入眼帘"、"心中涌起暖流"、"美眸"、"淡淡地说"。
+8. 改变句子长度。短句用于情绪冲击，长句用于铺陈日常。
+9. 信任读者。不要解释场景的含义，让场景本身产生力量。
+10. 从场景中开始这一章，不要以铺陈开始。以一个瞬间结束，而不是总结。
+11. 展示之后不要过度解释。信任场景。
+12. 对话要像说话，不像书面语。角色会磕绊、打断、话没说完。
+13. 场景优于总结。本章至少 70% 的内容应是即时场景。
+14. 章尾钩子必须让读者想翻下一章。
+15. 禁止使用三元组感官列表（"X、Y和Z"）。合并两个，删掉一个。
+16. 禁止"她心想/她暗想"——让想法本身作为独立句子出现。
+
+现在开始撰写章节。完整文本，从头到尾。
+"""
+    return prompt
+
+
+def build_prompt_legacy(chapter_num: int) -> str:
+    """Build prompt using legacy file-based context."""
     voice = load_file(BASE_DIR / "voice.md")
     world = load_file(BASE_DIR / "world.md")
     characters = load_file(BASE_DIR / "characters.md")
@@ -92,11 +183,9 @@ def main():
     canon = load_file(BASE_DIR / "canon.md")
     title = load_title()
 
-    # Chapter-specific context
     chapter_outline = extract_chapter_outline(outline, chapter_num)
     next_chapter = extract_next_chapter_outline(outline, chapter_num)
 
-    # Previous chapter (if exists)
     prev_path = CHAPTERS_DIR / f"ch_{chapter_num - 1:02d}.md"
     if prev_path.exists():
         prev_text = prev_path.read_text()
@@ -104,7 +193,7 @@ def main():
     else:
         prev_tail = "(第一章——无前文)"
 
-    prompt = f"""撰写《{title}》的第 {chapter_num} 章。
+    return f"""撰写《{title}》的第 {chapter_num} 章。
 
 === 语气定义（请严格遵循） ===
 {voice}
@@ -158,14 +247,50 @@ def main():
 现在开始撰写章节。完整文本，从头到尾。
 """
 
+
+def main():
+    parser = argparse.ArgumentParser(description="Draft a single chapter")
+    parser.add_argument("chapter", type=int, help="Chapter number")
+    parser.add_argument("--context", type=str, help="Path to context.json (webnovel pipeline)")
+    parser.add_argument("--out", type=str, help="Output draft path (webnovel pipeline)")
+    args = parser.parse_args()
+
+    chapter_num = args.chapter
+
+    if args.context:
+        # Webnovel pipeline: read from context.json
+        with open(args.context) as f:
+            context = json.load(f)
+        prompt = build_prompt_from_context(chapter_num, context)
+    else:
+        # Legacy: read from markdown files
+        prompt = build_prompt_legacy(chapter_num)
+
     print(f"Drafting Chapter {chapter_num}...", file=sys.stderr)
     result = call_writer(prompt)
 
-    # Save
-    out_path = CHAPTERS_DIR / f"ch_{chapter_num:02d}.md"
-    out_path.write_text(result)
-    print(f"Saved to {out_path}", file=sys.stderr)
-    print(f"Word count: {len(result.split())}", file=sys.stderr)
+    if args.out:
+        # Webnovel pipeline: save to specified path
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(result, encoding="utf-8")
+        # Also copy to chapters/v001/
+        v_dir = CHAPTERS_DIR / "v001"
+        v_dir.mkdir(parents=True, exist_ok=True)
+        v_file = v_dir / f"ch_{chapter_num:04d}.md"
+        v_file.write_text(result, encoding="utf-8")
+        from story_schema import count_cn_words
+        word_count = count_cn_words(result)
+        print(f"Saved to {out_path}", file=sys.stderr)
+        print(f"Saved to {v_file}", file=sys.stderr)
+        print(f"Word count (CN): {word_count}", file=sys.stderr)
+    else:
+        # Legacy: save to chapters/ch_XX.md
+        out_path = CHAPTERS_DIR / f"ch_{chapter_num:02d}.md"
+        out_path.write_text(result)
+        print(f"Saved to {out_path}", file=sys.stderr)
+        print(f"Word count: {len(result.split())}", file=sys.stderr)
+
     print(result)
 
 

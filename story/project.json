@@ -1,0 +1,12 @@
+{
+  "title": "",
+  "genre": "",
+  "target_words": 1000000,
+  "target_chapters": 500,
+  "default_chapter_chars": 4000,
+  "current_volume": 1,
+  "current_chapter": 0,
+  "current_chars": 0,
+  "phase": "planning",
+  "status": "active"
+}

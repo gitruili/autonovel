@@ -41,7 +41,14 @@ from story_schema import (
 
 BASE_DIR = Path(__file__).parent
 STORY_DIR = BASE_DIR / "story"
-CHAPTERS_V_DIR = BASE_DIR / "chapters" / "v001"
+
+# Global flag: when True, audit failures are warnings instead of blockers
+AUDIT_WARN_MODE = False
+
+
+def get_chapters_v_dir(volume: int) -> Path:
+    """Get the chapters directory for a given volume number."""
+    return BASE_DIR / "chapters" / f"v{volume:03d}"
 
 
 # ---------------------------------------------------------------------------
@@ -246,12 +253,33 @@ def step_webnovel_audit(chapter: int) -> bool:
         text=True,
     )
     # Audit may return non-zero for warnings, but we still want the report
-    if audit_path.exists():
-        print(f"  Audit report: {audit_path}")
-        return True
-    else:
+    if not audit_path.exists():
         print(f"  [ERROR] webnovel_audit.py failed: {result.stderr}")
         return False
+
+    print(f"  Audit report: {audit_path}")
+
+    # Check audit result
+    from story_schema import AuditResult
+    audit_data = load_json(audit_path)
+    audit = AuditResult(**audit_data)
+
+    if audit.blocking_issues:
+        print(f"  [BLOCKING] {len(audit.blocking_issues)} blocking issue(s):")
+        for issue in audit.blocking_issues:
+            print(f"    - {issue}")
+        if AUDIT_WARN_MODE:
+            print(f"  [WARN MODE] Blocking issues treated as warnings")
+        else:
+            return False
+
+    if audit.warnings:
+        print(f"  [WARN] {len(audit.warnings)} warning(s):")
+        for w in audit.warnings:
+            print(f"    - {w}")
+
+    print(f"  Overall score: {audit.overall_score:.1f}")
+    return True
 
 
 def step_validate_delta(chapter: int) -> bool:
@@ -281,7 +309,12 @@ def step_validate_delta(chapter: int) -> bool:
 
 
 def step_apply_delta(chapter: int) -> bool:
-    """Phase 3: Apply delta to state files."""
+    """Phase 3: Apply delta to state files.
+
+    Loads all state, applies all changes, then saves all at once.
+    If any exception occurs during apply, no state files are written,
+    keeping disk state consistent.
+    """
     banner(f"Step 7: Apply Delta — Chapter {chapter}")
     rt_dir = get_runtime_dir(chapter)
     delta_path = rt_dir / "delta.json"
@@ -301,6 +334,11 @@ def step_apply_delta(chapter: int) -> bool:
     subplots = SubplotBoard(**load_json(STORY_DIR / "state" / "subplot_board.json"))
     emotional_arcs = EmotionalArcs(**load_json(STORY_DIR / "state" / "emotional_arcs.json"))
     current_state = CurrentState(**load_json(STORY_DIR / "state" / "current_state.json"))
+
+    # NOTE: All modifications below are on in-memory objects.
+    # State files are only saved at the end of this function.
+    # If any exception occurs during apply, save never happens
+    # and disk state remains consistent.
 
     # Apply character updates
     for update in delta.character_updates:
@@ -548,34 +586,68 @@ def step_snapshot_and_commit(chapter: int) -> bool:
     else:
         print(result.stdout)
 
-    # Copy draft to chapters/v001/
+    # Copy draft to chapters/vNNN/
+    proj = load_project()
+    chapters_v_dir = get_chapters_v_dir(proj.current_volume)
     draft_path = rt_dir / "draft.md"
     if draft_path.exists():
-        CHAPTERS_V_DIR.mkdir(parents=True, exist_ok=True)
-        chapter_file = CHAPTERS_V_DIR / f"ch_{chapter:04d}.md"
+        chapters_v_dir.mkdir(parents=True, exist_ok=True)
+        chapter_file = chapters_v_dir / f"ch_{chapter:04d}.md"
         chapter_file.write_text(draft_path.read_text(encoding="utf-8"), encoding="utf-8")
         print(f"  Draft copied to {chapter_file}")
 
-    # Git commit
+    # Pre-save commit index entry (with placeholder hash) before git commit.
+    # This ensures the index is included in the same commit as the state.
+    # If the process crashes after git commit but before the hash update,
+    # the entry can be recovered by scanning git log.
+    index_path = STORY_DIR / "memory" / "snapshots" / "commit_index.json"
+    index_data = load_json(index_path)
+    from story_schema import SnapshotEntry, SnapshotIndex
+    index = SnapshotIndex(**index_data)
+    entry = SnapshotEntry(
+        chapter=chapter,
+        commit_hash="(pending)",
+        timestamp=datetime.now().isoformat(),
+        description=f"Chapter {chapter} accepted",
+    )
+    index.entries.append(entry)
+    save_json(index_path, index.model_dump())
+
+    # Git commit (includes the pre-saved index)
     commit_msg = f"chapter {chapter}: accepted"
     commit_hash = git_commit(commit_msg)
     if commit_hash:
         print(f"  Committed: {commit_hash}")
-
-        # Update commit index
-        index_path = STORY_DIR / "memory" / "snapshots" / "commit_index.json"
-        index_data = load_json(index_path)
-        from story_schema import SnapshotEntry, SnapshotIndex
-        index = SnapshotIndex(**index_data)
-        index.entries.append(SnapshotEntry(
-            chapter=chapter,
-            commit_hash=commit_hash,
-            timestamp=datetime.now().isoformat(),
-            description=f"Chapter {chapter} accepted",
-        ))
+        # Update the entry with the actual commit hash
+        entry.commit_hash = commit_hash
         save_json(index_path, index.model_dump())
         return True
-    return False
+    else:
+        # Commit failed — remove the pending entry
+        index.entries.pop()
+        save_json(index_path, index.model_dump())
+        return False
+
+
+def step_index_chapter(chapter: int) -> bool:
+    """Phase 7: Index chapter into FTS5 database for retrieval."""
+    banner(f"Step 8b: Index Chapter — Chapter {chapter}")
+    try:
+        result = subprocess.run(
+            [sys.executable, "memory_retrieval.py", "index", "--chapter", str(chapter)],
+            cwd=BASE_DIR,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            print(result.stdout)
+            return True
+        else:
+            print(f"  [WARN] Chapter indexing had issues: {result.stderr}")
+            return True  # Non-blocking
+    except Exception as e:
+        print(f"  [WARN] Chapter indexing failed: {e}")
+        return True  # Non-blocking
 
 
 def step_update_projections(chapter: int) -> bool:
@@ -684,6 +756,17 @@ def step_volume_end(volume: int, chapter: int) -> bool:
 # Chapter transaction
 # ---------------------------------------------------------------------------
 
+def is_chapter_accepted(chapter: int) -> bool:
+    """Check if a chapter has already been accepted (has a snapshot)."""
+    index_path = STORY_DIR / "memory" / "snapshots" / "commit_index.json"
+    if not index_path.exists():
+        return False
+    index_data = load_json(index_path)
+    from story_schema import SnapshotIndex
+    index = SnapshotIndex(**index_data)
+    return any(e.chapter == chapter for e in index.entries)
+
+
 def run_chapter_transaction(chapter: int) -> bool:
     """Run the complete transaction for one chapter."""
     banner(f"CHAPTER {chapter} TRANSACTION", char="#")
@@ -698,6 +781,7 @@ def run_chapter_transaction(chapter: int) -> bool:
         ("Delta Validation", step_validate_delta),
         ("Apply Delta", step_apply_delta),
         ("Snapshot & Commit", step_snapshot_and_commit),
+        ("Index Chapter", step_index_chapter),
         ("Update Projections", step_update_projections),
         ("Periodic Summary", step_periodic_summary),
     ]
@@ -723,20 +807,34 @@ def run_chapter_transaction(chapter: int) -> bool:
     return True
 
 
-def run_multi_chapter(start: int, end: int) -> list[int]:
+def run_multi_chapter(start: int, end: int, resume: bool = False,
+                      continue_on_failure: bool = False) -> list[int]:
     """Run transactions for a range of chapters. Returns list of failed chapters."""
     failed = []
+    skipped = []
     for ch in range(start, end + 1):
+        # Resume: skip chapters that already have snapshots
+        if resume and is_chapter_accepted(ch):
+            print(f"\n[RESUME] Chapter {ch} already accepted. Skipping.")
+            skipped.append(ch)
+            continue
+
         success = run_chapter_transaction(ch)
         if not success:
             failed.append(ch)
-            print(f"\n[STOP] Chapter {ch} failed. Stopping.")
-            break
+            if continue_on_failure:
+                print(f"\n[CONTINUE] Chapter {ch} failed. Continuing to next chapter.")
+                continue
+            else:
+                print(f"\n[STOP] Chapter {ch} failed. Stopping.")
+                break
 
         # Check for volume end and run post-processing
         proj = load_project()
         step_volume_end(proj.current_volume, ch)
 
+    if skipped:
+        print(f"\nResumed (skipped): {len(skipped)} chapter(s): {skipped}")
     return failed
 
 
@@ -760,12 +858,21 @@ Examples:
     parser.add_argument("--chapters", type=str, help="Chapter range, e.g. '1-20'")
     parser.add_argument("--volume-range", type=str, help="Volume range, e.g. '1-3' (runs all chapters in each volume)")
     parser.add_argument("--dry-run", action="store_true", help="Show what would run without executing")
+    parser.add_argument("--audit-warn", action="store_true", help="Treat audit blocking issues as warnings instead of failures")
+    parser.add_argument("--resume", action="store_true", help="Skip chapters that already have accepted snapshots")
+    parser.add_argument("--continue-on-failure", action="store_true", help="Continue to next chapter on failure instead of stopping")
     args = parser.parse_args()
+
+    global AUDIT_WARN_MODE
+    AUDIT_WARN_MODE = args.audit_warn
 
     if args.chapter:
         if args.dry_run:
             print(f"Would run chapter {args.chapter} transaction")
             return
+        if args.resume and is_chapter_accepted(args.chapter):
+            print(f"[RESUME] Chapter {args.chapter} already accepted. Skipping.")
+            sys.exit(0)
         success = run_chapter_transaction(args.chapter)
         # Run volume end check
         if success:
@@ -780,7 +887,8 @@ Examples:
             print(f"Would run volume {args.volume}, chapters {start}-{end}")
             return
         print(f"Running volume {args.volume}, chapters {start}-{end}")
-        failed = run_multi_chapter(start, end)
+        failed = run_multi_chapter(start, end, resume=args.resume,
+                                   continue_on_failure=args.continue_on_failure)
         if failed:
             print(f"\nFailed chapters: {failed}")
             sys.exit(1)
@@ -816,11 +924,15 @@ Examples:
             print(f"  Volume {vol}: chapters {ch_start}-{ch_end}")
             print(f"{'='*60}\n")
 
-            failed = run_multi_chapter(ch_start, ch_end)
+            failed = run_multi_chapter(ch_start, ch_end, resume=args.resume,
+                                       continue_on_failure=args.continue_on_failure)
             if failed:
                 all_failed.extend(failed)
-                print(f"\n[STOP] Volume {vol} failed at chapter(s): {failed}")
-                break
+                if args.continue_on_failure:
+                    print(f"\n[CONTINUE] Volume {vol} had failures: {failed}")
+                else:
+                    print(f"\n[STOP] Volume {vol} failed at chapter(s): {failed}")
+                    break
 
         if all_failed:
             print(f"\nAll failed chapters: {all_failed}")

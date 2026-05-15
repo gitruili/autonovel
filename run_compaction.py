@@ -50,7 +50,7 @@ def get_volume_chapter_range(volume: int) -> tuple[int, int]:
 
 
 def compact_summaries(volume: int, chapter_start: int, chapter_end: int,
-                      keep_recent: int = 5, dry_run: bool = False) -> tuple[int, int]:
+                      keep_recent: int = 5, dry_run: bool = False) -> tuple[int, int, list[int]]:
     """Compact chapter summaries for a volume.
 
     Keeps the last `keep_recent` summaries in full detail.

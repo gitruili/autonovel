@@ -274,8 +274,14 @@ def main():
         out_path = Path(args.out)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(result, encoding="utf-8")
-        # Also copy to chapters/v001/
-        v_dir = CHAPTERS_DIR / "v001"
+        # Also copy to chapters/vNNN/ (volume-aware)
+        proj_path = STORY_DIR / "project.json"
+        volume = 1
+        if proj_path.exists():
+            with open(proj_path) as f:
+                proj_data = json.load(f)
+            volume = proj_data.get("current_volume", 1)
+        v_dir = CHAPTERS_DIR / f"v{volume:03d}"
         v_dir.mkdir(parents=True, exist_ok=True)
         v_file = v_dir / f"ch_{chapter_num:04d}.md"
         v_file.write_text(result, encoding="utf-8")

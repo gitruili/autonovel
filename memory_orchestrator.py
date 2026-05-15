@@ -119,7 +119,8 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
             })
 
     # 5. Previous chapter tail
-    prev_chapter_path = BASE_DIR / "chapters" / "v001" / f"ch_{chapter - 1:04d}.md"
+    chapters_v_dir = BASE_DIR / "chapters" / f"v{proj.current_volume:03d}"
+    prev_chapter_path = chapters_v_dir / f"ch_{chapter - 1:04d}.md"
     prev_tail = ""
     if prev_chapter_path.exists():
         prev_text = prev_chapter_path.read_text(encoding="utf-8")
@@ -135,6 +136,17 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
     intent_path = STORY_DIR / "runtime" / f"ch_{chapter:04d}" / "intent.md"
     intent = load_file(intent_path)
 
+    # 8. Retrieved fragments (FTS5 search)
+    retrieved = []
+    try:
+        from memory_retrieval import retrieve_for_chapter
+        retrieved = retrieve_for_chapter(
+            chapter,
+            max_chars=budget.retrieved_fragments,
+        )
+    except Exception as e:
+        print(f"  [WARN] Fragment retrieval failed: {e}")
+
     # Build context
     context = ChapterContext(
         chapter=chapter,
@@ -143,7 +155,7 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
         volume_contract=volume_contract,
         state_slice=state_slice,
         recent_summaries=recent_summaries,
-        retrieved_fragments=[],  # TODO: Phase 7 RAG
+        retrieved_fragments=retrieved,
         voice_rules=voice_rules,
         previous_chapter_tail=prev_tail,
         metadata={
@@ -172,6 +184,7 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
     print(f"  Characters in state: {len(char_matrix.characters)}")
     print(f"  Active hooks: {len([h for h in hooks.hooks.values() if h.status == 'active'])}")
     print(f"  Recent summaries: {len(recent_summaries)}")
+    print(f"  Retrieved fragments: {len(retrieved)}")
     print(f"  Output: {out_path}")
 
     return context

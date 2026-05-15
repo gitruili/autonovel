@@ -11,6 +11,7 @@ Usage:
   uv run python autonovel_cli.py validate
   uv run python autonovel_cli.py plan volume --volume 1
   uv run python autonovel_cli.py plan chapter --chapter 1
+  uv run python autonovel_cli.py plan batch --start 1 --count 20
   uv run python autonovel_cli.py report
   uv run python autonovel_cli.py snapshot create --chapter 1
   uv run python autonovel_cli.py snapshot restore --commit <ref>
@@ -195,14 +196,22 @@ def cmd_plan_chapter(args):
     return _run_script("gen_chapter_plan.py", ["--chapter", str(args.chapter)])
 
 
+def cmd_plan_batch(args):
+    """Generate batch chapter plans."""
+    script_args = ["--start", str(args.start), "--count", str(args.count)]
+    return _run_script("gen_batch_chapter_plans.py", script_args)
+
+
 def cmd_plan(args):
     """Plan subcommand dispatcher."""
     if args.plan_type == "volume":
         return cmd_plan_volume(args)
     elif args.plan_type == "chapter":
         return cmd_plan_chapter(args)
+    elif args.plan_type == "batch":
+        return cmd_plan_batch(args)
     else:
-        print("Usage: autonovel plan volume --volume N  OR  autonovel plan chapter --chapter N")
+        print("Usage: autonovel plan volume --volume N  OR  autonovel plan chapter --chapter N  OR  autonovel plan batch --start N --count M")
         return 1
 
 
@@ -574,6 +583,7 @@ Examples:
   uv run python autonovel_cli.py validate
   uv run python autonovel_cli.py plan volume --volume 1
   uv run python autonovel_cli.py plan chapter --chapter 1
+  uv run python autonovel_cli.py plan batch --start 1 --count 20
   uv run python autonovel_cli.py report
   uv run python autonovel_cli.py snapshot create --chapter 1
   uv run python autonovel_cli.py compact --volume 1
@@ -605,9 +615,11 @@ Examples:
 
     # plan
     p_plan = subparsers.add_parser("plan", help="Generate plans")
-    p_plan.add_argument("plan_type", choices=["volume", "chapter"], help="Plan type")
+    p_plan.add_argument("plan_type", choices=["volume", "chapter", "batch"], help="Plan type")
     p_plan.add_argument("--volume", type=int, help="Volume number")
     p_plan.add_argument("--chapter", type=int, help="Chapter number")
+    p_plan.add_argument("--start", type=int, help="First chapter number (for batch)")
+    p_plan.add_argument("--count", type=int, default=20, help="Number of chapters to plan (for batch, default: 20)")
 
     # draft
     p_draft = subparsers.add_parser("draft", help="Draft a single chapter")

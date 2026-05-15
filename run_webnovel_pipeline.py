@@ -309,13 +309,27 @@ def step_apply_delta(chapter: int) -> bool:
             continue
         if char_id in char_matrix.characters:
             char = char_matrix.characters[char_id]
-            for k, v in update.items():
-                if k != "new_character" and hasattr(char, k):
-                    setattr(char, k, v)
+            # Handle field/value format from LLM
+            if "field" in update and "value" in update:
+                field_name = update["field"]
+                if hasattr(char, field_name):
+                    setattr(char, field_name, update["value"])
+                elif field_name == "灵根状态":
+                    char.personality = (char.personality + f" [灵根: {update['value']}]").strip()
+            else:
+                for k, v in update.items():
+                    if k != "new_character" and hasattr(char, k):
+                        setattr(char, k, v)
             char.last_seen_chapter = chapter
         elif update.get("new_character"):
             from story_schema import Character
             update.pop("new_character", None)
+            # Handle field/value format: use id as name
+            if "name" not in update:
+                update["name"] = char_id
+            if "field" in update and "value" in update:
+                field_info = f"{update.pop('field')}: {update.pop('value')}"
+                update["personality"] = field_info
             update["id"] = char_id
             update["source_chapter"] = chapter
             update["last_seen_chapter"] = chapter
@@ -325,13 +339,13 @@ def step_apply_delta(chapter: int) -> bool:
     for update in delta.resource_updates:
         from story_schema import Resource
         action = update.get("action", "create")
-        res_id = update.get("id", "")
+        res_id = update.pop("id", None) or update.get("name", "") or f"res_{chapter}_{len(power_ledger.resources)}"
         if action == "create":
             update.pop("action", None)
             update["source_chapter"] = chapter
             update["last_seen_chapter"] = chapter
-            if not res_id:
-                res_id = f"res_{chapter}_{len(power_ledger.resources)}"
+            if "name" not in update:
+                update["name"] = res_id
             power_ledger.resources[res_id] = Resource(id=res_id, **update)
         elif action == "update" and res_id in power_ledger.resources:
             res = power_ledger.resources[res_id]
@@ -339,23 +353,46 @@ def step_apply_delta(chapter: int) -> bool:
                 if k not in ("action", "id") and hasattr(res, k):
                     setattr(res, k, v)
             res.last_seen_chapter = chapter
-        elif action == "consume" and res_id in power_ledger.resources:
-            qty = update.get("quantity", 0)
-            power_ledger.resources[res_id].quantity -= qty
-            power_ledger.resources[res_id].last_seen_chapter = chapter
+        elif action == "consume":
+            if res_id and res_id not in power_ledger.resources:
+                # Implicit create for non-existent resource
+                from story_schema import Resource
+                power_ledger.resources[res_id] = Resource(
+                    id=res_id,
+                    name=update.get("name", res_id),
+                    category=update.get("category", ""),
+                    quantity=0,
+                    unit=update.get("unit", ""),
+                    owner=update.get("owner", ""),
+                    source_chapter=chapter,
+                    last_seen_chapter=chapter,
+                )
+            if res_id in power_ledger.resources:
+                qty = update.get("quantity", 0)
+                power_ledger.resources[res_id].quantity -= qty
+                power_ledger.resources[res_id].last_seen_chapter = chapter
+        elif action == "update" and res_id in power_ledger.resources:
+            res = power_ledger.resources[res_id]
+            for k, v in update.items():
+                if k not in ("action", "id") and hasattr(res, k):
+                    setattr(res, k, v)
+            res.last_seen_chapter = chapter
 
     # Apply item updates
     for update in delta.item_updates:
         from story_schema import Item
         action = update.get("action", "create")
-        item_id = update.get("id", "")
-        if action == "create":
+        raw_id = update.pop("id", None)
+        raw_name = update.get("name", "")
+        item_id = raw_id or raw_name or f"item_{chapter}_{len(power_ledger.items)}"
+        if action == "create" or (action == "upgrade" and item_id not in power_ledger.items):
             update.pop("action", None)
+            update.pop("new_owner", None)
             update["source_chapter"] = chapter
             update["last_seen_chapter"] = chapter
             update["acquired_chapter"] = chapter
-            if not item_id:
-                item_id = f"item_{chapter}_{len(power_ledger.items)}"
+            if "name" not in update:
+                update["name"] = item_id
             power_ledger.items[item_id] = Item(id=item_id, **update)
         elif action == "transfer" and item_id in power_ledger.items:
             power_ledger.items[item_id].owner = update.get("new_owner", "")
@@ -368,7 +405,7 @@ def step_apply_delta(chapter: int) -> bool:
     for update in delta.hook_updates:
         from story_schema import ForeshadowHook
         action = update.get("action", "create")
-        hook_id = update.get("id", "")
+        hook_id = update.pop("id", "")
         if action == "create":
             update.pop("action", None)
             update["source_chapter"] = chapter
@@ -405,7 +442,7 @@ def step_apply_delta(chapter: int) -> bool:
     for update in delta.subplot_updates:
         from story_schema import Subplot
         action = update.get("action", "update")
-        subplot_id = update.get("id", "")
+        subplot_id = update.pop("id", "")
         if action == "create":
             update.pop("action", None)
             update["source_chapter"] = chapter
@@ -426,7 +463,7 @@ def step_apply_delta(chapter: int) -> bool:
     for update in delta.emotional_arc_updates:
         from story_schema import EmotionalArc
         action = update.get("action", "create")
-        arc_id = update.get("id", "")
+        arc_id = update.pop("id", "")
         if action == "create":
             update.pop("action", None)
             update["source_chapter"] = chapter

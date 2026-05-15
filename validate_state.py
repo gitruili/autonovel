@@ -123,29 +123,47 @@ def validate_delta_against_state(delta: ChapterDelta, chapter: int) -> list[str]
     existing_resource_ids = set(power_ledger.resources.keys())
     existing_hook_ids = set(hooks.hooks.keys())
 
+    # Track entities created in this delta batch
+    batch_char_ids = set()
+    batch_item_ids = set()
+
     # Check character updates reference existing characters
     for update in delta.character_updates:
         char_id = update.get("id", "")
-        if char_id and char_id not in existing_char_ids and not update.get("new_character", False):
+        if not char_id:
+            continue
+        if update.get("new_character", False):
+            batch_char_ids.add(char_id)
+        elif char_id not in existing_char_ids and char_id not in batch_char_ids:
             errors.append(f"Character update references non-existent character: {char_id}")
 
     # Check resource updates
+    batch_resource_ids = set()
     for update in delta.resource_updates:
         res_id = update.get("id", "")
         action = update.get("action", "")
-        if action == "consume" and res_id and res_id not in existing_resource_ids:
-            errors.append(f"Resource consume references non-existent resource: {res_id}")
         if action == "create":
-            # New resources are allowed, but must have required fields
+            batch_resource_ids.add(res_id or update.get("name", ""))
             if not update.get("name"):
                 errors.append(f"New resource missing 'name' field")
+        elif action == "consume" and res_id:
+            if res_id not in existing_resource_ids and res_id not in batch_resource_ids:
+                # Allow implicit creation of consumed resources (LLM common pattern)
+                batch_resource_ids.add(res_id)
 
     # Check item updates
     for update in delta.item_updates:
         item_id = update.get("id", "")
         action = update.get("action", "")
-        if action in ("transfer", "destroy", "upgrade") and item_id and item_id not in existing_item_ids:
-            errors.append(f"Item action '{action}' references non-existent item: {item_id}")
+        if action == "create":
+            batch_item_ids.add(item_id or f"new_item_{len(batch_item_ids)}")
+        elif action in ("transfer", "destroy", "upgrade") and item_id:
+            if item_id not in existing_item_ids and item_id not in batch_item_ids:
+                # If upgrade on non-existent item, treat as create (LLM common mistake)
+                if action == "upgrade":
+                    batch_item_ids.add(item_id)
+                else:
+                    errors.append(f"Item action '{action}' references non-existent item: {item_id}")
 
     # Check hook updates
     for update in delta.hook_updates:
@@ -159,10 +177,17 @@ def validate_delta_against_state(delta: ChapterDelta, chapter: int) -> list[str]
                 errors.append(f"Hook {hook_id} is already resolved, cannot resolve again")
 
     # Check power updates — no skipping levels
+    # Collect new characters from this delta batch
+    new_char_ids_in_delta = {
+        u.get("id", "") for u in delta.character_updates if u.get("new_character", False)
+    }
     for update in delta.power_updates:
         char_id = update.get("character_id", "")
         new_rank = update.get("new_rank")
         if char_id and new_rank is not None:
+            # Allow new characters to have any initial rank
+            if char_id in new_char_ids_in_delta:
+                continue
             current_max = 0
             for level in power_ledger.levels:
                 if level.character_id == char_id and level.level_rank > current_max:

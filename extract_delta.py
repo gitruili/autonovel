@@ -109,7 +109,7 @@ def extract_delta(chapter: int, draft_path: Path, out_path: Path) -> ChapterDelt
     {{"action": "create|update|consume", "id": "资源ID(更新时)", "name": "资源名", "category": "currency|material|food|tool", "quantity": 数量, "unit": "单位", "owner": "角色ID"}}
   ],
   "item_updates": [
-    {{"action": "create|transfer|destroy|upgrade", "id": "物品ID(操作时)", "name": "物品名", "description": "描述", "item_type": "weapon|armor|accessory|artifact|consumable|misc", "rarity": "common|uncommon|rare|epic|legendary", "owner": "角色ID", "new_owner": "角色ID(transfer时)"}}
+    {{"action": "create|transfer|destroy", "id": "物品ID(仅transfer/destroy时)", "name": "物品名", "description": "描述", "item_type": "weapon|armor|accessory|artifact|consumable|misc", "rarity": "common|uncommon|rare|epic|legendary", "owner": "角色ID", "new_owner": "角色ID(transfer时)"}}
   ],
   "hook_updates": [
     {{"action": "create|advance|resolve", "id": "伏笔ID(操作时)", "description": "伏笔描述", "hook_type": "setup|advance|payoff", "related_characters": ["角色ID"]}}
@@ -133,11 +133,12 @@ def extract_delta(chapter: int, draft_path: Path, out_path: Path) -> ChapterDelt
 
 注意事项：
 1. 只提取本章实际发生的变化，不要推测。
-2. 新角色用 name 字段标识，设 new_character=true。
+2. 新角色用 name 字段标识，设 new_character=true。同一角色可有多条更新（先 new_character=true，后续 new_character=false）。
 3. 对已有实体的更新必须使用正确的 ID。
 4. 伏笔回收必须引用已存在的伏笔 ID。
 5. 战力提升不能跳级（当前等级+1）。
-6. 只输出 JSON，不要其他文字。"""
+6. 物品首次出现必须用 action="create"，不能用 "upgrade"。只有已存在物品的变化才用 "transfer" 或 "destroy"。
+7. 只输出 JSON，不要其他文字。"""
 
     print(f"Extracting delta from chapter {chapter}...", file=sys.stderr)
     result = call_text_model(

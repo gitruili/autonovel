@@ -124,7 +124,10 @@ def call_text_model(
     timeout: int,
     include_beta: bool = False,
     extra_payload: dict | None = None,
+    max_retries: int = 3,
 ) -> str:
+    import time as _time
+
     # Reasoning models take a long time to return; enforce a safe minimum timeout
     timeout = max(timeout, 1800)
     provider = get_provider()
@@ -139,11 +142,20 @@ def call_text_model(
     if extra_payload:
         payload.update(extra_payload)
 
-    response = httpx.post(
-        messages_endpoint(),
-        headers=build_headers(provider=provider, include_beta=include_beta),
-        json=payload,
-        timeout=timeout,
-    )
-    response.raise_for_status()
-    return extract_text_from_response(response.json())
+    last_error = None
+    for attempt in range(max_retries):
+        response = httpx.post(
+            messages_endpoint(),
+            headers=build_headers(provider=provider, include_beta=include_beta),
+            json=payload,
+            timeout=timeout,
+        )
+        if response.status_code == 429 and attempt < max_retries - 1:
+            retry_after = int(response.headers.get("retry-after", 30))
+            print(f"  [RATE LIMITED] Waiting {retry_after}s before retry {attempt + 1}/{max_retries}...", file=sys.stderr)
+            _time.sleep(retry_after)
+            continue
+        response.raise_for_status()
+        return extract_text_from_response(response.json())
+
+    raise last_error or RuntimeError("All retries exhausted")

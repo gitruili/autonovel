@@ -65,9 +65,9 @@ def create_snapshot(chapter: int) -> str:
                 if f.is_file():
                     zf.write(f, f"story/runtime/ch_{chapter:04d}/{f.name}")
 
-        # Include commit index
-        if INDEX_PATH.exists():
-            zf.write(INDEX_PATH, "story/memory/snapshots/commit_index.json")
+        # Note: commit_index.json is NOT included in snapshots
+        # because it's metadata about snapshots themselves, not story state.
+        # It's maintained separately by the pipeline after git commit.
 
     print(f"  Snapshot created: {snapshot_path}")
     print(f"  Size: {snapshot_path.stat().st_size:,} bytes")

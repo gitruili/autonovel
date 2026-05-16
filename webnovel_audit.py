@@ -219,13 +219,15 @@ def check_ledger_compliance(delta: ChapterDelta) -> dict:
         if action == "consume" and res_id in power_ledger.resources:
             current = power_ledger.resources[res_id].quantity
             consumed = update.get("quantity", 0)
+            if not isinstance(current, (int, float)) or not isinstance(consumed, (int, float)):
+                continue
             if current - consumed < 0:
                 issues.append(
                     f"Resource {res_id} would go negative: {current} - {consumed}"
                 )
         elif action == "update" and res_id in power_ledger.resources:
             new_qty = update.get("quantity")
-            if new_qty is not None and new_qty < 0:
+            if new_qty is not None and isinstance(new_qty, (int, float)) and new_qty < 0:
                 issues.append(
                     f"Resource {res_id} update would set negative quantity: {new_qty}"
                 )

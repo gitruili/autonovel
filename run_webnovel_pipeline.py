@@ -384,11 +384,17 @@ def step_apply_delta(chapter: int) -> bool:
             update["last_seen_chapter"] = chapter
             if "name" not in update:
                 update["name"] = res_id
-            power_ledger.resources[res_id] = Resource(id=res_id, **update)
+            # Strip None values — JSON null for optional string fields (e.g. owner)
+            # would fail Pydantic str validation
+            clean = {k: v for k, v in update.items() if v is not None}
+            power_ledger.resources[res_id] = Resource(id=res_id, **clean)
         elif action == "update" and res_id in power_ledger.resources:
             res = power_ledger.resources[res_id]
             for k, v in update.items():
                 if k not in ("action", "id") and hasattr(res, k):
+                    # Skip non-numeric values for numeric fields (quantity)
+                    if k == "quantity" and not isinstance(v, (int, float)):
+                        continue
                     setattr(res, k, v)
             res.quantity = max(0.0, res.quantity)
             res.last_seen_chapter = chapter
@@ -402,18 +408,21 @@ def step_apply_delta(chapter: int) -> bool:
                     category=update.get("category", ""),
                     quantity=0,
                     unit=update.get("unit", ""),
-                    owner=update.get("owner", ""),
+                    owner=update.get("owner") or "",
                     source_chapter=chapter,
                     last_seen_chapter=chapter,
                 )
             if res_id in power_ledger.resources:
                 qty = update.get("quantity", 0)
-                power_ledger.resources[res_id].quantity -= qty
+                if isinstance(qty, (int, float)):
+                    power_ledger.resources[res_id].quantity = max(0.0, power_ledger.resources[res_id].quantity - qty)
                 power_ledger.resources[res_id].last_seen_chapter = chapter
         elif action == "update" and res_id in power_ledger.resources:
             res = power_ledger.resources[res_id]
             for k, v in update.items():
                 if k not in ("action", "id") and hasattr(res, k):
+                    if k == "quantity" and not isinstance(v, (int, float)):
+                        continue
                     setattr(res, k, v)
             res.last_seen_chapter = chapter
 
@@ -432,7 +441,9 @@ def step_apply_delta(chapter: int) -> bool:
             update["acquired_chapter"] = chapter
             if "name" not in update:
                 update["name"] = item_id
-            power_ledger.items[item_id] = Item(id=item_id, **update)
+            # Strip None values — JSON null for optional string fields
+            clean = {k: v for k, v in update.items() if v is not None}
+            power_ledger.items[item_id] = Item(id=item_id, **clean)
         elif action == "transfer" and item_id in power_ledger.items:
             power_ledger.items[item_id].owner = update.get("new_owner", "")
             power_ledger.items[item_id].last_seen_chapter = chapter

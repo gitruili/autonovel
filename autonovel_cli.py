@@ -556,6 +556,35 @@ def cmd_generate(args):
             else:
                 print(f"  ✗ {sf} (missing!)")
 
+    # Evaluate foundation quality (long-form only)
+    if long_form:
+        print()
+        print("=" * 60)
+        print("  评估设定基石质量...")
+        print("=" * 60)
+        try:
+            from evaluate import evaluate_foundation_lf
+            eval_result = evaluate_foundation_lf()
+            # Save eval result
+            eval_path = STORY_DIR / "foundation_eval.json"
+            with open(eval_path, "w", encoding="utf-8") as f:
+                json.dump(eval_result, f, indent=2, ensure_ascii=False)
+            # Print summary
+            overall = eval_result.get("overall_score", "N/A")
+            lore = eval_result.get("lore_score", "N/A")
+            weakest = eval_result.get("weakest_dimension", "N/A")
+            improvements = eval_result.get("top_3_improvements", [])
+            print(f"  总分: {overall}/10  逻辑一致性: {lore}/10")
+            print(f"  最弱维度: {weakest}")
+            if improvements:
+                print("  改进建议:")
+                for j, imp in enumerate(improvements, 1):
+                    print(f"    {j}. {imp}")
+            print(f"\n  详细报告: {eval_path}")
+        except Exception as e:
+            print(f"  [WARN] 评估失败: {e}")
+            print("  基石文件已生成，可手动运行: uv run python evaluate.py --phase=foundation-lf")
+
     print()
     print("Next steps:")
     print("  1. Review and edit the generated files")

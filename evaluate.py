@@ -465,6 +465,154 @@ def evaluate_foundation():
     return parse_json_response(raw)
 
 
+# --- Long-Form Foundation Evaluation ---
+
+FOUNDATION_LF_PROMPT = """评估这部长篇女频网文（100万字+）的策划文档。
+
+评分基准（评分前请仔细阅读）：
+
+  9-10: 即便投入一个月的专注编辑工作也无法再提升。
+        达到已出版小说的水准。你能指名道姓地说出哪部已出版小说可以与其竞争。
+        只有让你感到"惊喜"的作品才能给 10 分。
+  7-8:  出色。资深作者只需这份文档即可动笔，无需即兴构思。
+        虽有缺失但很轻微且可以罗列。
+  5-6:  具备功能性但内容单薄。作者在动笔时需要即兴创作大量内容。
+        存在重大缺失或平庸的选择。
+  3-4:  草率。问题多于答案。动笔前需要大量补充。
+  1-2:  占位符或存根。无法用于动笔撰写。
+  0:    空白或缺失。
+
+  8 分以上要求没有任何重大缺陷。9 分以上要求你几乎难以找到瑕疵。评分应趋于严苛。
+
+强制要求：对于每一个维度，在评分前你必须确定：
+  (a) 该领域中最大的缺陷（GAP）或弱点（WEAKNESS）
+  (b) 能够提升得分的具体、可操作的改进方案（IMPROVEMENT）
+  如果你找不到缺陷，请解释为什么你认为它不存在。
+
+语气定义:
+{voice}
+
+世界设定集:
+{world}
+
+角色注册表:
+{characters}
+
+全书总纲 (YAML 格式，含全书所有卷的规划、反派轮换、感情线阶段、经济里程碑、超长线伏笔):
+{master_plan}
+
+第一卷详细大纲 (章节级，仅覆盖第一卷约20章):
+{outline}
+
+设定准则 (已确立的事实):
+{canon}
+
+注意：全书总纲（master_plan）包含全书所有卷的宏观规划，是评估分卷结构、反派轮换、扩展路线图的主要依据。
+第一卷大纲（outline）仅包含第一卷的章节级细节，是评估章节级爽点铺垫、伏笔平衡的依据。
+如果全书总纲缺失或为空，则 volume_structure、villain_rotation、expansion_roadmap 三个维度应直接给 0 分并注明"总纲缺失"。
+
+交叉核对（评分前执行）：
+1. 经济数据交叉验证：物价、收入、支出是否自洽？升级速度是否合理？
+2. 角色对话检查：不同角色是否共享相同句式？去掉标签能分辨谁在说话吗？
+3. 金手指规则检查：局限性、冷却期是否明确？是否有规避不写的漏洞？
+4. 文档间矛盾检查：交叉对比年龄、地点、物价、关系。
+5. 分卷结构检查（依据 master_plan）：每卷是否有独立的核心冲突和高潮？卷间过渡是否合理？
+6. 反派轮换检查（依据 master_plan）：反派出场-退场节奏是否合理？新反派引入是否有铺垫？
+
+对以下维度进行评分（每个维度需包含缺陷+改进建议）：
+
+设定与世界观 (SETTING) — 35%:
+- 经济体系 (economic_system): 物价清单是否完整自洽？经济升级速度是否合理？长篇中经济体系能否支撑500+章的种田线？
+- 社会礼法 (social_rules): 婚姻、分家、女性地位等规则是否明确？是否既能制造冲突又留有突破口？
+- 地理物产 (geography_products): 地点是否有独特感官特征？物产是否与种田线直接相关？
+- 金手指规则 (cheat_rules): 能力边界是否清晰？局限性和冷却期是否明确？代价是否驱动情节？
+
+角色 (CHARACTER) — 25%:
+- 角色深度 (character_depth): 每个主要角色是否有完整驱动力链条？角色是否有成长空间支撑500+章？
+- 角色辨识度 (character_distinctiveness): 去掉对话标签能否辨认说话者？不同身份的说话方式是否有区分？
+- 反派轮换设计 (villain_rotation)【依据 master_plan.antagonist_rotation】: 反派梯队是否分层（阶段性反派 vs 终极反派）？退场-引入节奏是否合理？每个反派是否有独特动机？
+
+结构 (STRUCTURE) — 30%:
+- 分卷结构 (volume_structure)【依据 master_plan.volumes】: 每卷是否有独立的核心冲突、高潮、和阶段性胜利？卷间是否有递进关系？全书节奏曲线是否合理？
+- 升级台阶 (progression_system)【依据 master_plan.economy_milestones + world.md】: 升级台阶是否清晰、可见、有代价？是否能支撑百万字不重复？经济数据是否与world.md匹配？
+- 爽点铺垫 (payoff_setup)【依据 outline 第一卷】: 每个打脸/爽点是否有至少1-2章的铺垫？爽点密度是否合理（不过密不过疏）？
+- 伏笔平衡 (foreshadowing_balance)【依据 master_plan.long_foreshadows + outline】: 伏笔台账是否存在？长线伏笔和短线伏笔是否平衡？植入到回收的间隔是否合理？
+- 扩展路线图 (expansion_roadmap)【依据 master_plan】: 世界观是否预留了足够的扩展空间？后续卷的设定扩展是否有明确规划？
+
+创作素养 (CRAFT) — 10%:
+- 内部一致性 (internal_consistency): 积极寻找矛盾。交叉核对物价、时间线、角色年龄。
+- 语气清晰度 (voice_clarity): 语气定义是否具体？是否有烟火气？对话示例是否存在AI废话模式？
+- 准则覆盖度 (canon_coverage): 事实是否被完整记录？是否有遗漏的硬性事实？
+
+请以 JSON 格式响应：
+{{
+  "economic_system": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "social_rules": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "geography_products": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "cheat_rules": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "character_depth": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "character_distinctiveness": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "villain_rotation": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "volume_structure": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "progression_system": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "payoff_setup": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "foreshadowing_balance": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "expansion_roadmap": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "internal_consistency": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "voice_clarity": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "canon_coverage": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+  "slop_in_planning_docs": {{"found": ["列出发现的AI废话模式"], "note": "..."}},
+  "contradictions_found": ["列出文档之间的事实矛盾"],
+  "overall_score": N,
+  "lore_score": N,
+  "weakest_dimension": "...",
+  "top_3_improvements": ["按优先级排列的 3 个最高杠杆改进方案"]
+}}
+
+权重：设定/世界观 35%，角色 25%，结构 30%，创作素养 10%。
+长篇网文的结构权重高，因为分卷设计和升级台阶是读者追更的核心动力。
+
+最终核对：如果你的总分高于 7 分，请重新阅读你的缺陷列表。如果任何缺陷会迫使作者动笔时临时发明内容，评分就太高了。
+"""
+
+
+def load_layer_files_lf():
+    """Load long-form foundation layer files."""
+    story_dir = BASE_DIR / "story"
+    plans_dir = story_dir / "plans"
+    layers = {
+        "voice": load_file(BASE_DIR / "voice.md"),
+        "world": load_file(BASE_DIR / "world.md"),
+        "characters": load_file(BASE_DIR / "characters.md"),
+        "outline": load_file(BASE_DIR / "outline.md"),
+        "canon": load_file(BASE_DIR / "canon.md"),
+        "master_plan": load_file(plans_dir / "master_plan.yaml"),
+    }
+    # Fallback: if master_plan.yaml missing, try reading from outline.md header
+    if not layers["master_plan"]:
+        layers["master_plan"] = "(master_plan.yaml not found)"
+    return layers
+
+
+def evaluate_foundation_lf():
+    """Evaluate long-form foundation phase documents."""
+    failed_eval = Path("failed_eval.json")
+    if failed_eval.exists():
+        try:
+            text = failed_eval.read_text(encoding="utf-8")
+            data = parse_json_response(text)
+            failed_eval.unlink()
+            return data
+        except Exception:
+            pass
+
+    print("Gathering long-form foundation documents...")
+    layers = load_layer_files_lf()
+    prompt = FOUNDATION_LF_PROMPT.format(**layers)
+    raw = call_judge(prompt, max_tokens=16000)
+    return parse_json_response(raw)
+
+
 # --- Chapter Evaluation ---
 
 CHAPTER_PROMPT = """根据策划文档评估此女频种田网文章节。
@@ -678,8 +826,8 @@ def evaluate_full():
 def main():
     parser = argparse.ArgumentParser(description="Evaluate the novel")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--phase", choices=["foundation"],
-                       help="Evaluate planning documents")
+    group.add_argument("--phase", choices=["foundation", "foundation-lf"],
+                       help="Evaluate planning documents (foundation or foundation-lf for long-form)")
     group.add_argument("--chapter", type=int,
                        help="Evaluate a specific chapter number")
     group.add_argument("--full", action="store_true",
@@ -688,6 +836,9 @@ def main():
 
     if args.phase == "foundation":
         result = evaluate_foundation()
+        score_key = "overall_score"
+    elif args.phase == "foundation-lf":
+        result = evaluate_foundation_lf()
         score_key = "overall_score"
     elif args.chapter is not None:
         result = evaluate_chapter(args.chapter)

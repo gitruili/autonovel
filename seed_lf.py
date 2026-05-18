@@ -30,6 +30,7 @@ WRITER_MODEL = os.environ.get(
 
 # Reuse shared constants from seed.py
 from seed import GENRE_DEFINITION, TITLE_RULES, SYNOPSIS_RULES
+from story_schema import load_project_tags
 
 
 def call_writer(prompt, max_tokens=16000):
@@ -66,6 +67,8 @@ def call_writer(prompt, max_tokens=16000):
 # ──────────────────────────────────────────────────────────────
 GENERATE_PROMPT = """生成 {count} 个女频种田网文的**长篇**种子概念。每一个都应该是一个完整的前提，
 足以支撑起一部{target_words_label}的长篇网文（{target_chapters}+章，{total_volumes}卷，每卷约{chapters_per_volume}章）的构建。
+
+{tags_context}
 
 {genre_definition}
 
@@ -209,6 +212,8 @@ RIFF_PROMPT = """我有一个女频种田网文的种子构思：
 
 "{idea}"
 
+{tags_context}
+
 {genre_definition}
 
 {title_rules}
@@ -339,12 +344,15 @@ def main():
     ranges = _compute_volume_ranges(total_volumes)
     early_chapters = max(10, cpv)  # ~1 volume worth of chapters
 
+    _, tags_context = load_project_tags()
+
     template_vars = {
         "count": args.count,
         "target_words_label": label,
         "target_chapters": target_chapters,
         "total_volumes": total_volumes,
         "early_chapters": early_chapters,
+        "tags_context": tags_context,
         "genre_definition": GENRE_DEFINITION,
         "title_rules": TITLE_RULES,
         "synopsis_rules": SYNOPSIS_RULES,

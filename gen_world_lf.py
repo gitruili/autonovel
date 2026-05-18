@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from story_schema import load_project_tags
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
@@ -42,6 +43,7 @@ def call_writer(prompt, max_tokens=16000):
 
 seed = (BASE_DIR / "seed.txt").read_text()
 voice = (BASE_DIR / "voice.md").read_text()
+_, tags_context = load_project_tags()
 
 # Extract voice Part 2 only
 voice_lines = voice.split('\n')
@@ -50,6 +52,8 @@ voice_part2 = '\n'.join(voice_lines[part2_start:])
 
 prompt = f"""为这部**百万字长篇**女频种田网文构建一份完整的生活设定集。
 这份文档分两部分：Part A 是核心设定（卷1-3 立即需要的），Part B 是扩展路线图（后续卷需要的）。
+
+{tags_context}
 
 种子概念 (SEED):
 {seed}

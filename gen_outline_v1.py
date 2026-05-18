@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from story_schema import load_project_tags
 
 BASE_DIR = Path(__file__).parent
 STORY_DIR = BASE_DIR / "story"
@@ -41,6 +42,7 @@ def call_writer(prompt, max_tokens=16000):
 seed = (BASE_DIR / "seed.txt").read_text()
 world = (BASE_DIR / "world.md").read_text()
 characters = (BASE_DIR / "characters.md").read_text()
+_, tags_context = load_project_tags()
 
 # Load master plan
 import yaml
@@ -75,6 +77,8 @@ outline_existing = (BASE_DIR / "outline.md").read_text()
 
 prompt = f"""为这部**百万字长篇**女频种田网文生成**第一卷**的详细章节大纲。
 这是全书的起始卷，目标是快速入戏、建立读者追读习惯。
+
+{tags_context}
 
 全书总纲摘要（已有，不要重复输出）：
 {outline_existing[:3000]}

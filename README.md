@@ -53,10 +53,15 @@ uv run python autonovel_cli.py <命令> [参数]
 ### 1. 初始化项目
 
 ```bash
-uv run python autonovel_cli.py init --title "我的小说" --genre "古言" --words 1000000 --chapters 500
+uv run python autonovel_cli.py init --title "我的小说" --genre "古言" --tags "穿越,大女主,萌娃" --words 1000000 --chapters 500
 ```
 
 这会在 `story/` 下创建完整的目录结构和空状态文件。
+
+`--tags` 支持的类型标签（可组合，逗号分隔）：
+穿越、重生、大女主、无cp、萌娃、团宠、穿书、系统、空间、美食、医术、经商、年代、古言、现言、赶山、赶海、脑洞、甜宠、宫斗、宅斗
+
+标签会注入到种子生成、世界观、角色、总纲等所有 prompt 中，引导 LLM 按类型组合要求创作。
 
 ### 2. 准备素材
 

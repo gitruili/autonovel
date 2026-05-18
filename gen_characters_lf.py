@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from story_schema import load_project_tags
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
@@ -41,6 +42,7 @@ def call_writer(prompt, max_tokens=16000):
 
 seed = (BASE_DIR / "seed.txt").read_text()
 world = (BASE_DIR / "world.md").read_text()
+_, tags_context = load_project_tags()
 
 # Voice Part 2 only
 voice = (BASE_DIR / "voice.md").read_text()
@@ -53,6 +55,8 @@ prompt = f"""为这部**百万字长篇**女频种田网文构建一份完整的
 
 百万字长篇的角色体系与短篇不同：角色需要分批登场、分批退场，
 不能一次性把30个角色全部推到读者面前。
+
+{tags_context}
 
 种子概念 (SEED):
 {seed}

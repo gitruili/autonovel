@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from story_schema import load_project_tags
 
 BASE_DIR = Path(__file__).parent
 STORY_DIR = BASE_DIR / "story"
@@ -42,6 +43,7 @@ def call_writer(prompt, max_tokens=16000):
 seed = (BASE_DIR / "seed.txt").read_text()
 world = (BASE_DIR / "world.md").read_text()
 characters = (BASE_DIR / "characters.md").read_text()
+_, tags_context = load_project_tags()
 
 # Voice Part 2 only
 voice = (BASE_DIR / "voice.md").read_text()
@@ -71,6 +73,8 @@ total_volumes = target_chapters // chapters_per_volume
 
 prompt = f"""为这部**百万字长篇**女频种田网文构建一份全书总纲。
 总纲是整部书的骨架——它定义了25卷的宏观走向，但不细化到每一章。
+
+{tags_context}
 
 种子概念 (SEED):
 {seed}

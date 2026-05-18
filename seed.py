@@ -24,6 +24,8 @@ from llm_client import (
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
+from story_schema import load_project_tags
+
 WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
     default_model_for_role("writer", "claude-sonnet-4-6-20250217"),
@@ -133,6 +135,8 @@ SYNOPSIS_RULES = """
 GENERATE_PROMPT = """生成 {count} 个女频种田网文的种子概念。每一个都应该是
 一个完整的前提，足以支撑起一整部中篇网文（约 8-10 万字，20-24 章）的构建。
 
+{tags_context}
+
 {genre_definition}
 
 {title_rules}
@@ -240,6 +244,8 @@ RIFF_PROMPT = """我有一个女频种田网文的种子构思：
 
 "{idea}"
 
+{tags_context}
+
 {genre_definition}
 
 {title_rules}
@@ -300,10 +306,13 @@ def main():
         print(f"ERROR: Set {provider_api_key_env()} in .env first")
         sys.exit(1)
 
+    _, tags_context = load_project_tags()
+
     if args.riff:
         print(f"正在基于以下想法扩展: {args.riff}\n")
         prompt = RIFF_PROMPT.format(
             idea=args.riff,
+            tags_context=tags_context,
             genre_definition=GENRE_DEFINITION,
             title_rules=TITLE_RULES,
             synopsis_rules=SYNOPSIS_RULES,
@@ -312,6 +321,7 @@ def main():
         print(f"正在生成 {args.count} 个种田网文种子构思...\n")
         prompt = GENERATE_PROMPT.format(
             count=args.count,
+            tags_context=tags_context,
             genre_definition=GENRE_DEFINITION,
             title_rules=TITLE_RULES,
             synopsis_rules=SYNOPSIS_RULES,

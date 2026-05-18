@@ -20,7 +20,7 @@ uv sync                 # Install dependencies
 
 # Unified CLI (preferred for webnovel pipeline)
 uv run python autonovel_cli.py status                    # Dashboard
-uv run python autonovel_cli.py init --title "书名" --genre "古言"
+uv run python autonovel_cli.py init --title "书名" --genre "古言" --tags "穿越,大女主,萌娃"
 uv run python autonovel_cli.py generate seed              # Generate story concepts (short-form)
 uv run python autonovel_cli.py generate seed --long-form  # Generate long-form seeds (500+ chapters)
 uv run python autonovel_cli.py generate seed --target-words 500000  # Long-form with custom target (30万-200万字)
@@ -77,7 +77,7 @@ All state lives in `story/state/` as JSON, validated by Pydantic schemas in `sto
 
 | File | Purpose |
 |------|---------|
-| `project.json` | Title, genre, targets, current chapter/volume |
+| `project.json` | Title, genre, tags, targets, current chapter/volume |
 | `character_matrix.json` | Characters with relationships, personality, speech patterns |
 | `current_state.json` | Timeline position, recent events |
 | `pending_hooks.json` | Foreshadowing debt tracking (open/advanced/resolved) |

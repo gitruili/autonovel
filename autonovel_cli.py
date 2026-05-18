@@ -407,9 +407,11 @@ def cmd_init(args):
         d.mkdir(parents=True, exist_ok=True)
 
     # Create project.json
+    tags = [t.strip() for t in args.tags.split(",")] if args.tags else []
     proj = ProjectConfig(
         title=args.title or "",
         genre=args.genre or "",
+        tags=tags,
         target_words=args.words or 1000000,
         target_chapters=args.chapters or 500,
         default_chapter_chars=args.chars or 4000,
@@ -439,6 +441,8 @@ def cmd_init(args):
     print(f"Story project initialized at {STORY_DIR}")
     if args.title:
         print(f"  Title: {args.title}")
+    if tags:
+        print(f"  Tags: {', '.join(tags)}")
     print(f"  Target: {proj.target_words:,} words / {proj.target_chapters} chapters")
     print(f"\nNext steps:")
     print(f"  1. Create seed.txt with your story concept, then run:")
@@ -702,6 +706,7 @@ Examples:
     p_init.add_argument("--words", type=int, help="Target word count")
     p_init.add_argument("--chapters", type=int, help="Target chapter count")
     p_init.add_argument("--chars", type=int, help="Chars per chapter")
+    p_init.add_argument("--tags", type=str, help="Comma-separated genre tags, e.g. '穿越,大女主,萌娃'")
     p_init.add_argument("--force", action="store_true", help="Overwrite existing project")
 
     # generate

@@ -460,8 +460,12 @@ def cmd_generate(args):
             seed_args += ["--count", str(args.count)]
         if args.riff:
             seed_args += ["--riff", args.riff]
-        # Use long-form seed generator if --long-form flag or project targets 500+ chapters
+        if hasattr(args, 'target_words') and args.target_words:
+            seed_args += ["--target-words", str(args.target_words)]
+        # Use long-form seed generator if --long-form flag, --target-words, or project targets 500+ chapters
         long_form = getattr(args, 'long_form', False)
+        if not long_form and hasattr(args, 'target_words') and args.target_words:
+            long_form = True
         if not long_form:
             proj_path = STORY_DIR / "project.json"
             if proj_path.exists():
@@ -708,6 +712,8 @@ Examples:
     p_gen.add_argument("--riff", type=str, help="Expand on an existing idea")
     p_gen.add_argument("--long-form", action="store_true",
                        help="Generate long-form seed concepts (500+ chapters)")
+    p_gen.add_argument("--target-words", type=int, default=None,
+                       help="Target total word count for long-form seed (e.g. 500000 for 50万字, default: 1000000)")
 
     args = parser.parse_args()
 

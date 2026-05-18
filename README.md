@@ -72,18 +72,23 @@ uv run python autonovel_cli.py generate foundation
 
 也可以基于已有想法扩展：`generate seed --riff "穿越古代当渔娘" --count 5`
 
-**长篇模式（100万字+/500+章）**：当 `project.json` 的 `target_chapters >= 100` 时，
+**长篇模式（30万-200万字）**：当 `project.json` 的 `target_chapters >= 100` 时，
 `generate seed` 和 `generate foundation` 自动切换为长篇管线：
 
 ```bash
-# 长篇种子（含多卷升级线、反派轮换、感情线6阶段、超长线伏笔）
+# 长篇种子（含多卷升级线、反派轮换、感情线阶段、超长线伏笔）
 uv run python autonovel_cli.py generate seed --long-form
 
+# 自定义目标字数（自动计算卷数和章数）
+uv run python autonovel_cli.py generate seed --target-words 500000   # 50万字
+uv run python autonovel_cli.py generate seed --target-words 800000   # 80万字
+
 # 长篇 foundation（7步：世界观→角色→总纲→第一卷大纲→续写→正典→状态初始化）
+# 自动运行 evaluate.py --phase=foundation-lf 进行质量评估，结果写入 story/foundation_eval.json
 uv run python autonovel_cli.py generate foundation
 ```
 
-长篇管线自动生成 `story/plans/master_plan.yaml`（结构化25卷总纲）并初始化全部 7 个状态 JSON 文件，
+长篇管线自动生成 `story/plans/master_plan.yaml`（结构化总纲）并初始化全部 7 个状态 JSON 文件，
 foundation 完成后即可直接运行 `plan volume` 和 `run --chapter`。
 
 `voice.md` 已随项目模板提供（Part 1 为通用规则，Part 2 可按需微调）。
@@ -267,10 +272,10 @@ uv run python autonovel_cli.py run --chapter 1 --audit-warn
 | `gen_canon.py` | 交叉引用硬性事实 |
 | `voice_fingerprint.py` | 声音特征分析和发现 |
 
-#### 基础构建 (Foundation) — 长篇（100万字+/500+章）
+#### 基础构建 (Foundation) — 长篇（30万-200万字）
 | 工具 | 用途 |
 |------|---------|
-| `seed_lf.py` | 长篇种子（多卷升级线、反派轮换、感情线6阶段） |
+| `seed_lf.py` | 长篇种子（多卷升级线、反派轮换、感情线阶段，支持 `--target-words` 自定义字数） |
 | `gen_world_lf.py` | 长篇世界观（核心设定 + 扩展路线图） |
 | `gen_characters_lf.py` | 长篇角色（三层体系：核心/卷级/反派轮换） |
 | `gen_master_outline.py` | 全书总纲（master_plan.yaml + outline.md） |
@@ -287,7 +292,7 @@ uv run python autonovel_cli.py run --chapter 1 --audit-warn
 #### 评估 (Evaluation)
 | 工具 | 用途 |
 |------|---------|
-| `evaluate.py` | 机械式AI痕迹(slop)评分器 + LLM 裁判 |
+| `evaluate.py` | 机械式AI痕迹(slop)评分器 + LLM 裁判（`--phase=foundation-lf` 评估长篇 foundation） |
 | `adversarial_edit.py` | “删减 500 字”分析 → 分类删减项 |
 | `compare_chapters.py` | 一对一 Elo 锦标赛 |
 | `reader_panel.py` | 4角色整本小说评估 |

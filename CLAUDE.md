@@ -23,7 +23,8 @@ uv run python autonovel_cli.py status                    # Dashboard
 uv run python autonovel_cli.py init --title "书名" --genre "古言"
 uv run python autonovel_cli.py generate seed              # Generate story concepts (short-form)
 uv run python autonovel_cli.py generate seed --long-form  # Generate long-form seeds (500+ chapters)
-uv run python autonovel_cli.py generate foundation        # Generate foundation (auto-detects short/long)
+uv run python autonovel_cli.py generate seed --target-words 500000  # Long-form with custom target (30万-200万字)
+uv run python autonovel_cli.py generate foundation        # Generate foundation (auto-detects short/long, long-form auto-evaluates)
 uv run python autonovel_cli.py run --chapter 1           # Single chapter
 uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --resume
 uv run python autonovel_cli.py validate                  # State validation
@@ -36,6 +37,8 @@ uv run python autonovel_cli.py report                    # Progress report
 uv run python run_webnovel_pipeline.py --chapter 1
 uv run python validate_state.py --full
 uv run python memory_retrieval.py rebuild
+uv run python seed_lf.py --target-words 500000        # Long-form seed with custom target
+uv run python evaluate.py --phase=foundation-lf       # Evaluate long-form foundation docs
 
 # Legacy pipeline
 uv run python run_pipeline.py --from-scratch
@@ -53,7 +56,7 @@ uv run python smoke_llm.py
 
 **Legacy pipeline** (`run_pipeline.py`): Reads `voice.md`, `world.md`, `characters.md`, `outline.md`, `canon.md` directly. No structured state. Chapters go to `chapters/ch_XX.md`.
 
-**Webnovel pipeline** (`run_webnovel_pipeline.py`): 11-step chapter transaction loop. Foundation phase auto-detects short-form (gen_world.py → gen_outline.py, 24 chapters) vs long-form (gen_world_lf.py → gen_master_outline.py → gen_outline_v1.py → init_state.py, 500+ chapters) based on `target_chapters >= 100` in project.json.
+**Webnovel pipeline** (`run_webnovel_pipeline.py`): 11-step chapter transaction loop. Foundation phase auto-detects short-form (gen_world.py → gen_outline.py, 24 chapters) vs long-form (gen_world_lf.py → gen_master_outline.py → gen_outline_v1.py → init_state.py, 500+ chapters) based on `target_chapters >= 100` in project.json. Long-form foundation auto-runs `evaluate.py --phase=foundation-lf` and writes results to `story/foundation_eval.json`.
 1. Generate chapter plan (`gen_chapter_plan.py` or `gen_batch_chapter_plans.py` for batch mode)
 2. Assemble context (`memory_orchestrator.py`)
 3. Draft chapter (`draft_chapter.py`)

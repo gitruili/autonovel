@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
@@ -23,48 +24,56 @@ JUDGE_MODEL = os.environ.get(
     default_model_for_role("judge", "claude-opus-4-6"),
 )
 
-READERS = {
-    "editor": {
-        "name": "The Editor",
-        "system": (
-            "你是一家大型出版机构的高级文学编辑，编辑过200多部小说。"
-            "你在乎散文质感、潜台词、句子级别的技法，以及行文基调（烟火气）"
-            "是否一致且自然。你会注意到叙述者何时在过度解释，对话何时听起来像"
-            "书面语而不是人话，比喻何时显得生硬。你不刻薄但非常精准。"
-            "你只用有效的 JSON 格式回复。"
-        ),
-    },
-    "genre_reader": {
-        "name": "The Genre Reader",
-        "system": (
-            "你是一个每年阅读上百部网文的资深读者，特别偏爱女频种田经营、宅斗和基建文。"
-            "你在乎爽点是否密集、升级路线是否清晰、打脸是否痛快。你讨厌憋屈的剧情"
-            "和无意义的虐主。你敏锐地察觉到节奏拖沓、升级停滞、或者反派降智的时刻。"
-            "你喜欢看主角通过双手积累财富和地位的过程。你对喜欢的情节毫不吝啬赞美，"
-            "对无聊的桥段也会直言不讳。你只用有效的 JSON 格式回复。"
-        ),
-    },
-    "writer": {
-        "name": "The Writer",
-        "system": (
-            "你是一位出版过五部畅销种田文的资深网络小说作家。"
-            "你从手艺人的角度阅读。你关注结构：情节节拍落点在哪里，伏笔是否回收，"
-            "角色弧光是否完整，金手指的设定是否平衡且有局限性。你关注作者的技法"
-            "是刻意为之还是无缝融入故事中。你最看重的是‘期待感’的建立与释放。"
-            "你在乎小说设定与实际呈现之间的差距。你只用有效的 JSON 格式回复。"
-        ),
-    },
-    "first_reader": {
-        "name": "The First Reader",
-        "system": (
-            "你是一位有思想的普通读者。不是作家，不是编辑，也不是流派专家。"
-            "你为了体验而阅读。你知道自己的感受，但不一定知道原因。你会注意自己何时"
-            "被感动、何时感到无聊、何时感到困惑。你不使用写作术语。你会说"
-            "‘我不在乎这部分’或‘这个场景太解气了’。你的反馈是基于情感和直觉的，"
-            "而不是分析性的。你只用有效的 JSON 格式回复。"
-        ),
-    },
-}
+def get_readers() -> dict:
+    """Build reader personas, loading genre-specific ones from genre config."""
+    genre = load_genre_for_project()
+
+    # Genre-specific personas from genre YAML
+    genre_reader_text = genre.get_reader_persona("genre_reader")
+    writer_text = genre.get_reader_persona("writer")
+
+    return {
+        "editor": {
+            "name": "The Editor",
+            "system": (
+                "你是一家大型出版机构的高级文学编辑，编辑过200多部小说。"
+                "你在乎散文质感、潜台词、句子级别的技法，以及行文基调（烟火气）"
+                "是否一致且自然。你会注意到叙述者何时在过度解释，对话何时听起来像"
+                "书面语而不是人话，比喻何时显得生硬。你不刻薄但非常精准。"
+                "你只用有效的 JSON 格式回复。"
+            ),
+        },
+        "genre_reader": {
+            "name": "The Genre Reader",
+            "system": genre_reader_text if genre_reader_text else (
+                "你是一个每年阅读上百部网文的资深读者。"
+                "你在乎爽点是否密集、升级路线是否清晰、打脸是否痛快。你讨厌憋屈的剧情"
+                "和无意义的虐主。你敏锐地察觉到节奏拖沓、升级停滞、或者反派降智的时刻。"
+                "你对喜欢的情节毫不吝啬赞美，对无聊的桥段也会直言不讳。"
+                "你只用有效的 JSON 格式回复。"
+            ),
+        },
+        "writer": {
+            "name": "The Writer",
+            "system": writer_text if writer_text else (
+                "你是一位出版过五部畅销网文的资深网络小说作家。"
+                "你从手艺人的角度阅读。你关注结构：情节节拍落点在哪里，伏笔是否回收，"
+                "角色弧光是否完整，金手指的设定是否平衡且有局限性。你关注作者的技法"
+                "是刻意为之还是无缝融入故事中。你最看重的是’期待感’的建立与释放。"
+                "你在乎小说设定与实际呈现之间的差距。你只用有效的 JSON 格式回复。"
+            ),
+        },
+        "first_reader": {
+            "name": "The First Reader",
+            "system": (
+                "你是一位有思想的普通读者。不是作家，不是编辑，也不是流派专家。"
+                "你为了体验而阅读。你知道自己的感受，但不一定知道原因。你会注意自己何时"
+                "被感动、何时感到无聊、何时感到困惑。你不使用写作术语。你会说"
+                "’我不在乎这部分’或’这个场景太解气了’。你的反馈是基于情感和直觉的，"
+                "而不是分析性的。你只用有效的 JSON 格式回复。"
+            ),
+        },
+    }
 
 READER_PROMPT = """你刚刚阅读了一部完整小说的故事大纲。
 这份大纲包含了逐章的事件描述、每章的开头和结尾段落，以及关键对话。
@@ -97,8 +106,8 @@ READER_PROMPT = """你刚刚阅读了一部完整小说的故事大纲。
 }}
 """
 
-def call_reader(reader_key, arc_summary):
-    reader = READERS[reader_key]
+def call_reader(reader_key, arc_summary, readers):
+    reader = readers[reader_key]
     raw = call_text_model(
         model=JUDGE_MODEL,
         max_tokens=4000,
@@ -164,15 +173,16 @@ def find_disagreements(results):
 
 def main():
     arc_summary = (BASE_DIR / "arc_summary.md").read_text()
-    
+    readers = get_readers()
+
     results = {}
-    for reader_key, reader_info in READERS.items():
+    for reader_key, reader_info in readers.items():
         print(f"\n{'='*50}")
         print(f"READING: {reader_info['name']}")
         print(f"{'='*50}")
-        
+
         try:
-            result = call_reader(reader_key, arc_summary)
+            result = call_reader(reader_key, arc_summary, readers)
             results[reader_key] = result
             
             # Print highlights
@@ -190,14 +200,14 @@ def main():
     print("READER PANEL RESULTS")
     print(f"{'='*60}")
     
-    for question in ["momentum_loss", "earned_ending", "cut_candidate", "missing_scene", 
+    for question in ["momentum_loss", "earned_ending", "cut_candidate", "missing_scene",
                       "thinnest_character", "best_scene", "worst_scene", "would_recommend",
                       "haunts_you", "next_book"]:
         print(f"\n--- {question.upper()} ---")
-        for reader_key in READERS:
+        for reader_key in readers:
             if reader_key in results:
                 answer = results[reader_key].get(question, "N/A")
-                print(f"  [{READERS[reader_key]['name']}]: {answer[:300]}")
+                print(f"  [{readers[reader_key]['name']}]: {answer[:300]}")
     
     if disagreements:
         print(f"\n{'='*60}")

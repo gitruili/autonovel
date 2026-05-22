@@ -22,6 +22,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project, load_genre_craft
 
 # --- Configuration ---
 BASE_DIR = Path(__file__).parent
@@ -344,130 +345,192 @@ def parse_json_response(text):
             raise ValueError(f"Failed to parse JSON (saved to failed_eval.json): {e}")
 
 
+# --- Genre-aware evaluation prompt builders ---
+
+def _get_genre():
+    """Load genre config for the current project."""
+    return load_genre_for_project()
+
+
+def _build_foundation_dims_text(genre) -> str:
+    """Build the evaluation dimensions section for foundation prompt from genre config."""
+    eval_cfg = genre.get_evaluation_config("foundation")
+    if not eval_cfg:
+        return ""
+
+    dims = eval_cfg.get("dimensions", {})
+    if not dims:
+        return ""
+
+    groups = {}
+    for key, dim in dims.items():
+        group = dim.get("weight_group", "other")
+        if group not in groups:
+            groups[group] = []
+        groups[group].append((key, dim))
+
+    group_labels = {
+        "setting": "设定与世界观 (SETTING)",
+        "character": "角色 (CHARACTER)",
+        "structure": "结构 (STRUCTURE)",
+        "craft": "创作素养 (CRAFT)",
+    }
+
+    lines = []
+    for group_key in ["setting", "character", "structure", "craft"]:
+        if group_key not in groups:
+            continue
+        label = group_labels.get(group_key, group_key.upper())
+        lines.append(f"{label}:")
+        for key, dim in groups[group_key]:
+            lines.append(f"- {dim.get('label', key)} ({key}): {dim.get('description', '')}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def _build_foundation_cross_checks(genre) -> str:
+    """Build cross-checks section from genre config."""
+    eval_cfg = genre.get_evaluation_config("foundation")
+    if not eval_cfg:
+        return ""
+    checks = eval_cfg.get("cross_checks", [])
+    if not checks:
+        return ""
+    return "\n".join(f"{i+1}. {c}" for i, c in enumerate(checks))
+
+
+def _build_foundation_json_keys(genre) -> str:
+    """Build the JSON response keys for foundation evaluation from genre config."""
+    eval_cfg = genre.get_evaluation_config("foundation")
+    if not eval_cfg:
+        return ""
+
+    dims = eval_cfg.get("dimensions", {})
+    if not dims:
+        return ""
+
+    lines = []
+    for key in dims:
+        lines.append(f'  "{key}": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},')
+    return "\n".join(lines)
+
+
+def _build_foundation_weights_text(genre) -> str:
+    """Build the weights explanation text from genre config."""
+    eval_cfg = genre.get_evaluation_config("foundation")
+    if not eval_cfg:
+        return "权重：设定/世界观 35%，角色 25%，结构 30%，创作素养 10%。"
+
+    weights = eval_cfg.get("weights", {})
+    if not weights:
+        return "权重：设定/世界观 35%，角色 25%，结构 30%，创作素养 10%。"
+
+    weight_labels = {
+        "setting": "设定/世界观",
+        "character": "角色",
+        "structure": "结构",
+        "craft": "创作素养",
+    }
+    parts = []
+    for key in ["setting", "character", "structure", "craft"]:
+        if key in weights:
+            pct = int(weights[key] * 100)
+            parts.append(f"{weight_labels.get(key, key)} {pct}%")
+    return f"权重：{'，'.join(parts)}。"
+
+
+def _build_lf_dims_text(genre) -> str:
+    """Build evaluation dimensions for long-form foundation prompt."""
+    eval_cfg = genre.get_evaluation_config("foundation")
+    dims = eval_cfg.get("dimensions", {}) if eval_cfg else {}
+
+    groups = {}
+    for key, dim in dims.items():
+        group = dim.get("weight_group", "other")
+        if group not in groups:
+            groups[group] = []
+        groups[group].append((key, dim))
+
+    group_labels = {
+        "setting": "设定与世界观 (SETTING) — 35%",
+        "character": "角色 (CHARACTER) — 25%",
+        "structure": "结构 (STRUCTURE) — 30%",
+        "craft": "创作素养 (CRAFT) — 10%",
+    }
+
+    lf_character_dims = [
+        ("villain_rotation", "反派轮换设计", "【依据 master_plan.antagonist_rotation】: 反派梯队是否分层（阶段性反派 vs 终极反派）？退场-引入节奏是否合理？每个反派是否有独特动机？"),
+    ]
+    lf_structure_dims = [
+        ("volume_structure", "分卷结构", "【依据 master_plan.volumes】: 每卷是否有独立的核心冲突、高潮、和阶段性胜利？卷间是否有递进关系？全书节奏曲线是否合理？"),
+        ("progression_system", "升级台阶", "【依据 master_plan.economy_milestones + world.md】: 升级台阶是否清晰、可见、有代价？是否能支撑百万字不重复？经济数据是否与world.md匹配？"),
+        ("payoff_setup", "爽点铺垫", "【依据 outline 第一卷】: 每个打脸/爽点是否有至少1-2章的铺垫？爽点密度是否合理（不过密不过疏）？"),
+        ("foreshadowing_balance", "伏笔平衡", "【依据 master_plan.long_foreshadows + outline】: 伏笔台账是否存在？长线伏笔和短线伏笔是否平衡？植入到回收的间隔是否合理？"),
+        ("expansion_roadmap", "扩展路线图", "【依据 master_plan】: 世界观是否预留了足够的扩展空间？后续卷的设定扩展是否有明确规划？"),
+    ]
+
+    lines = []
+    for group_key in ["setting", "character", "structure", "craft"]:
+        if group_key not in groups and group_key not in ("character", "structure"):
+            continue
+        label = group_labels.get(group_key, group_key.upper())
+        lines.append(f"{label}:")
+        if group_key in groups:
+            for key, dim in groups[group_key]:
+                lines.append(f"- {dim.get('label', key)} ({key}): {dim.get('description', '')}")
+        if group_key == "character":
+            for key, lbl, desc in lf_character_dims:
+                lines.append(f"- {lbl} ({key}){desc}")
+        if group_key == "structure":
+            for key, lbl, desc in lf_structure_dims:
+                lines.append(f"- {lbl} ({key}){desc}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def _build_lf_json_keys(genre) -> str:
+    """Build JSON response keys for long-form foundation evaluation."""
+    eval_cfg = genre.get_evaluation_config("foundation")
+    dims = eval_cfg.get("dimensions", {}) if eval_cfg else {}
+
+    lines = []
+    for key in dims:
+        lines.append(f'  "{key}": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},')
+    for key in ["villain_rotation", "volume_structure", "progression_system",
+                 "payoff_setup", "foreshadowing_balance", "expansion_roadmap"]:
+        lines.append(f'  "{key}": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},')
+    return "\n".join(lines)
+
+
+def _build_chapter_dims_text(genre) -> str:
+    """Build genre-specific evaluation dimensions for chapter evaluation."""
+    eval_cfg = genre.get_evaluation_config("chapter")
+    if not eval_cfg:
+        return ""
+
+    dims = eval_cfg.get("dimensions", {})
+    if not dims:
+        return ""
+
+    lines = []
+    for key, dim in dims.items():
+        lines.append(f"- {dim.get('label', key)} ({key}): {dim.get('description', '')}")
+    return "\n".join(lines)
+
+
 # --- Foundation Evaluation ---
 
-FOUNDATION_PROMPT = """评估这些女频种田网文的策划文档。
+def _build_foundation_prompt(genre) -> str:
+    """Build the foundation evaluation prompt dynamically from genre config."""
+    genre_name = genre.display_name
+    dims_text = _build_foundation_dims_text(genre)
+    cross_checks = _build_foundation_cross_checks(genre)
+    json_keys = _build_foundation_json_keys(genre)
+    weights_text = _build_foundation_weights_text(genre)
 
-评分基准（评分前请仔细阅读）：
-
-  9-10: 即便投入一个月的专注编辑工作也无法再提升。
-        达到已出版小说的水准。你能指名道姓地说出哪部已出版小说可以与其竞争。
-        只有让你感到“惊喜”的作品才能给 10 分。
-  7-8:  出色。资深作者只需这份文档即可动笔，无需即兴构思。
-        虽有缺失但很轻微且可以罗列。
-  5-6:  具备功能性但内容单薄。作者在动笔时需要即兴创作大量内容。
-        存在重大缺失或平庸的选择。
-  3-4:  草率。问题多于答案。动笔前需要大量补充。
-  1-2:  占位符或存根。无法用于动笔撰写。
-  0:    空白或缺失。
-
-  8 分以上要求没有任何重大缺陷。9 分以上要求你几乎难以找到瑕疵。评分应趋于严苛。
-
-强制要求：对于每一个维度，在评分前你必须确定：
-  (a) 该领域中最大的缺陷（GAP）或弱点（WEAKNESS）
-  (b) 能够提升得分的具体、可操作的改进方案（IMPROVEMENT）
-  如果你找不到缺陷，请解释为什么你认为它不存在。
-
-语气定义:
-{voice}
-
-世界设定集:
-{world}
-
-角色注册表:
-{characters}
-
-大纲:
-{outline}
-
-设定准则 (已确立的事实):
-{canon}
-
-交叉核对（评分前执行）：
-1. 经济数据交叉验证：物价、收入、支出是否自洽？女主的种田升级速度是否合理？
-2. 角色对话检查：不同角色是否共享相同句式？去掉标签能分辨谁在说话吗？
-3. 季节农时检查：故事时间线是否与农事周期对应？
-4. 金手指规则检查：局限性、冷却期是否明确？是否有规避不写的漏洞？
-5. 文档间矛盾检查：交叉对比年龄、地点、物价、关系。
-
-对以下维度进行评分（每个维度需包含缺陷+改进建议）：
-
-设定与世界观 (SETTING):
-- 经济体系 (economic_system): 物价清单是否完整自洽？女主每笔收支能否在物价表中找到依据？经济升级速度是否合理？
-- 社会礼法 (social_rules): 婚姻、分家、女性地位等规则是否明确？是否既能制造冲突又留有突破口？
-- 地理物产 (geography_products): 地点是否有独特感官特征？物产是否与种田线直接相关？
-- 金手指规则 (cheat_rules): 能力边界是否清晰？局限性和冷却期是否明确？代价是否驱动情节？
-
-角色 (CHARACTER):
-- 角色深度 (character_depth): 每个主要角色是否有完整驱动力链条？极品亲戚是否立体（不纯坏）？
-- 角色辨识度 (character_distinctiveness): 去掉对话标签能否辨认说话者？不同身份的说话方式是否有区分？
-- 角色秘密 (character_secrets): 秘密是否具体？暴露后是否会改变至少一条关系线？
-
-结构 (STRUCTURE):
-- 大纲完整性 (outline_completeness): 每章是否有核心推进线、种田进展、章尾钩子？四幕节拍是否在对应%位置？
-- 种田升级线 (farming_progression): 升级台阶是否清晰、可见、有代价？经济数据是否与world.md匹配？
-- 打脸铺垫 (face_slap_setup): 每个打脸/爽点是否有至少1-2章的铺垫？
-- 伏笔平衡 (foreshadowing_balance): 伏笔台账是否存在？植入到回收是否间隔3章以上？
-
-创作素养 (CRAFT):
-- 内部一致性 (internal_consistency): 积极寻找矛盾。交叉核对物价、时间线、角色年龄。
-- 语气清晰度 (voice_clarity): 语气定义是否具体？是否有烟火气？对话示例是否存在AI废话模式？
-- 准则覆盖度 (canon_coverage): 事实是否被完整记录？是否有遗漏的硬性事实？
-
-请以 JSON 格式响应：
-{{
-  "economic_system": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "social_rules": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "geography_products": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "cheat_rules": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "character_depth": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "character_distinctiveness": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "character_secrets": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "outline_completeness": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "farming_progression": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "face_slap_setup": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "foreshadowing_balance": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "internal_consistency": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "voice_clarity": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "canon_coverage": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "slop_in_planning_docs": {{"found": ["列出发现的AI废话模式"], "note": "..."}},
-  "contradictions_found": ["列出文档之间的事实矛盾"],
-  "overall_score": N,
-  "lore_score": N,
-  "weakest_dimension": "...",
-  "top_3_improvements": ["按优先级排列的 3 个最高杠杆改进方案"]
-}}
-
-权重：设定/世界观 35%，角色 25%，结构 30%，创作素养 10%。
-种田文的结构权重高于奇幻文，因为升级台阶和打脸铺垫是读者追更的核心动力。
-
-最终核对：如果你的总分高于 7 分，请重新阅读你的缺陷列表。如果任何缺陷会迫使作者动笔时临时发明内容，评分就太高了。
-"""
-
-
-def evaluate_foundation():
-    """Evaluate foundation phase documents (WORLD.MD, CHARACTERS.MD, OUTLINE)."""
-    # If there is a manually fixed failed_eval.json, use it to save time
-    failed_eval = Path("failed_eval.json")
-    if failed_eval.exists():
-        try:
-            text = failed_eval.read_text(encoding="utf-8")
-            data = parse_json_response(text)
-            failed_eval.unlink()
-            return data
-        except Exception:
-            pass
-
-    print("Gathering foundation documents...")
-    layers = load_layer_files()
-    prompt = FOUNDATION_PROMPT.format(**layers)
-    raw = call_judge(prompt, max_tokens=16000)
-    return parse_json_response(raw)
-
-
-# --- Long-Form Foundation Evaluation ---
-
-FOUNDATION_LF_PROMPT = """评估这部长篇女频网文（100万字+）的策划文档。
+    return f"""评估这些女频{genre_name}网文的策划文档。
 
 评分基准（评分前请仔细阅读）：
 
@@ -490,22 +553,112 @@ FOUNDATION_LF_PROMPT = """评估这部长篇女频网文（100万字+）的策�
   如果你找不到缺陷，请解释为什么你认为它不存在。
 
 语气定义:
-{voice}
+{{voice}}
 
 世界设定集:
-{world}
+{{world}}
 
 角色注册表:
-{characters}
+{{characters}}
 
-全书总纲 (YAML 格式，含全书所有卷的规划、反派轮换、感情线阶段、经济里程碑、超长线伏笔):
-{master_plan}
-
-第一卷详细大纲 (章节级，仅覆盖第一卷约20章):
-{outline}
+大纲:
+{{outline}}
 
 设定准则 (已确立的事实):
-{canon}
+{{canon}}
+
+交叉核对（评分前执行）：
+{cross_checks}
+
+对以下维度进行评分（每个维度需包含缺陷+改进建议）：
+
+{dims_text}
+请以 JSON 格式响应：
+{{
+{json_keys}
+  "slop_in_planning_docs": {{"found": ["列出发现的AI废话模式"], "note": "..."}},
+  "contradictions_found": ["列出文档之间的事实矛盾"],
+  "overall_score": N,
+  "lore_score": N,
+  "weakest_dimension": "...",
+  "top_3_improvements": ["按优先级排列的 3 个最高杠杆改进方案"]
+}}
+
+{weights_text}{genre_name}文的结构权重高于奇幻文，因为升级台阶和打脸铺垫是读者追更的核心动力。
+
+最终核对：如果你的总分高于 7 分，请重新阅读你的缺陷列表。如果任何缺陷会迫使作者动笔时临时发明内容，评分就太高了。
+"""
+
+
+def evaluate_foundation():
+    """Evaluate foundation phase documents (WORLD.MD, CHARACTERS.MD, OUTLINE)."""
+    # If there is a manually fixed failed_eval.json, use it to save time
+    failed_eval = Path("failed_eval.json")
+    if failed_eval.exists():
+        try:
+            text = failed_eval.read_text(encoding="utf-8")
+            data = parse_json_response(text)
+            failed_eval.unlink()
+            return data
+        except Exception:
+            pass
+
+    print("Gathering foundation documents...")
+    layers = load_layer_files()
+    genre = _get_genre()
+    prompt = _build_foundation_prompt(genre).format(**layers)
+    raw = call_judge(prompt, max_tokens=16000)
+    return parse_json_response(raw)
+
+
+# --- Long-Form Foundation Evaluation ---
+
+def _build_foundation_lf_prompt(genre) -> str:
+    """Build the long-form foundation evaluation prompt dynamically from genre config."""
+    genre_name = genre.display_name
+    dims_text = _build_lf_dims_text(genre)
+    json_keys = _build_lf_json_keys(genre)
+    weights_text = _build_foundation_weights_text(genre)
+
+    return f"""评估这部长篇女频{genre_name}网文（100万字+）的策划文档。
+
+评分基准（评分前请仔细阅读）：
+
+  9-10: 即便投入一个月的专注编辑工作也无法再提升。
+        达到已出版小说的水准。你能指名道姓地说出哪部已出版小说可以与其竞争。
+        只有让你感到"惊喜"的作品才能给 10 分。
+  7-8:  出色。资深作者只需这份文档即可动笔，无需即兴构思。
+        虽有缺失但很轻微且可以罗列。
+  5-6:  具备功能性但内容单薄。作者在动笔时需要即兴创作大量内容。
+        存在重大缺失或平庸的选择。
+  3-4:  草率。问题多于答案。动笔前需要大量补充。
+  1-2:  占位符或存根。无法用于动笔撰写。
+  0:    空白或缺失。
+
+  8 分以上要求没有任何重大缺陷。9 分以上要求你几乎难以找到瑕疵。评分应趋于严苛。
+
+强制要求：对于每一个维度，在评分前你必须确定：
+  (a) 该领域中最大的缺陷（GAP）或弱点（WEAKNESS）
+  (b) 能够提升得分的具体、可操作的改进方案（IMPROVEMENT）
+  如果你找不到缺陷，请解释为什么你认为它不存在。
+
+语气定义:
+{{voice}}
+
+世界设定集:
+{{world}}
+
+角色注册表:
+{{characters}}
+
+全书总纲 (YAML 格式，含全书所有卷的规划、反派轮换、感情线阶段、经济里程碑、超长线伏笔):
+{{master_plan}}
+
+第一卷详细大纲 (章节级，仅覆盖第一卷约20章):
+{{outline}}
+
+设定准则 (已确立的事实):
+{{canon}}
 
 注意：全书总纲（master_plan）包含全书所有卷的宏观规划，是评估分卷结构、反派轮换、扩展路线图的主要依据。
 第一卷大纲（outline）仅包含第一卷的章节级细节，是评估章节级爽点铺垫、伏笔平衡的依据。
@@ -521,46 +674,10 @@ FOUNDATION_LF_PROMPT = """评估这部长篇女频网文（100万字+）的策�
 
 对以下维度进行评分（每个维度需包含缺陷+改进建议）：
 
-设定与世界观 (SETTING) — 35%:
-- 经济体系 (economic_system): 物价清单是否完整自洽？经济升级速度是否合理？长篇中经济体系能否支撑500+章的种田线？
-- 社会礼法 (social_rules): 婚姻、分家、女性地位等规则是否明确？是否既能制造冲突又留有突破口？
-- 地理物产 (geography_products): 地点是否有独特感官特征？物产是否与种田线直接相关？
-- 金手指规则 (cheat_rules): 能力边界是否清晰？局限性和冷却期是否明确？代价是否驱动情节？
-
-角色 (CHARACTER) — 25%:
-- 角色深度 (character_depth): 每个主要角色是否有完整驱动力链条？角色是否有成长空间支撑500+章？
-- 角色辨识度 (character_distinctiveness): 去掉对话标签能否辨认说话者？不同身份的说话方式是否有区分？
-- 反派轮换设计 (villain_rotation)【依据 master_plan.antagonist_rotation】: 反派梯队是否分层（阶段性反派 vs 终极反派）？退场-引入节奏是否合理？每个反派是否有独特动机？
-
-结构 (STRUCTURE) — 30%:
-- 分卷结构 (volume_structure)【依据 master_plan.volumes】: 每卷是否有独立的核心冲突、高潮、和阶段性胜利？卷间是否有递进关系？全书节奏曲线是否合理？
-- 升级台阶 (progression_system)【依据 master_plan.economy_milestones + world.md】: 升级台阶是否清晰、可见、有代价？是否能支撑百万字不重复？经济数据是否与world.md匹配？
-- 爽点铺垫 (payoff_setup)【依据 outline 第一卷】: 每个打脸/爽点是否有至少1-2章的铺垫？爽点密度是否合理（不过密不过疏）？
-- 伏笔平衡 (foreshadowing_balance)【依据 master_plan.long_foreshadows + outline】: 伏笔台账是否存在？长线伏笔和短线伏笔是否平衡？植入到回收的间隔是否合理？
-- 扩展路线图 (expansion_roadmap)【依据 master_plan】: 世界观是否预留了足够的扩展空间？后续卷的设定扩展是否有明确规划？
-
-创作素养 (CRAFT) — 10%:
-- 内部一致性 (internal_consistency): 积极寻找矛盾。交叉核对物价、时间线、角色年龄。
-- 语气清晰度 (voice_clarity): 语气定义是否具体？是否有烟火气？对话示例是否存在AI废话模式？
-- 准则覆盖度 (canon_coverage): 事实是否被完整记录？是否有遗漏的硬性事实？
-
+{dims_text}
 请以 JSON 格式响应：
 {{
-  "economic_system": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "social_rules": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "geography_products": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "cheat_rules": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "character_depth": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "character_distinctiveness": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "villain_rotation": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "volume_structure": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "progression_system": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "payoff_setup": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "foreshadowing_balance": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "expansion_roadmap": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "internal_consistency": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "voice_clarity": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
-  "canon_coverage": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},
+{json_keys}
   "slop_in_planning_docs": {{"found": ["列出发现的AI废话模式"], "note": "..."}},
   "contradictions_found": ["列出文档之间的事实矛盾"],
   "overall_score": N,
@@ -569,8 +686,7 @@ FOUNDATION_LF_PROMPT = """评估这部长篇女频网文（100万字+）的策�
   "top_3_improvements": ["按优先级排列的 3 个最高杠杆改进方案"]
 }}
 
-权重：设定/世界观 35%，角色 25%，结构 30%，创作素养 10%。
-长篇网文的结构权重高，因为分卷设计和升级台阶是读者追更的核心动力。
+{weights_text}长篇网文的结构权重高，因为分卷设计和升级台阶是读者追更的核心动力。
 
 最终核对：如果你的总分高于 7 分，请重新阅读你的缺陷列表。如果任何缺陷会迫使作者动笔时临时发明内容，评分就太高了。
 """
@@ -608,17 +724,33 @@ def evaluate_foundation_lf():
 
     print("Gathering long-form foundation documents...")
     layers = load_layer_files_lf()
-    prompt = FOUNDATION_LF_PROMPT.format(**layers)
+    genre = _get_genre()
+    prompt = _build_foundation_lf_prompt(genre).format(**layers)
     raw = call_judge(prompt, max_tokens=16000)
     return parse_json_response(raw)
 
 
 # --- Chapter Evaluation ---
 
-CHAPTER_PROMPT = """根据策划文档评估此女频种田网文章节。
+def _build_chapter_prompt(genre) -> str:
+    """Build the chapter evaluation prompt dynamically from genre config."""
+    genre_name = genre.display_name
+    genre_dims = _build_chapter_dims_text(genre)
+    lore_desc = ""
+    eval_cfg = genre.get_evaluation_config("chapter")
+    if eval_cfg:
+        dims = eval_cfg.get("dimensions", {})
+        if "era_integration" in dims:
+            lore_desc = dims["era_integration"].get("description", "")
+        elif "lore_integration" in dims:
+            lore_desc = dims["lore_integration"].get("description", "")
+    if not lore_desc:
+        lore_desc = f"{genre_name}相关细节在本章中是否有实质作用？"
+
+    return f"""根据策划文档评估此女频{genre_name}网文章节。
 
 评分基准：
-  9-10: 达到已出版优质种田网文的顶级水平。
+  9-10: 达到已出版优质{genre_name}网文的顶级水平。
   7-8:  优秀，经编辑润色后即可出版。存在具体瑕疵但不会破坏阅读体验。
   5-6:  具备功能性但平淡。一个合格的初稿，但需要大量修订。平庸，缺乏惊喜。
   3-4:  存在重大问题。语气脱节、遗漏节拍、文字平庸。
@@ -635,28 +767,28 @@ CHAPTER_PROMPT = """根据策划文档评估此女频种田网文章节。
   如果你觉得每一句话都完美，那说明你读得不够仔细。
 
 语气定义:
-{voice}
+{{voice}}
 
 世界设定集 (摘要):
-{world}
+{{world}}
 
 角色注册表:
-{characters}
+{{characters}}
 
 设定准则 (已确立的硬事实 —— 违反即为 Bug):
-{canon}
+{{canon}}
 
 本章大纲条目:
-{chapter_outline}
+{{chapter_outline}}
 
 前一章 (最后 1500 字):
-{prev_chapter_tail}
+{{prev_chapter_tail}}
 
 待评估章节:
-{chapter_text}
+{{chapter_text}}
 
 交叉核对（评分前执行）：
-1. 引用测试：找出 3 个最强的句子和 3 个最弱的句子。如果你找不出 3 个弱句，请降低你的标准 —— 每一个章节都有弱项。寻找：可以更具体却使用了通用描述的地方、段落中的韵律单调、隐喻不符合角色经历、情感表达“直接陈述”而非“间接展现”、过渡部分“直接总结”而非“戏剧化表现”。
+1. 引用测试：找出 3 个最强的句子和 3 个最弱的句子。如果你找不出 3 个弱句，请降低你的标准 —— 每一个章节都有弱项。寻找：可以更具体却使用了通用描述的地方、段落中的韵律单调、隐喻不符合角色经历、情感表达"直接陈述"而非"间接展现"、过渡部分"直接总结"而非"戏剧化表现"。
 2. 对话真实性：在脑中大声朗读所有对话。它听起来像说话还是像书面散文？角色说的话是否符合 14 岁/60 岁等身份？
 3. 场景 vs 总结：本章有多少内容是即时场景（伴随对话和动作），有多少是总结（叙述者压缩时间）？总结过多的章节无论文笔多好，吸引力得分都会较低。
 4. AI 模式检查：寻找这些常见的 AI 写作模式：
@@ -666,20 +798,23 @@ CHAPTER_PROMPT = """根据策划文档评估此女频种田网文章节。
    - 角色从不说错话或各说各话
    - 描写像在罗列清单（列出 5 个感官细节，而 2 个具体的会更鲜明）
    - 内心独白在解释场景已经展现的内容
-5. 赢得 vs 赋予：紧张感是通过场景描写“赢得”的，还是通过叙述者的断言直接“赋予”给读者的？悬念是通过真正的保留来维持的，还是由于角色刻意不去想他们本该想到的事情？
+5. 赢得 vs 赋予：紧张感是通过场景描写"赢得"的，还是通过叙述者的断言直接"赋予"给读者的？悬念是通过真正的保留来维持的，还是由于角色刻意不去想他们本该想到的事情？
 
 对以下维度进行评分：
 
-- 语气遵循度 (voice_adherence): 文字是否符合 voice.md 第二部分？核对：句式节奏变化、感官细节优先于情感标签、烟火气基调。是否有段落像通用AI网文散文？如果是，最高给 7 分。
+- 语气遵循度 (voice_adherence): 文字是否符合 voice.md 第二部分？核对：句式节奏变化、感官细节优先于情感标签、{genre_name}基调。是否有段落像通用AI网文散文？如果是，最高给 7 分。
 - 节拍覆盖度 (beat_coverage): 是否完成了大纲中的每一个节拍？节拍是戏剧化展现了还是仅仅被提及？在句子中总结而非在场景中生活的节拍只能算完成了一半。分数反映节拍执行的质量，而不只是存在感。
-- 角色语气 (character_voice): 去掉对话标签能分辨谁在说话吗？婶娘说话像婶娘吗？村妇像村妇吗？对话读起来像人说话还是像写作文？是否有人说了真实的、令人意外的话？从不说错话的角色是AI模式角色。
+- 角色语气 (character_voice): 去掉对话标签能分辨谁在说话吗？对话读起来像人说话还是像写作文？是否有人说了真实的、令人意外的话？从不说错话的角色是AI模式角色。
 - 伏笔植入 (plants_seeded): 伏笔元素是否放置得自然？显眼的伏笔比隐形的伏笔更差。根据整合的质量评分，而不只是是否存在。
-- 文笔质量 (prose_quality): 句式多样性（核对：是否有 3 条以上连续的句子开头相同？）。具体性（具体名词 > 抽象名词）。隐喻来自角色经历而非词典。情感高峰处的“展现而非陈述”。引用最弱的句子并解释原因。同时核对：重复短语、过度依赖的句式、可以删掉而不造成损失的段落。
+- 文笔质量 (prose_quality): 句式多样性（核对：是否有 3 条以上连续的句子开头相同？）。具体性（具体名词 > 抽象名词）。隐喻来自角色经历而非词典。情感高峰处的"展现而非陈述"。引用最弱的句子并解释原因。同时核对：重复短语、过度依赖的句式、可以删掉而不造成损失的段落。
 - 连贯性 (continuity): 逻辑上是否衔接前一章？包括情感连贯性和情节连贯性。角色的心态是否衔接？
-- 准则合规性 (canon_compliance): 对照设定准则检查所有事实。核对：角色名、地点、物价、金手指规则、时间线、季节农时。一个重大违规最高给 6 分。
-- 设定整合度 (lore_integration): 种田/经营细节在本章中是否有实质作用？经济逻辑是否自洽？换掉地名就能发生在任何古代村镇的场景最高给 5 分。
+- 准则合规性 (canon_compliance): 对照设定准则检查所有事实。核对：角色名、地点、物价、金手指规则、时间线。一个重大违规最高给 6 分。
+- 设定整合度 (lore_integration): {lore_desc}经济逻辑是否自洽？
 - 吸引力 (engagement): 读者会翻页吗？张力来自哪里 —— 情节、角色、悬念还是文笔？是否有令人惊喜的瞬间？可预测的优秀依然是可预测的。只有在章节做了意料之外的事情时才给 8 分以上。
-
+{f'''
+题材特有维度：
+{genre_dims}
+''' if genre_dims else ''}
 请以 JSON 格式响应：
 {{
   "voice_adherence": {{"score": N, "weakest_moment": "引用具体的弱势段落", "fix": "如何改进", "note": "..."}},
@@ -721,7 +856,8 @@ def evaluate_chapter(chapter_num):
     prev_text = load_chapter(chapter_num - 1) if chapter_num > 1 else "(first chapter)"
     prev_tail = prev_text[-3000:] if len(prev_text) > 3000 else prev_text
 
-    prompt = CHAPTER_PROMPT.format(
+    genre = _get_genre()
+    prompt = _build_chapter_prompt(genre).format(
         voice=layers["voice"],
         world=layers["world"][:4000],  # truncate world bible
         characters=layers["characters"],
@@ -746,23 +882,27 @@ def evaluate_chapter(chapter_num):
 
 # --- Full Novel Evaluation ---
 
-FULL_NOVEL_PROMPT = """从整体上全面评估这部女频种田网文。
+def _build_full_novel_prompt(genre) -> str:
+    """Build the full novel evaluation prompt dynamically from genre config."""
+    genre_name = genre.display_name
+
+    return f"""从整体上全面评估这部女频{genre_name}网文。
 你拥有策划文档以及每一章的摘要及其个人评分。
 
 语气定义:
-{voice}
+{{voice}}
 
 世界设定集摘要:
-{world_summary}
+{{world_summary}}
 
 角色注册表:
-{characters}
+{{characters}}
 
 大纲与伏笔台账:
-{outline}
+{{outline}}
 
 各章摘要与得分:
-{chapter_summaries}
+{{chapter_summaries}}
 
 对以下小说层面的维度进行 0-10 分的评分：
 - 弧光完成度 (arc_completion): 角色弧光的解决是否令人满意？
@@ -810,7 +950,8 @@ def evaluate_full():
             f"  Closing: ...{tail}\n"
         )
 
-    prompt = FULL_NOVEL_PROMPT.format(
+    genre = _get_genre()
+    prompt = _build_full_novel_prompt(genre).format(
         voice=layers["voice"],
         world_summary=layers["world"][:3000],
         characters=layers["characters"],

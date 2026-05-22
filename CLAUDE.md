@@ -22,6 +22,7 @@ uv sync                 # Install dependencies
 uv run python autonovel_cli.py status                    # Dashboard
 uv run python autonovel_cli.py genres                    # List available genre configurations
 uv run python autonovel_cli.py init --title "书名" --genre "种田文" --tags "穿越,大女主,萌娃"
+uv run python autonovel_cli.py init --title "书名" --genre "年代文" --tags "穿越,年代,甜宠"
 uv run python autonovel_cli.py generate seed              # Generate story concepts (short-form)
 uv run python autonovel_cli.py generate seed --long-form  # Generate long-form seeds (500+ chapters)
 uv run python autonovel_cli.py generate seed --target-words 500000  # Long-form with custom target (30万-200万字)
@@ -90,6 +91,26 @@ All state lives in `story/state/` as JSON, validated by Pydantic schemas in `sto
 All state entries have temporal fields: `source_chapter`, `valid_from_chapter`, `valid_until_chapter`, `last_seen_chapter`. This enables the system to prevent future-information leaks.
 
 `story/memory/memory.sqlite` is the FTS5 database for retrieval. `story/memory/snapshots/` holds ZIP snapshots and `commit_index.json`.
+
+### Genre System (`genres/`)
+
+The pipeline supports multiple genre configurations. Each genre provides:
+- System prompts for all pipeline roles (seed_writer, architect, chapter_writer, etc.)
+- Prompt fragments for each generation stage (seed, world, characters, outline, etc.)
+- Evaluation dimensions and weights
+- Reader personas for the reader panel
+- Voice template (tone, rhythm, vocabulary hints)
+- Writing craft reference document
+
+Genre configs live in `genres/` as YAML files, loaded by `genres/genre_registry.py`:
+- `_base.yaml` — Shared webnovel conventions + genre_map (name → filename)
+- `zhongtian.yaml` — 种田文 config
+- `niandai.yaml` — 年代文 config (1950s-1990s China)
+- `craft/*.md` — Genre-specific writing craft references
+
+Usage: `genre = load_genre_for_project()` reads `story/project.json` → genre field → loads YAML → deep-merges with `_base.yaml`. Falls back to 种田文 if genre not found.
+
+Key consumers: `seed.py`, `seed_lf.py`, `gen_world*.py`, `gen_characters*.py`, `gen_outline*.py`, `gen_master_outline.py`, `gen_canon.py`, `draft_chapter.py`, `gen_revision.py`, `adversarial_edit.py`, `evaluate.py`, `reader_panel.py`.
 
 ### Key Shared Code
 

@@ -9,6 +9,7 @@ display_name: "网文通用"
 # Chinese display name maps to YAML filename (without .yaml)
 genre_map:
   "种田文": "zhongtian"
+  "年代文": "niandai"
 
 # ── Shared system prompt fragments ──
 # Appended to all genre system prompts for writing/creation roles

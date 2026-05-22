@@ -56,13 +56,18 @@ uv run python autonovel_cli.py <命令> [参数]
 # 查看可用题材
 uv run python autonovel_cli.py genres
 
-# 初始化项目（题材名用中文，如 种田文、霸总、古言 等）
+# 初始化项目（题材名用中文，如 种田文、年代文 等）
 uv run python autonovel_cli.py init --title "我的小说" --genre "种田文" --tags "穿越,大女主,萌娃" --words 1000000 --chapters 500
+uv run python autonovel_cli.py init --title "我的小说" --genre "年代文" --tags "穿越,年代,甜宠" --words 1000000 --chapters 500
 ```
 
 这会在 `story/` 下创建完整的目录结构和空状态文件。
 
-`--genre` 支持的题材可通过 `autonovel_cli.py genres` 查看。新题材需在 `genres/` 目录下添加 YAML 配置文件。
+`--genre` 支持的题材可通过 `autonovel_cli.py genres` 查看。当前支持的题材：
+- **种田文** — 女主从低起点起步，凭知识或勤劳一步步积累财富、改善生活。核心是建设与成长的爽感。
+- **年代文** — 故事设定在1950s-1990s中国，女主穿越/重生到特定历史时期，抓住时代机遇逆袭翻身。
+
+新题材需在 `genres/` 目录下添加 YAML 配置文件。
 
 `--tags` 支持的类型标签（可组合，逗号分隔）：
 穿越、重生、大女主、无cp、萌娃、团宠、穿书、系统、空间、美食、医术、经商、年代、古言、现言、赶山、赶海、脑洞、甜宠、宫斗、宅斗

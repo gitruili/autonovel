@@ -131,6 +131,15 @@ def slop_score(text):
     words = text.lower().split()
     word_count = len(words) or 1
 
+    # For Chinese text, use character count for density calculations
+    # (Chinese doesn't use spaces between words, so split() gives misleading count)
+    chinese_chars = len(re.findall(r'[一-鿿]', text))
+    if chinese_chars > word_count * 2:
+        # Predominantly Chinese text
+        density_base = chinese_chars or 1
+    else:
+        density_base = word_count
+
     # Tier 1
     tier1_hits = []
     for w in TIER1_BANNED:
@@ -160,8 +169,10 @@ def slop_score(text):
             tier3_hits.append((pattern, len(matches)))
 
     # Em dash density
-    em_dashes = text.count("—") + text.count("--")
-    em_dash_density = (em_dashes / word_count) * 1000
+    # Chinese text uses "——" as standard punctuation; count each "——" as one unit
+    # text.count("—") double-counts "——" (each contains two "—"), so subtract overlap
+    em_dashes = text.count("—") + text.count("--") - text.count("——")
+    em_dash_density = (em_dashes / density_base) * 1000
 
     # Sentence length variation (coefficient of variation)
     sentences = re.split(r'[.!?]+', text)

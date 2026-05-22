@@ -55,24 +55,33 @@ def load_title():
     return "本小说"
 
 
+def _chapter_path(ch_num: int) -> Path:
+    """Resolve chapter path: try volume subdirectory first, then flat."""
+    vol = (ch_num - 1) // 20 + 1
+    vol_path = BASE_DIR / "chapters" / f"v{vol:03d}" / f"ch_{ch_num:04d}.md"
+    if vol_path.exists():
+        return vol_path
+    return BASE_DIR / "chapters" / f"ch_{ch_num:02d}.md"
+
+
 def main():
     ch_num = int(sys.argv[1])
     brief_file = sys.argv[2]
-    
+
     voice = (BASE_DIR / "voice.md").read_text()
     characters = (BASE_DIR / "characters.md").read_text()
     world = (BASE_DIR / "world.md").read_text()
     brief = Path(brief_file).read_text()
     title = load_title()
-    
+
     # Load adjacent chapters for continuity
-    prev_path = BASE_DIR / "chapters" / f"ch_{ch_num - 1:02d}.md"
-    next_path = BASE_DIR / "chapters" / f"ch_{ch_num + 1:02d}.md"
+    prev_path = _chapter_path(ch_num - 1)
+    next_path = _chapter_path(ch_num + 1)
     prev_tail = prev_path.read_text()[-2000:] if prev_path.exists() else "(第一章——无前文)"
     next_head = next_path.read_text()[:1500] if next_path.exists() else "(最后一章)"
-    
+
     # Load old version if exists
-    old_path = BASE_DIR / "chapters" / f"ch_{ch_num:02d}.md"
+    old_path = _chapter_path(ch_num)
     old_text = old_path.read_text() if old_path.exists() else "(尚未起草)"
     
     prompt = f"""重写《{title}》的第 {ch_num} 章。
@@ -114,7 +123,7 @@ def main():
     print(f"Rewriting Chapter {ch_num}...", file=sys.stderr)
     result = call_writer(prompt)
     
-    out_path = BASE_DIR / "chapters" / f"ch_{ch_num:02d}.md"
+    out_path = _chapter_path(ch_num)
     out_path.write_text(result)
     print(f"Saved to {out_path}", file=sys.stderr)
     print(f"Word count: {len(result.split())}", file=sys.stderr)

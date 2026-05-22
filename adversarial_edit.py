@@ -123,7 +123,13 @@ EDIT_PROMPT = """你正在编辑一个网文章节。你的任务：准确识别
 """
 
 def edit_chapter(ch_num):
-    ch_path = CHAPTERS_DIR / f"ch_{ch_num:02d}.md"
+    # Try volume subdirectory first, then flat
+    vol = (ch_num - 1) // 20 + 1
+    vol_path = CHAPTERS_DIR / f"v{vol:03d}" / f"ch_{ch_num:04d}.md"
+    if vol_path.exists():
+        ch_path = vol_path
+    else:
+        ch_path = CHAPTERS_DIR / f"ch_{ch_num:02d}.md"
     text = ch_path.read_text()
     word_count = len(text.split())
     

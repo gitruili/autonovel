@@ -37,6 +37,11 @@ def load_cuts(chapter_num: int) -> dict | None:
 
 
 def chapter_path(chapter_num: int) -> Path:
+    # Try volume subdirectory first, then flat
+    vol = (chapter_num - 1) // 20 + 1
+    vol_path = CHAPTERS_DIR / f"v{vol:03d}" / f"ch_{chapter_num:04d}.md"
+    if vol_path.exists():
+        return vol_path
     return CHAPTERS_DIR / f"ch_{chapter_num:02d}.md"
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_outline.py -- 女频种田网文：章节大纲生成器（Foundation 阶段）。
+gen_outline.py -- 章节大纲生成器（Foundation 阶段）。
 读取 seed.txt + world.md + characters.md + MYSTERY.md + voice.md，
 调用大模型，输出 outline.md。
 """
@@ -9,9 +9,12 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
+
+genre = load_genre_for_project()
 
 WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
@@ -23,16 +26,7 @@ def call_writer(prompt, max_tokens=16000):
         model=WRITER_MODEL,
         max_tokens=max_tokens,
         temperature=0.5,
-        system=(
-            "你是一位精通女频种田网文的小说架构师。"
-            "你深谙网文的章节节奏——开篇必须有钩子，每章结尾必须有悬念或期待感，"
-            "种田升级线和情感线必须交替推进，打脸爽点必须有充分的铺垫。\n"
-            "你熟悉种田文的经典结构：开局困境→初步立足→小有成就→遭遇打压→"
-            "逆袭反击→事业高潮→感情明朗→大结局。\n"
-            "你构建的大纲应当足以让作者直接撰写初稿，"
-            "每一章都有明确的场景、情绪走向和推进目标，不需要临时编造剧情。\n"
-            "你从不使用 AI 废话词汇。你用简洁干练的文字写作。"
-        ),
+        system=genre.get_system_prompt("architect"),
         messages=[{"role": "user", "content": prompt}],
         timeout=600,
         include_beta=True,
@@ -52,7 +46,7 @@ voice_lines = voice.split('\n')
 part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
 voice_part2 = '\n'.join(voice_lines[part2_start:])
 
-prompt = f"""为这部女频种田网文构建一份完整的章节大纲。
+prompt = f"""为这部{genre.display_name}网文构建一份完整的章节大纲。
 目标：20-24 章，总字数约 8-10 万字（每章约 3,500-4,500 字）。
 
 种子概念 (SEED):

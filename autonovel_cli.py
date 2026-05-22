@@ -382,6 +382,28 @@ def cmd_report(args):
 
 
 # ---------------------------------------------------------------------------
+# genres — list available genre configurations
+# ---------------------------------------------------------------------------
+
+def cmd_genres(args):
+    """List available genre configurations."""
+    from genres.genre_registry import list_available_genres
+
+    genres = list_available_genres()
+    if not genres:
+        print("No genre configurations found.")
+        return 1
+
+    print(f"Available genres ({len(genres)}):\n")
+    for g in genres:
+        print(f"  {g['display_name']}")
+        if g['description']:
+            print(f"    {g['description']}")
+    print(f"\nUsage: uv run python autonovel_cli.py init --title \"书名\" --genre \"{genres[0]['display_name']}\"")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # init — initialize a new story project
 # ---------------------------------------------------------------------------
 
@@ -699,10 +721,13 @@ Examples:
     # report
     subparsers.add_parser("report", help="Generate writing progress report")
 
+    # genres
+    subparsers.add_parser("genres", help="List available genre configurations")
+
     # init
     p_init = subparsers.add_parser("init", help="Initialize a new story project")
     p_init.add_argument("--title", type=str, help="Story title")
-    p_init.add_argument("--genre", type=str, help="Genre")
+    p_init.add_argument("--genre", type=str, help="Genre name in Chinese (e.g. 种田文, 霸总). Use 'genres list' to see available genres.")
     p_init.add_argument("--words", type=int, help="Target word count")
     p_init.add_argument("--chapters", type=int, help="Target chapter count")
     p_init.add_argument("--chars", type=int, help="Chars per chapter")
@@ -741,6 +766,7 @@ Examples:
         "report": cmd_report,
         "init": cmd_init,
         "generate": cmd_generate,
+        "genres": cmd_genres,
     }
 
     handler = dispatch.get(args.command)

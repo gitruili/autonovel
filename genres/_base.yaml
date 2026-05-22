@@ -1,0 +1,91 @@
+# genres/_base.yaml — Shared webnovel platform conventions
+# All genre YAMLs inherit from this via deep-merge.
+# Genre files only need to override or add genre-specific content.
+
+genre_key: "_base"
+display_name: "网文通用"
+
+# ── Genre name → filename mapping ──
+# Chinese display name maps to YAML filename (without .yaml)
+genre_map:
+  "种田文": "zhongtian"
+
+# ── Shared system prompt fragments ──
+# Appended to all genre system prompts for writing/creation roles
+shared_system_fragments:
+  anti_slop: |
+    你从不使用 AI 废话词汇。你用简洁干练的文字写作。
+  show_dont_tell: |
+    你展示情感，从不直接陈述。
+  complete_chapter: |
+    你撰写完整的章节——不要截断、总结或跳过情节。
+
+# ── Shared prompt instructions ──
+# Appended to all generation prompts
+shared_instructions:
+  chapter_hook: |
+    章尾钩子必须让读者想翻下一章。
+  anti_ai_words: |
+    不要用"不禁"、"映入眼帘"、"心中涌起暖流"、"美眸"、"淡淡地说"。
+  sentence_variation: |
+    改变句子长度。短句用于情绪冲击，长句用于铺陈日常。
+
+# ── Shared evaluation dimensions ──
+# Present in all genres, merged with genre-specific dimensions
+shared_evaluation:
+  foundation:
+    dimensions:
+      character_depth:
+        label: "角色深度"
+        weight_group: "character"
+        description: "每个主要角色是否有完整驱动力链条？"
+      character_distinctiveness:
+        label: "角色辨识度"
+        weight_group: "character"
+        description: "去掉对话标签能否辨认说话者？不同身份的说话方式是否有区分？"
+      character_secrets:
+        label: "角色秘密"
+        weight_group: "character"
+        description: "秘密是否具体？暴露后是否会改变至少一条关系线？"
+      outline_completeness:
+        label: "大纲完整性"
+        weight_group: "structure"
+        description: "每章是否有核心推进线、章尾钩子？四幕节拍是否在对应%位置？"
+      foreshadowing_balance:
+        label: "伏笔平衡"
+        weight_group: "structure"
+        description: "伏笔台账是否存在？植入到回收是否间隔3章以上？"
+      internal_consistency:
+        label: "内部一致性"
+        weight_group: "craft"
+        description: "积极寻找矛盾。交叉核对物价、时间线、角色年龄。"
+      voice_clarity:
+        label: "语气清晰度"
+        weight_group: "craft"
+        description: "语气定义是否具体？对话示例是否存在AI废话模式？"
+      canon_coverage:
+        label: "准则覆盖度"
+        weight_group: "craft"
+        description: "事实是否被完整记录？是否有遗漏的硬性事实？"
+    weights:
+      setting: 0.35
+      character: 0.25
+      structure: 0.30
+      craft: 0.10
+  chapter:
+    dimensions:
+      hook_quality:
+        label: "章尾钩子"
+        description: "本章结尾是否留下悬念或期待感？"
+      promise_payoff:
+        label: "承诺兑现"
+        description: "本章是否推进了之前埋下的承诺或伏笔？"
+      pacing:
+        label: "节奏"
+        description: "本章的张弛是否得当？是否有不必要的拖沓？"
+      coherence:
+        label: "连贯性"
+        description: "与前文的衔接是否自然？角色行为是否符合已建立的人设？"
+      craft_quality:
+        label: "文笔质量"
+        description: "展示/讲述比例、感官细节、句式变化、AI废话检测。"

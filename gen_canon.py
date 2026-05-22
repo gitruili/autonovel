@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_canon.py -- 女频种田网文：设定准则数据库生成器（Foundation 阶段）。
+gen_canon.py -- 设定准则数据库生成器（Foundation 阶段）。
 从 world.md + characters.md + seed.txt 中提取所有硬性事实，生成 canon.md。
 """
 import os
@@ -8,9 +8,12 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
+
+genre = load_genre_for_project()
 
 WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
@@ -22,12 +25,7 @@ def call_writer(prompt, max_tokens=16000):
         model=WRITER_MODEL,
         max_tokens=max_tokens,
         temperature=0.2,
-        system=(
-            "你是一位负责种田网文设定文档的连续性编辑，专门提取其中的硬性事实。"
-            "你为人严谨、详尽，绝不编造源材料中没有的事实。"
-            "每一条条目都必须能够追溯到原始文档中的具体陈述。"
-            "你尤其擅长核查经济数据（物价、收入、成本）和时间线的一致性。"
-        ),
+        system=genre.get_system_prompt("canon_editor"),
         messages=[{"role": "user", "content": prompt}],
         timeout=300,
     )

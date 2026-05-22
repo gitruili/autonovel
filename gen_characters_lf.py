@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_characters_lf.py -- 长篇女频种田网文：角色注册表生成器（Foundation 阶段）。
+gen_characters_lf.py -- 长篇网文：角色注册表生成器（Foundation 阶段）。
 读取 seed.txt + voice.md + world.md，调用大模型，输出 characters.md。
 三层角色体系：核心角色（全卷在线）、卷级角色（分批登场）、反派轮换表。
 """
@@ -9,10 +9,13 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 from story_schema import load_project_tags
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
+
+genre = load_genre_for_project()
 
 WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
@@ -24,18 +27,7 @@ def call_writer(prompt, max_tokens=16000):
         model=WRITER_MODEL,
         max_tokens=max_tokens,
         temperature=0.7,
-        system=(
-            "你是一位精通女频网文的角色设计师，擅长塑造接地气、有血有肉的人物。"
-            "你深谙种田文角色的核心魅力：女主的坚韧与智慧、男主的闷骚与可靠、"
-            "极品亲戚的可恨与可笑、配角的立体与可信。\n"
-            "你精通百万字长篇网文的角色架构，擅长设计多卷角色登场节奏、"
-            "反派轮换体系、以及角色弧光的分期展开。\n"
-            "你设计的角色必须符合时代背景下的行为逻辑——"
-            "一个古代农妇不会说出现代职场用语，一个村里的老太太不会像宫斗剧里的嫔妃。\n"
-            "你创作的每个角色都有自己的利益诉求和说话习惯，"
-            "去掉对话标签后读者也能分辨出是谁在说话。\n"
-            "你从不使用 AI 废话词汇。你用简洁干练的文字写作。"
-        ),
+        system=genre.get_system_prompt("character_designer"),
         messages=[{"role": "user", "content": prompt}],
         timeout=600,
     )
@@ -50,7 +42,7 @@ voice_lines = voice.split('\n')
 part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
 voice_part2 = '\n'.join(voice_lines[part2_start:])
 
-prompt = f"""为这部**百万字长篇**女频种田网文构建一份完整的角色注册表。
+prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份完整的角色注册表。
 这是 CHARACTERS.MD —— 它是关于故事中每个人物的权威参考。
 
 百万字长篇的角色体系与短篇不同：角色需要分批登场、分批退场，

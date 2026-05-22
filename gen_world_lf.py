@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_world_lf.py -- 长篇女频种田网文：生活设定集生成器（Foundation 阶段）。
+gen_world_lf.py -- 长篇网文：生活设定集生成器（Foundation 阶段）。
 读取 seed.txt + voice.md，调用大模型，输出 world.md。
 Part A: 核心设定（V1-3 范围，~3000词）
 Part B: 扩展路线图（~2000词）
@@ -10,10 +10,13 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 from story_schema import load_project_tags
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
+
+genre = load_genre_for_project()
 
 WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
@@ -25,18 +28,7 @@ def call_writer(prompt, max_tokens=16000):
         model=WRITER_MODEL,
         max_tokens=max_tokens,
         temperature=0.7,
-        system=(
-            "你是一位精通中国古代社会经济史的网文设定师，"
-            "熟悉明清时期的农耕、商贸、礼法、民俗和日常生活。"
-            "你构筑的设定集具有扎实的历史质感和浓郁的烟火气——"
-            "读者能闻到灶头的柴火味，听到集市的叫卖声，摸到粗布衣裳的纹理。\n"
-            "你精通百万字长篇网文的世界观架构，擅长设计可扩展的世界设定——"
-            "每一个设定模块都预留了「升级接口」，随着故事推进，世界可以自然地扩展和深化。\n"
-            "你的每一条设定都服务于叙事：物价体系让种田线有据可查，"
-            "礼法规矩让人际冲突合情合理，地理物产让女主的发家路线自然可信。\n"
-            "你从不编造脱离历史常识的设定。你用简洁、干练的文字写作，"
-            "拒绝空洞的概述，只写具体的、可以直接用于写作的硬性细节。"
-        ),
+        system=genre.get_system_prompt("world_builder"),
         messages=[{"role": "user", "content": prompt}],
         timeout=600,
     )
@@ -50,7 +42,7 @@ voice_lines = voice.split('\n')
 part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
 voice_part2 = '\n'.join(voice_lines[part2_start:])
 
-prompt = f"""为这部**百万字长篇**女频种田网文构建一份完整的生活设定集。
+prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份完整的生活设定集。
 这份文档分两部分：Part A 是核心设定（卷1-3 立即需要的），Part B 是扩展路线图（后续卷需要的）。
 
 {tags_context}

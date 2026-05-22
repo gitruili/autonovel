@@ -20,7 +20,8 @@ uv sync                 # Install dependencies
 
 # Unified CLI (preferred for webnovel pipeline)
 uv run python autonovel_cli.py status                    # Dashboard
-uv run python autonovel_cli.py init --title "书名" --genre "古言" --tags "穿越,大女主,萌娃"
+uv run python autonovel_cli.py genres                    # List available genre configurations
+uv run python autonovel_cli.py init --title "书名" --genre "种田文" --tags "穿越,大女主,萌娃"
 uv run python autonovel_cli.py generate seed              # Generate story concepts (short-form)
 uv run python autonovel_cli.py generate seed --long-form  # Generate long-form seeds (500+ chapters)
 uv run python autonovel_cli.py generate seed --target-words 500000  # Long-form with custom target (30万-200万字)

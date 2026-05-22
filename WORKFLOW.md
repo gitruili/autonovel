@@ -13,8 +13,9 @@
 cd ~/autonovel
 cp .env.example .env   # 添加你的 Anthropic 或 MiniMax API 密钥
 
-# 2. 初始化项目
-uv run python autonovel_cli.py init --title "我的小说" --genre "古言"
+# 2. 查看可用题材并初始化项目
+uv run python autonovel_cli.py genres
+uv run python autonovel_cli.py init --title "我的小说" --genre "种田文"
 
 # 3. 生成灵感种子（或在 seed.txt 中自己写一个）
 uv run python autonovel_cli.py generate seed

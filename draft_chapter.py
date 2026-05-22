@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
@@ -28,22 +29,15 @@ CHAPTERS_DIR = BASE_DIR / "chapters"
 STORY_DIR = BASE_DIR / "story"
 
 
+genre = load_genre_for_project()
+
+
 def call_writer(prompt, max_tokens=16000):
     return call_text_model(
         model=WRITER_MODEL,
         max_tokens=max_tokens,
         temperature=0.8,
-        system=(
-            "你是一位正在撰写女频种田经营网文章节的小说家。"
-            "你擅长烟火气十足的日常描写、真实可信的经济逻辑、"
-            "以及具体入微的感官细节。"
-            "你使用第三人称限制视角，过去时态，紧贴视角人物。"
-            "你严格遵循语气定义文件。你完成大纲中的每一个节拍。"
-            "你绝不使用禁用词列表中的词汇。你展示情感，从不直接陈述。"
-            "你的文字具体、有质感、有烟火气。隐喻来自角色的生活经验。"
-            "你通过改变句子长度来调节节奏。你信任读者。"
-            "你撰写完整的章节——不要截断、总结或跳过情节。"
-        ),
+        system=genre.get_system_prompt("chapter_writer"),
         messages=[{"role": "user", "content": prompt}],
         timeout=600,
         include_beta=True,
@@ -241,7 +235,7 @@ def build_prompt_legacy(chapter_num: int) -> str:
 20. 对话要像说话，不像书面语。角色会磕绊、打断、话没说完。
 21. 场景优于总结。本章至少 70% 的内容应是即时场景（带对话和动作），而非叙述概括。
 22. 包含至少一个令人惊喜的瞬间——角色说错话、情感爆发时机不合预期、打破模式的细节。
-23. 种田/经营细节要具体有质感，参考世界设定集中的物价、工序、物产描写。
+23. {genre.get_prompt_fragment("chapter_draft", "genre_specific_detail") or "题材专属细节要具体有质感，参考世界设定集中的相关描写。"}
 24. 章尾钩子必须让读者想翻下一章。
 
 现在开始撰写章节。完整文本，从头到尾。

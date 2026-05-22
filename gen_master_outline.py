@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_master_outline.py -- 长篇女频种田网文：全书总纲生成器（Foundation 阶段）。
+gen_master_outline.py -- 长篇网文：全书总纲生成器（Foundation 阶段）。
 读取 seed.txt + world.md + characters.md + voice.md，
 输出 story/plans/master_plan.yaml（结构化总纲）和 outline.md（人类可读摘要）。
 """
@@ -9,12 +9,15 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 from story_schema import load_project_tags
 
 BASE_DIR = Path(__file__).parent
 STORY_DIR = BASE_DIR / "story"
 PLANS_DIR = STORY_DIR / "plans"
 load_dotenv(BASE_DIR / ".env")
+
+genre = load_genre_for_project()
 
 WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
@@ -26,15 +29,7 @@ def call_writer(prompt, max_tokens=16000):
         model=WRITER_MODEL,
         max_tokens=max_tokens,
         temperature=0.5,
-        system=(
-            "你是一位精通女频种田网文的小说架构师。"
-            "你深谙百万字长篇网文的多卷结构设计——"
-            "如何将一个故事分成25卷、500章，每卷有独立的小高潮，卷与卷之间有承上启下的钩子。\n"
-            "你精通反派轮换、伏笔跨卷回收、感情线的6阶段节奏、以及经济升级的螺旋上升设计。\n"
-            "你构建的大纲应当足以指导后续的逐卷、逐章细化，"
-            "每一卷都有明确的核心矛盾、关键转折和情绪基调。\n"
-            "你从不使用 AI 废话词汇。你用简洁干练的文字写作。"
-        ),
+        system=genre.get_system_prompt("architect_lf"),
         messages=[{"role": "user", "content": prompt}],
         timeout=900,
         include_beta=True,
@@ -60,18 +55,18 @@ if proj_path.exists():
     target_words = proj.get("target_words", 1_000_000)
     target_chapters = proj.get("target_chapters", 500)
     title = proj.get("title", "")
-    genre = proj.get("genre", "种田")
+    genre_name = proj.get("genre", genre.display_name)
 else:
     target_words = 1_000_000
     target_chapters = 500
     title = ""
-    genre = "种田"
+    genre_name = genre.display_name
 
 words_per_chapter = target_words // target_chapters
 chapters_per_volume = 20
 total_volumes = target_chapters // chapters_per_volume
 
-prompt = f"""为这部**百万字长篇**女频种田网文构建一份全书总纲。
+prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份全书总纲。
 总纲是整部书的骨架——它定义了25卷的宏观走向，但不细化到每一章。
 
 {tags_context}
@@ -107,7 +102,7 @@ prompt = f"""为这部**百万字长篇**女频种田网文构建一份全书总
 
 ```yaml
 title: "{title}"
-genre: "{genre}"
+genre: "{genre_name}"
 total_volumes: {total_volumes}
 total_chapters: {target_chapters}
 target_words: {target_words}

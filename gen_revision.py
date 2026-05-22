@@ -8,8 +8,10 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 
 BASE_DIR = Path(__file__).parent
+genre = load_genre_for_project()
 load_dotenv(BASE_DIR / ".env")
 
 WRITER_MODEL = os.environ.get(
@@ -23,13 +25,7 @@ def call_writer(prompt, max_tokens=16000):
         model=WRITER_MODEL,
         max_tokens=max_tokens,
         temperature=0.8,
-        system=(
-            "你是一位正在撰写女频种田经营网文的小说家。"
-            "你正在根据特定的《修订任务书(Revision Brief)》重写一个章节。"
-            "你必须严格遵循该任务书的要求。在进行结构性修改的同时，"
-            "你要保持现有草稿的语气、世界观和角色设定（烟火气、经济逻辑等）。"
-            "你必须撰写完整的章节，绝对不要截断或总结情节。"
-        ),
+        system=genre.get_system_prompt("revision_writer"),
         messages=[{"role": "user", "content": prompt}],
         timeout=600,
         include_beta=True,

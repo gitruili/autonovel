@@ -53,10 +53,16 @@ uv run python autonovel_cli.py <命令> [参数]
 ### 1. 初始化项目
 
 ```bash
-uv run python autonovel_cli.py init --title "我的小说" --genre "古言" --tags "穿越,大女主,萌娃" --words 1000000 --chapters 500
+# 查看可用题材
+uv run python autonovel_cli.py genres
+
+# 初始化项目（题材名用中文，如 种田文、霸总、古言 等）
+uv run python autonovel_cli.py init --title "我的小说" --genre "种田文" --tags "穿越,大女主,萌娃" --words 1000000 --chapters 500
 ```
 
 这会在 `story/` 下创建完整的目录结构和空状态文件。
+
+`--genre` 支持的题材可通过 `autonovel_cli.py genres` 查看。新题材需在 `genres/` 目录下添加 YAML 配置文件。
 
 `--tags` 支持的类型标签（可组合，逗号分隔）：
 穿越、重生、大女主、无cp、萌娃、团宠、穿书、系统、空间、美食、医术、经商、年代、古言、现言、赶山、赶海、脑洞、甜宠、宫斗、宅斗

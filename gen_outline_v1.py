@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_outline_v1.py -- 长篇女频种田网文：第一卷详细章节大纲生成器。
+gen_outline_v1.py -- 长篇网文：第一卷详细章节大纲生成器。
 读取 seed.txt + world.md + characters.md + story/plans/master_plan.yaml + voice.md，
 生成第一卷（~20章）的逐章大纲，追加到 outline.md。
 """
@@ -9,12 +9,15 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 from story_schema import load_project_tags
 
 BASE_DIR = Path(__file__).parent
 STORY_DIR = BASE_DIR / "story"
 PLANS_DIR = STORY_DIR / "plans"
 load_dotenv(BASE_DIR / ".env")
+
+genre = load_genre_for_project()
 
 WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
@@ -26,14 +29,7 @@ def call_writer(prompt, max_tokens=16000):
         model=WRITER_MODEL,
         max_tokens=max_tokens,
         temperature=0.5,
-        system=(
-            "你是一位精通女频种田网文的小说架构师。"
-            "你深谙网文的章节节奏——开篇必须有钩子，每章结尾必须有悬念或期待感，"
-            "种田升级线和情感线必须交替推进，打脸爽点必须有充分的铺垫。\n"
-            "你精通百万字长篇的逐章设计——每一章都是「追读链条」上的一环，"
-            "既要推进主线，又要给读者留下来的理由。\n"
-            "你从不使用 AI 废话词汇。你用简洁干练的文字写作。"
-        ),
+        system=genre.get_system_prompt("architect"),
         messages=[{"role": "user", "content": prompt}],
         timeout=900,
         include_beta=True,
@@ -75,7 +71,7 @@ v1_hooks_payoff = v1.get("foreshadow_payoff", [])
 # Read existing outline.md (master summary)
 outline_existing = (BASE_DIR / "outline.md").read_text()
 
-prompt = f"""为这部**百万字长篇**女频种田网文生成**第一卷**的详细章节大纲。
+prompt = f"""为这部**百万字长篇**{genre.display_name}网文生成**第一卷**的详细章节大纲。
 这是全书的起始卷，目标是快速入戏、建立读者追读习惯。
 
 {tags_context}

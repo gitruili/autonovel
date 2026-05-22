@@ -256,7 +256,13 @@ def load_layer_files():
 
 
 def load_chapter(n):
-    """Load a single chapter file."""
+    """Load a single chapter file. Tries volume subdirectory first, then flat."""
+    # Try volume subdirectory format: chapters/v001/ch_0001.md
+    vol = (n - 1) // 20 + 1
+    vol_path = CHAPTERS_DIR / f"v{vol:03d}" / f"ch_{n:04d}.md"
+    if vol_path.exists():
+        return vol_path.read_text(encoding="utf-8")
+    # Fallback to flat format: chapters/ch_01.md
     return load_file(CHAPTERS_DIR / f"ch_{n:02d}.md")
 
 
@@ -643,22 +649,22 @@ def _build_foundation_lf_prompt(genre) -> str:
   如果你找不到缺陷，请解释为什么你认为它不存在。
 
 语气定义:
-{{voice}}
+{{__VOICE__}}
 
 世界设定集:
-{{world}}
+{{__WORLD__}}
 
 角色注册表:
-{{characters}}
+{{__CHARACTERS__}}
 
 全书总纲 (YAML 格式，含全书所有卷的规划、反派轮换、感情线阶段、经济里程碑、超长线伏笔):
-{{master_plan}}
+{{__MASTER_PLAN__}}
 
 第一卷详细大纲 (章节级，仅覆盖第一卷约20章):
-{{outline}}
+{{__OUTLINE__}}
 
 设定准则 (已确立的事实):
-{{canon}}
+{{__CANON__}}
 
 注意：全书总纲（master_plan）包含全书所有卷的宏观规划，是评估分卷结构、反派轮换、扩展路线图的主要依据。
 第一卷大纲（outline）仅包含第一卷的章节级细节，是评估章节级爽点铺垫、伏笔平衡的依据。
@@ -725,7 +731,9 @@ def evaluate_foundation_lf():
     print("Gathering long-form foundation documents...")
     layers = load_layer_files_lf()
     genre = _get_genre()
-    prompt = _build_foundation_lf_prompt(genre).format(**layers)
+    prompt = _build_foundation_lf_prompt(genre)
+    for key, value in layers.items():
+        prompt = prompt.replace(f"{{__{key.upper()}__}}", value)
     raw = call_judge(prompt, max_tokens=16000)
     return parse_json_response(raw)
 
@@ -767,25 +775,25 @@ def _build_chapter_prompt(genre) -> str:
   如果你觉得每一句话都完美，那说明你读得不够仔细。
 
 语气定义:
-{{voice}}
+{{__VOICE__}}
 
 世界设定集 (摘要):
-{{world}}
+{{__WORLD__}}
 
 角色注册表:
-{{characters}}
+{{__CHARACTERS__}}
 
 设定准则 (已确立的硬事实 —— 违反即为 Bug):
-{{canon}}
+{{__CANON__}}
 
 本章大纲条目:
-{{chapter_outline}}
+{{__CHAPTER_OUTLINE__}}
 
 前一章 (最后 1500 字):
-{{prev_chapter_tail}}
+{{__PREV_CHAPTER_TAIL__}}
 
 待评估章节:
-{{chapter_text}}
+{{__CHAPTER_TEXT__}}
 
 交叉核对（评分前执行）：
 1. 引用测试：找出 3 个最强的句子和 3 个最弱的句子。如果你找不出 3 个弱句，请降低你的标准 —— 每一个章节都有弱项。寻找：可以更具体却使用了通用描述的地方、段落中的韵律单调、隐喻不符合角色经历、情感表达"直接陈述"而非"间接展现"、过渡部分"直接总结"而非"戏剧化表现"。
@@ -857,15 +865,18 @@ def evaluate_chapter(chapter_num):
     prev_tail = prev_text[-3000:] if len(prev_text) > 3000 else prev_text
 
     genre = _get_genre()
-    prompt = _build_chapter_prompt(genre).format(
-        voice=layers["voice"],
-        world=layers["world"][:4000],  # truncate world bible
-        characters=layers["characters"],
-        canon=layers["canon"],
-        chapter_outline=chapter_outline,
-        prev_chapter_tail=prev_tail,
-        chapter_text=chapter_text,
-    )
+    prompt = _build_chapter_prompt(genre)
+    replacements = {
+        "voice": layers["voice"],
+        "world": layers["world"][:4000],
+        "characters": layers["characters"],
+        "canon": layers["canon"],
+        "chapter_outline": chapter_outline,
+        "prev_chapter_tail": prev_tail,
+        "chapter_text": chapter_text,
+    }
+    for key, value in replacements.items():
+        prompt = prompt.replace(f"{{__{key.upper()}__}}", value)
     raw = call_judge(prompt, max_tokens=8000)
     result = parse_json_response(raw)
 

@@ -433,43 +433,56 @@ class TestNiandaiPromptContent(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class TestGenreDifferences(unittest.TestCase):
-    """Verify niandai differs from zhongtian in key ways."""
+    """Verify niandai differs from zhongtian and zongcai in key ways."""
 
     def setUp(self):
         self.niandai = load_genre("年代文")
         self.zhongtian = load_genre("种田文")
+        self.zongcai = load_genre("总裁豪门")
 
     def test_different_genre_keys(self):
         self.assertNotEqual(self.niandai.genre_key, self.zhongtian.genre_key)
+        self.assertNotEqual(self.niandai.genre_key, self.zongcai.genre_key)
 
     def test_different_display_names(self):
         self.assertNotEqual(self.niandai.display_name, self.zhongtian.display_name)
+        self.assertNotEqual(self.niandai.display_name, self.zongcai.display_name)
 
     def test_different_default_tags(self):
         self.assertNotEqual(self.niandai.default_tags, self.zhongtian.default_tags)
+        self.assertNotEqual(self.niandai.default_tags, self.zongcai.default_tags)
 
     def test_different_system_prompts(self):
         """Chapter writer prompts should be completely different."""
         n_prompt = self.niandai.get_system_prompt("chapter_writer")
-        z_prompt = self.zhongtian.get_system_prompt("chapter_writer")
+        t_prompt = self.zhongtian.get_system_prompt("chapter_writer")
+        z_prompt = self.zongcai.get_system_prompt("chapter_writer")
+        self.assertNotEqual(n_prompt, t_prompt)
         self.assertNotEqual(n_prompt, z_prompt)
 
     def test_different_evaluation_dimensions(self):
         """Foundation evaluation dimensions should differ."""
         n_eval = self.niandai.get_evaluation_config("foundation")
-        z_eval = self.zhongtian.get_evaluation_config("foundation")
+        t_eval = self.zhongtian.get_evaluation_config("foundation")
+        z_eval = self.zongcai.get_evaluation_config("foundation")
         n_names = set(n_eval.get("dimensions", {}).keys())
+        t_names = set(t_eval.get("dimensions", {}).keys())
         z_names = set(z_eval.get("dimensions", {}).keys())
+        self.assertNotEqual(n_names, t_names)
         self.assertNotEqual(n_names, z_names)
 
     def test_different_voice_templates(self):
         n_vocab = self.niandai.get_voice_template().get("vocabulary_hint", "")
-        z_vocab = self.zhongtian.get_voice_template().get("vocabulary_hint", "")
+        t_vocab = self.zhongtian.get_voice_template().get("vocabulary_hint", "")
+        z_vocab = self.zongcai.get_voice_template().get("vocabulary_hint", "")
+        self.assertNotEqual(n_vocab, t_vocab)
         self.assertNotEqual(n_vocab, z_vocab)
 
     def test_different_craft_files(self):
         n_craft = load_genre_craft(self.niandai)
-        z_craft = load_genre_craft(self.zhongtian)
+        t_craft = load_genre_craft(self.zhongtian)
+        z_craft = load_genre_craft(self.zongcai)
+        self.assertNotEqual(n_craft, t_craft)
         self.assertNotEqual(n_craft, z_craft)
         # niandai craft should mention era-specific concepts
         self.assertIn("票证", n_craft)

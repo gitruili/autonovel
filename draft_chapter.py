@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
-from genres.genre_registry import load_genre_for_project
+from genres.genre_registry import load_genre_for_project, load_genre_craft
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
@@ -30,6 +30,8 @@ STORY_DIR = BASE_DIR / "story"
 
 
 genre = load_genre_for_project()
+genre_craft = load_genre_craft(genre)
+genre_detail = genre.get_prompt_fragment("chapter_draft", "genre_specific_detail") or "题材专属细节要具体有质感，参考世界设定集中的相关描写。"
 
 
 def call_writer(prompt, max_tokens=16000):
@@ -163,19 +165,8 @@ def build_prompt_from_context(chapter_num: int, context: dict) -> str:
 15. 禁止使用三元组感官列表（"X、Y和Z"）。合并两个，删掉一个。
 16. 禁止"她心想/她暗想"——让想法本身作为独立句子出现。
 
-=== 年代文写作示范（对比正确与错误写法）===
-
-技法1：用感官替代情绪标签
-❌ 她感到一阵绝望，不知道明天该怎么办。
-✅ 她把三张二两的粮票摊在桌上，指尖在纸边停了一下。月底还有八天。窗外风声紧了，她起身去堵门缝，手摸到门框时停住——木头是潮的，今晚怕是要下雪。
-
-技法2：对话要带情境质感
-❌ "我回来了。"林战沉默地说道。
-✅ 门帘掀开时灌进一股白毛风。林战肩上的雪还没化，他把一袋东西放在门槛内侧，嗓音被冻得发哑："部队食堂多打了两份，你热热。"
-
-技法3：经济细节要具体可感
-❌ 这里的煤炭很紧缺，每个月按人头配额，根本不够用。
-✅ 月底了，煤棚里只剩拳头大的两块。她把炉子封到最小，火苗舔着铁皮，屋里温度刚好够水不结冰。
+=== {genre.display_name}写作技法参考 ===
+{genre_craft[:3000] if genre_craft else genre_detail}
 
 现在开始撰写章节。完整文本，从头到尾。
 """
@@ -249,22 +240,11 @@ def build_prompt_legacy(chapter_num: int) -> str:
 20. 对话要像说话，不像书面语。角色会磕绊、打断、话没说完。
 21. 场景优于总结。本章至少 70% 的内容应是即时场景（带对话和动作），而非叙述概括。
 22. 包含至少一个令人惊喜的瞬间——角色说错话、情感爆发时机不合预期、打破模式的细节。
-23. {genre.get_prompt_fragment("chapter_draft", "genre_specific_detail") or "题材专属细节要具体有质感，参考世界设定集中的相关描写。"}
+23. {genre_detail}
 24. 章尾钩子必须让读者想翻下一章。
 
-=== 年代文写作示范（对比正确与错误写法）===
-
-技法1：用感官替代情绪标签
-❌ 她感到一阵绝望，不知道明天该怎么办。
-✅ 她把三张二两的粮票摊在桌上，指尖在纸边停了一下。月底还有八天。窗外风声紧了，她起身去堵门缝，手摸到门框时停住——木头是潮的，今晚怕是要下雪。
-
-技法2：对话要带情境质感
-❌ "我回来了。"林战沉默地说道。
-✅ 门帘掀开时灌进一股白毛风。林战肩上的雪还没化，他把一袋东西放在门槛内侧，嗓音被冻得发哑："部队食堂多打了两份，你热热。"
-
-技法3：经济细节要具体可感
-❌ 这里的煤炭很紧缺，每个月按人头配额，根本不够用。
-✅ 月底了，煤棚里只剩拳头大的两块。她把炉子封到最小，火苗舔着铁皮，屋里温度刚好够水不结冰。
+=== {genre.display_name}写作技法参考 ===
+{genre_craft[:3000] if genre_craft else genre_detail}
 
 现在开始撰写章节。完整文本，从头到尾。
 """

@@ -20,12 +20,15 @@ from story_schema import (
     save_json,
 )
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 import os
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).parent
 STORY_DIR = BASE_DIR / "story"
 load_dotenv(BASE_DIR / ".env")
+
+genre = load_genre_for_project()
 
 WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
@@ -107,7 +110,9 @@ def gen_chapter_plan(chapter: int) -> tuple[str, str]:
     voice = load_voice()
     state_ctx = get_state_context(chapter)
 
-    prompt = f"""你是一位网文策划编辑，擅长将卷级计划拆解为具体章节。
+    genre_detail = genre.get_prompt_fragment("chapter_draft", "genre_specific_detail") or "题材专属细节要具体有质感，参考世界设定集中的相关描写。"
+
+    prompt = f"""你是一位{genre.display_name}网文策划编辑，擅长将卷级计划拆解为具体章节。
 
 请为第 {chapter} 章生成详细的章级计划。
 
@@ -160,8 +165,7 @@ hook_actions:
 
 # 本章需要展示的设定
 setting_details:
-  - "物价/经济细节"
-  - "环境/地理细节"
+  - "{genre_detail[:60]}"
 
 # 本章对话要点
 dialogue_notes:
@@ -193,7 +197,7 @@ warnings:
         model=WRITER_MODEL,
         max_tokens=6000,
         temperature=0.7,
-        system="你是一位网文策划编辑。只输出指定格式的内容。",
+        system=genre.get_system_prompt("architect"),
         messages=[{"role": "user", "content": prompt}],
         timeout=300,
     )

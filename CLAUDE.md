@@ -23,6 +23,7 @@ uv run python autonovel_cli.py status                    # Dashboard
 uv run python autonovel_cli.py genres                    # List available genre configurations
 uv run python autonovel_cli.py init --title "书名" --genre "种田文" --tags "穿越,大女主,萌娃"
 uv run python autonovel_cli.py init --title "书名" --genre "年代文" --tags "穿越,年代,甜宠"
+uv run python autonovel_cli.py init --title "书名" --genre "总裁豪门" --tags "总裁,豪门,甜宠"
 uv run python autonovel_cli.py generate seed              # Generate story concepts (short-form)
 uv run python autonovel_cli.py generate seed --long-form  # Generate long-form seeds (500+ chapters)
 uv run python autonovel_cli.py generate seed --target-words 500000  # Long-form with custom target (30万-200万字)
@@ -106,6 +107,7 @@ Genre configs live in `genres/` as YAML files, loaded by `genres/genre_registry.
 - `_base.yaml` — Shared webnovel conventions + genre_map (name → filename)
 - `zhongtian.yaml` — 种田文 config
 - `niandai.yaml` — 年代文 config (1950s-1990s China)
+- `zongcai.yaml` — 总裁豪门 config (modern CEO/billionaire romance)
 - `craft/*.md` — Genre-specific writing craft references
 
 Usage: `genre = load_genre_for_project()` reads `story/project.json` → genre field → loads YAML → deep-merges with `_base.yaml`. Falls back to 种田文 if genre not found.

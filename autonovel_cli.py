@@ -481,6 +481,17 @@ def cmd_init(args):
 def cmd_generate(args):
     """Generate seed concepts or foundation material files."""
     if args.gen_type == "seed":
+        # Route to seed_input.py if user provides their own concept
+        if getattr(args, 'input', None) or getattr(args, 'input_file', None):
+            seed_input_args = []
+            if args.input:
+                seed_input_args += ["--input", args.input]
+            if args.input_file:
+                seed_input_args += ["--input-file", args.input_file]
+            if getattr(args, 'auto_accept', False):
+                seed_input_args.append("--auto-accept")
+            return _run_script("seed_input.py", seed_input_args)
+
         seed_args = []
         if args.count:
             seed_args += ["--count", str(args.count)]
@@ -744,6 +755,12 @@ Examples:
                        help="Generate long-form seed concepts (500+ chapters)")
     p_gen.add_argument("--target-words", type=int, default=None,
                        help="Target total word count for long-form seed (e.g. 500000 for 50万字, default: 1000000)")
+    p_gen.add_argument("--input", type=str, default=None,
+                       help="Provide your own concept text (evaluate + optimize)")
+    p_gen.add_argument("--input-file", type=str, default=None,
+                       help="Path to a file containing your concept")
+    p_gen.add_argument("--auto-accept", action="store_true",
+                       help="Skip confirmation prompt when using --input/--input-file")
 
     args = parser.parse_args()
 

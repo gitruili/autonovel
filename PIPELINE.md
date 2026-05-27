@@ -34,6 +34,7 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
 工具 (TOOLS) (流水线机器):
   基础构建 (Foundation):
     seed.py              -- 生成 10 个灵感种子
+    seed_input.py        -- 接受用户脑洞，评价+优化后保存到 seed.txt
     gen_world.py         -- 种子 → world.md
     gen_characters.py    -- 种子 + 世界观 → characters.md
     gen_outline.py       -- 种子 + 世界观 + 角色 → outline.md (第1部分)
@@ -102,13 +103,16 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
 ### 阶段 0：准备工作 (Phase 0: Setup)
 
 ```
-输入:  seed.txt（用户提供或通过 seed.py 生成）
+输入:  seed.txt（用户提供或通过 seed.py / seed_input.py 生成）
 输出:  创建分支，配置 .env
 
 1. git checkout -b autonovel/<tag>
 2. 验证 `.env` 是否有选定提供商的密钥
    （`ANTHROPIC_API_KEY` 或 `MINIMAX_API_KEY`）
-3. 验证 seed.txt 是否存在且足够具体
+3. 生成或提供 seed.txt：
+   - 方式 A：`seed.py` 生成多个概念，手动选择保存到 seed.txt
+   - 方式 B：`seed_input.py --input-file concept.txt` 自动评价+优化+保存
+4. 验证 seed.txt 是否存在且足够具体
    （具有世界差异性、核心冲突、代价/限制、感官钩子）
 ```
 

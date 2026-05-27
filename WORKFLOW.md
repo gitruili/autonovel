@@ -17,10 +17,13 @@ cp .env.example .env   # 添加你的 Anthropic 或 MiniMax API 密钥
 uv run python autonovel_cli.py genres
 uv run python autonovel_cli.py init --title "我的小说" --genre "种田文"
 
-# 3. 生成灵感种子（或在 seed.txt 中自己写一个）
+# 3a. 方式一：生成灵感种子（AI 生成多个概念供选择）
 uv run python autonovel_cli.py generate seed
 
-# 4. 将喜欢的构思复制到 seed.txt，然后生成设定文件
+# 3b. 方式二：提供你自己的脑洞（自动评价+优化+保存到 seed.txt）
+uv run python autonovel_cli.py generate seed --input-file concept.txt
+
+# 4. 生成设定文件（seed.txt 已就绪时）
 uv run python autonovel_cli.py generate foundation
 
 # 5. 运行完整的流水线

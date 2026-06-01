@@ -47,10 +47,59 @@ def call_writer(prompt, max_tokens=16000):
 import math
 
 
+def _format_long_form_fragment(fragment: str, context: dict) -> str:
+    """Format genre prompt fragments with long-form planning values."""
+    return fragment.format(**context).strip()
+
+
 def _build_generate_prompt(count: int, tags_context: str, target_words_label: str,
                            target_chapters: int, total_volumes: int, early_chapters: int,
                            ranges: dict) -> str:
     """Build the long-form seed generation prompt from genre config."""
+    context = {
+        "count": count,
+        "target_words_label": target_words_label,
+        "target_chapters": target_chapters,
+        "total_volumes": total_volumes,
+        "early_chapters": early_chapters,
+        **ranges,
+    }
+    long_requirements = genre.get_prompt_fragment("seed_lf", "generate_requirements")
+    long_output_template = genre.get_prompt_fragment("seed_lf", "output_template")
+    if long_requirements and long_output_template:
+        diversity = (
+            genre.get_prompt_fragment("seed_lf", "diversity_requirements")
+            or genre.get_prompt_fragment("seed", "diversity_requirements")
+        )
+        prohibitions = (
+            genre.get_prompt_fragment("seed_lf", "prohibitions")
+            or genre.get_prompt_fragment("seed", "prohibitions")
+        )
+        return f"""生成 {count} 个{genre.display_name}网文的**长篇**种子概念。每一个都应该是一个完整的前提，
+足以支撑起一部{target_words_label}的长篇网文（{target_chapters}+章，{total_volumes}卷，每卷约{ranges['chapters_per_volume']}章）的构建。
+
+## 初始设定
+- 故事题材与标签：{genre.display_name}
+- 目标篇幅：{target_words_label}，{target_chapters}+章，{total_volumes}卷
+- 其他要求：严格遵从类型标签、题材定义、书名设计原则和简介设计原则；每个脑洞都必须有长篇连载支撑力。
+
+{tags_context}
+
+{genre.genre_definition}
+
+{genre.title_rules}
+
+{genre.synopsis_rules}
+
+{_format_long_form_fragment(long_requirements, context)}
+
+{_format_long_form_fragment(diversity, context) if diversity else ""}
+
+{_format_long_form_fragment(prohibitions, context) if prohibitions else ""}
+
+{_format_long_form_fragment(long_output_template, context)}
+"""
+
     return f"""生成 {count} 个{genre.display_name}网文的**长篇**种子概念。每一个都应该是一个完整的前提，
 足以支撑起一部{target_words_label}的长篇网文（{target_chapters}+章，{total_volumes}卷，每卷约{ranges['chapters_per_volume']}章）的构建。
 
@@ -185,6 +234,35 @@ def _build_generate_prompt(count: int, tags_context: str, target_words_label: st
 def _build_riff_prompt(idea: str, tags_context: str, target_words_label: str,
                        target_chapters: int, total_volumes: int, ranges: dict) -> str:
     """Build the long-form riff prompt from genre config."""
+    context = {
+        "target_words_label": target_words_label,
+        "target_chapters": target_chapters,
+        "total_volumes": total_volumes,
+        **ranges,
+    }
+    long_riff_requirements = genre.get_prompt_fragment("seed_lf", "riff_requirements")
+    long_riff_template = (
+        genre.get_prompt_fragment("seed_lf", "riff_output_template")
+        or genre.get_prompt_fragment("seed_lf", "output_template")
+    )
+    if long_riff_requirements and long_riff_template:
+        return f"""我有一个{genre.display_name}网文的种子构思：
+
+"{idea}"
+
+{tags_context}
+
+{genre.genre_definition}
+
+{genre.title_rules}
+
+{genre.synopsis_rules}
+
+{_format_long_form_fragment(long_riff_requirements, context)}
+
+{_format_long_form_fragment(long_riff_template, context)}
+"""
+
     return f"""我有一个{genre.display_name}网文的种子构思：
 
 "{idea}"

@@ -515,6 +515,34 @@ class TestPromptAssembly(unittest.TestCase):
         self.assertIn("豪门", full_prompt)
         self.assertTrue(len(full_prompt) > 500)
 
+    def test_long_form_seed_prompt_uses_zongcai_requirements(self):
+        """Long-form seed prompt should not fall back to old agrarian wording."""
+        import seed_lf
+
+        original_genre = seed_lf.genre
+        try:
+            seed_lf.genre = self.genre
+            ranges = seed_lf._compute_volume_ranges(12)
+            prompt = seed_lf._build_generate_prompt(
+                count=3,
+                tags_context="",
+                target_words_label="100万字",
+                target_chapters=240,
+                total_volumes=12,
+                early_chapters=20,
+                ranges=ranges,
+            )
+        finally:
+            seed_lf.genre = original_genre
+
+        self.assertIn("都市/豪门/商业背景", prompt)
+        self.assertIn("董事会", prompt)
+        self.assertIn("股权结构", prompt)
+        self.assertIn("男主破例", prompt)
+        self.assertNotIn("府城", prompt)
+        self.assertNotIn("朝堂", prompt)
+        self.assertNotIn("三文钱", prompt)
+
     def test_world_prompt_assembly(self):
         """Simulate gen_world_lf.py prompt assembly."""
         system = self.genre.get_system_prompt("world_builder")

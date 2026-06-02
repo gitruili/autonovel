@@ -29,6 +29,9 @@ uv run python autonovel_cli.py generate seed --input-file concept.txt
 # 4. 生成设定文件（seed.txt 已就绪时）
 uv run python autonovel_cli.py generate foundation
 
+# (可选) 如果生成设定文件时由于某些原因中断，可指定步骤继续（例如从第5步继续）：
+uv run python autonovel_cli.py generate foundation --start-step 5
+
 # 5. 运行完整的流水线
 uv run python run_pipeline.py --from-scratch
 ```

@@ -29,9 +29,8 @@ uv run python autonovel_cli.py generate seed --long-form  # Generate long-form s
 uv run python autonovel_cli.py generate seed --long-form --count 5 --target-words 1000000 --market-research reports/7mao.md  # 长篇+市场调研+5个脑洞(自动分批)
 uv run python autonovel_cli.py generate seed --long-form --max-tokens 48000  # 自定义每批最大输出token数
 uv run python autonovel_cli.py generate seed --long-form --batch-size 2  # 自定义每批脑洞数量
-uv run python autonovel_cli.py generate seed --input "《书名》概念文本..."  # Evaluate + optimize your own concept
-uv run python autonovel_cli.py generate seed --input-file concept.txt  # Same, from file
 uv run python autonovel_cli.py generate foundation        # Generate foundation (auto-detects short/long, long-form auto-evaluates)
+uv run python autonovel_cli.py generate foundation --start-step 5  # Resume foundation generation from step 5
 uv run python autonovel_cli.py run --chapter 1           # Single chapter
 uv run python autonovel_cli.py run --volume 1 --chapters 1-20 --resume
 uv run python autonovel_cli.py validate                  # State validation

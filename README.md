@@ -109,6 +109,9 @@ uv run python autonovel_cli.py generate seed --long-form --count 5 --batch-size 
 # 长篇 foundation（7步：世界观→角色→总纲→第一卷大纲→续写→正典→状态初始化）
 # 自动运行 evaluate.py --phase=foundation-lf 进行质量评估，结果写入 story/foundation_eval.json
 uv run python autonovel_cli.py generate foundation
+
+# 如果中途报错中断，可以使用 --start-step 从指定步骤继续（例如从第5步继续）
+uv run python autonovel_cli.py generate foundation --start-step 5
 ```
 
 长篇管线自动生成 `story/plans/master_plan.yaml`（结构化总纲）并初始化全部 7 个状态 JSON 文件，

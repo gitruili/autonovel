@@ -24,7 +24,7 @@ WRITER_MODEL = os.environ.get(
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
 
-def call_writer(prompt, max_tokens=16000):
+def call_writer(prompt, max_tokens=32000):
     return call_text_model(
         model=WRITER_MODEL,
         max_tokens=max_tokens,
@@ -36,8 +36,13 @@ def call_writer(prompt, max_tokens=16000):
     )
 
 seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
-world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
-characters = (BASE_DIR / "characters.md").read_text(encoding="utf-8")
+world_path = BASE_DIR / "world_brief.md"
+if not world_path.exists(): world_path = BASE_DIR / "world.md"
+world = world_path.read_text(encoding="utf-8")
+
+char_path = BASE_DIR / "characters_brief.md"
+if not char_path.exists(): char_path = BASE_DIR / "characters.md"
+characters = char_path.read_text(encoding="utf-8")
 _, tags_context = load_project_tags()
 
 # Load master plan
@@ -93,10 +98,10 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文生成**第�
 {seed}
 
 生活设定集 (WORLD):
-{world[:6000]}
+{world}
 
 角色注册表 (CHARACTERS):
-{characters[:6000]}
+{characters}
 
 文风标识 (VOICE):
 {voice_part2}
@@ -138,18 +143,22 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文生成**第�
 8. **目标字数约 3500-4500 字/章**：前3章可以略短，高潮章节可以略长。
 
 ## 重要提示
-- 只输出第一卷的20章大纲，不要输出其他卷
-- 先输出逐章大纲，再输出台账
-- 不要重复输出总纲中已有的内容
+- 你的输出上限已解锁至 32,000 Token，**务必在单次回复中一口气写完完整的 20 章大纲，千万不要中途中断**。
+- 先输出逐章大纲，最后附上所有的台账。
+- 不要重复输出总纲中已有的内容。
+
 """
 
 print("正在生成第一卷详细大纲...", file=sys.stderr)
 result = call_writer(prompt)
 print(result)
 
-# Append to outline.md
-with open(BASE_DIR / "outline.md", "a", encoding="utf-8") as f:
-    f.write("\n\n---\n\n")
+# Write to volume_001_outline.md
+with open(PLANS_DIR / "volume_001_outline.md", "w", encoding="utf-8") as f:
     f.write(result)
 
-print(f"\n已追加到 outline.md", file=sys.stderr)
+# Rebuild compatibility layer outline.md
+from outline_utils import rebuild_outline_compatibility_layer
+rebuild_outline_compatibility_layer(BASE_DIR)
+
+print(f"\n已保存 volume_001_outline.md 并拼装到 outline.md", file=sys.stderr)

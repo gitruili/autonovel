@@ -20,6 +20,8 @@ JUDGE_MODEL = os.environ.get(
     default_model_for_role("judge", "claude-sonnet-4-6"),
 )
 CHAPTERS_DIR = BASE_DIR / "chapters"
+PLANS_DIR = BASE_DIR / "story" / "plans"
+PLANS_DIR.mkdir(parents=True, exist_ok=True)
 
 def call_model(prompt, max_tokens=1500):
     text = call_text_model(
@@ -177,8 +179,9 @@ def main():
     lines.append("*大纲根据最终实际撰写的章节重新生成。*")
     
     out = '\n'.join(lines)
-    (BASE_DIR / "outline.md").write_text(out, encoding="utf-8")
-    print(f"\nSaved outline.md ({len(out.split())} words)")
+    actual_path = PLANS_DIR / "outline_actual.md"
+    actual_path.write_text(out, encoding="utf-8")
+    print(f"\nSaved {actual_path.name} ({len(out.split())} words)")
 
 if __name__ == "__main__":
     main()

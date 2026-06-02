@@ -526,8 +526,26 @@ def cmd_generate(args):
         print(f"[ERROR] voice.md not found. It ships with the project template.")
         return 1
 
-    # Determine short-form vs long-form based on project config
+    # Extract tags from seed.txt and update project.json automatically
     proj_path = STORY_DIR / "project.json"
+    if proj_path.exists() and seed_path.exists():
+        import re
+        from story_schema import load_json, save_json
+        try:
+            seed_content = seed_path.read_text(encoding="utf-8")
+            match = re.search(r'【([^】]+)】', seed_content)
+            if match:
+                tags_str = match.group(1)
+                extracted_tags = [t.strip() for t in re.split(r'[\++,/;；，]', tags_str) if t.strip()]
+                if extracted_tags:
+                    proj_data = load_json(proj_path)
+                    proj_data["tags"] = extracted_tags
+                    save_json(proj_path, proj_data)
+                    print(f"  [INFO] 自动从 seed.txt 提取并更新标签: {extracted_tags}")
+        except Exception as e:
+            print(f"  [WARN] 自动提取 seed.txt 标签失败: {e}")
+
+    # Determine short-form vs long-form based on project config
     long_form = False
     if proj_path.exists():
         from story_schema import ProjectConfig, load_json
@@ -538,9 +556,9 @@ def cmd_generate(args):
         steps = [
             ("gen_world_lf.py", "世界观设定集 (world.md)"),
             ("gen_characters_lf.py", "角色注册表 (characters.md)"),
-            ("gen_master_outline.py", "全书总纲 (master_plan.yaml + outline.md)"),
-            ("gen_outline_v1.py", "第一卷详细大纲 (outline.md)"),
-            ("gen_outline_v1_part2.py", "第一卷大纲续写 (outline.md)"),
+            ("gen_briefs.py", "浓缩设定摘要 (world_brief.md + characters_brief.md)"),
+            ("gen_master_outline.py", "全书总纲 (master_plan.yaml + master_summary.md)"),
+            ("gen_outline_v1.py", "第一卷详细大纲 (volume_001_outline.md)"),
             ("gen_canon.py", "设定准则数据库 (canon.md)"),
             ("init_state.py", "状态初始化 (story/state/*.json)"),
         ]
@@ -563,6 +581,9 @@ def cmd_generate(args):
         if getattr(args, 'start_step', None) and i < args.start_step:
             print(f"[{i}/{len(steps)}] 跳过 {desc} (--start-step={args.start_step})")
             continue
+        if getattr(args, 'end_step', None) and i > args.end_step:
+            print(f"[{i}/{len(steps)}] 停止生成 (已达 --end-step={args.end_step})")
+            break
             
         print(f"[{i}/{len(steps)}] 正在生成 {desc}...")
         rc = _run_script(script, [])
@@ -764,6 +785,8 @@ Examples:
                        help="Max concepts per batch; auto-splits when count exceeds this (default: 3)")
     p_gen.add_argument("--start-step", type=int, default=None,
                        help="Resume foundation generation from a specific step index (e.g. 5 for part 5/7)")
+    p_gen.add_argument("--end-step", type=int, default=None,
+                       help="Stop foundation generation after a specific step index (e.g. 1 to only run step 1)")
 
     args = parser.parse_args()
 

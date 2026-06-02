@@ -36,8 +36,13 @@ def call_writer(prompt, max_tokens=16000):
     )
 
 seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
-world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
-characters = (BASE_DIR / "characters.md").read_text(encoding="utf-8")
+world_path = BASE_DIR / "world_brief.md"
+if not world_path.exists(): world_path = BASE_DIR / "world.md"
+world = world_path.read_text(encoding="utf-8")
+
+char_path = BASE_DIR / "characters_brief.md"
+if not char_path.exists(): char_path = BASE_DIR / "characters.md"
+characters = char_path.read_text(encoding="utf-8")
 _, tags_context = load_project_tags()
 
 # Voice Part 2 only
@@ -75,10 +80,10 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份�
 {seed}
 
 生活设定集 (WORLD):
-{world[:8000]}
+{world}
 
 角色注册表 (CHARACTERS):
-{characters[:8000]}
+{characters}
 
 文风标识 (VOICE):
 {voice_part2}
@@ -258,9 +263,13 @@ PLANS_DIR.mkdir(parents=True, exist_ok=True)
 with open(PLANS_DIR / "master_plan.yaml", "w", encoding="utf-8") as f:
     f.write(yaml_content)
 
-# Save outline.md (Markdown summary only)
-with open(BASE_DIR / "outline.md", "w", encoding="utf-8") as f:
+# Save master_summary.md
+with open(PLANS_DIR / "master_summary.md", "w", encoding="utf-8") as f:
     f.write(md_content)
 
+# Rebuild compatibility layer outline.md
+from outline_utils import rebuild_outline_compatibility_layer
+rebuild_outline_compatibility_layer(BASE_DIR)
+
 print(f"\n已保存 master_plan.yaml ({len(yaml_content)} 字符)", file=sys.stderr)
-print(f"已保存 outline.md ({len(md_content)} 字符)", file=sys.stderr)
+print(f"已保存 master_summary.md ({len(md_content)} 字符) 并重新拼装 outline.md", file=sys.stderr)

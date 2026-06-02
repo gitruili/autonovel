@@ -43,7 +43,7 @@ part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
 voice_part2 = '\n'.join(voice_lines[part2_start:])
 
 prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份完整的生活设定集。
-这份文档分两部分：Part A 是核心设定（卷1-3 立即需要的），Part B 是扩展路线图（后续卷需要的）。
+这份文档分三部分：Part 0 是世界观速查表（结构化核心信息），Part A 是核心设定（卷1-3 立即需要的），Part B 是扩展路线图（后续卷需要的）。
 
 {tags_context}
 
@@ -54,6 +54,18 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份�
 {voice_part2}
 
 {genre.get_prompt_fragment("world", "requirements")}
+
+---
+
+## 输出顺序要求 (非常重要)
+
+为了确保核心结构信息不被截断，请**严格按照以下顺序**输出：
+
+# Part 0: 世界观速查表
+提供给下游脚本快速读取的核心变量，必须用紧凑的表格形式展现：
+1. **基础设定参数**：时代背景、核心货币体系（如铜钱/银子，或元/万/亿，必须与类型相符）、科技/文明阶段。
+2. **扩展路线速查表**：预估在第几卷解锁的新地图或新阶层（3-4个条目）。
+3. **金手指/系统速查表**（如有）：能力限制、核心代价、随卷号升级的方向。
 
 ---
 

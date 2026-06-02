@@ -74,8 +74,11 @@ def init_project():
     proj = ProjectConfig(
         title=master.get("title", existing.get("title", "")),
         genre=master.get("genre", existing.get("genre", "")),
+        tags=master.get("tags", existing.get("tags", [])),
         target_words=master.get("target_words", existing.get("target_words", 1_000_000)),
         target_chapters=master.get("total_chapters", existing.get("target_chapters", 500)),
+        default_chapter_chars=existing.get("default_chapter_chars", 4000),
+        market_research_files=existing.get("market_research_files", []),
         current_volume=1,
         current_chapter=0,
         current_chars=0,
@@ -145,18 +148,18 @@ characters:
             continue
         char = Character(
             id=char_id,
-            name=char_data.get("name", ""),
-            role=char_data.get("role", "supporting"),
+            name=char_data.get("name") or "",
+            role=char_data.get("role") or "supporting",
             age=char_data.get("age"),
-            gender=char_data.get("gender", ""),
-            personality=char_data.get("personality", ""),
-            speech_pattern=char_data.get("speech_pattern", ""),
-            appearance=char_data.get("appearance", ""),
-            background=char_data.get("background", ""),
-            motivation=char_data.get("motivation", ""),
-            arc_summary=char_data.get("arc_summary", ""),
-            secrets=char_data.get("secrets", []),
-            relationships=char_data.get("relationships", {}),
+            gender=char_data.get("gender") or "",
+            personality=char_data.get("personality") or "",
+            speech_pattern=char_data.get("speech_pattern") or "",
+            appearance=char_data.get("appearance") or "",
+            background=char_data.get("background") or "",
+            motivation=char_data.get("motivation") or "",
+            arc_summary=char_data.get("arc_summary") or "",
+            secrets=char_data.get("secrets") or [],
+            relationships=char_data.get("relationships") or {},
             source_chapter=0,
             valid_from_chapter=1,
             status="active",
@@ -233,15 +236,15 @@ hooks:
             continue
         hook = ForeshadowHook(
             id=hook_id,
-            description=hook_data.get("description", ""),
-            hook_type=hook_data.get("hook_type", "setup"),
-            planted_chapter=hook_data.get("planted_chapter", 0),
+            description=hook_data.get("description") or "",
+            hook_type=hook_data.get("hook_type") or "setup",
+            planted_chapter=hook_data.get("planted_chapter") or 0,
             expected_payoff_chapter=hook_data.get("expected_payoff_chapter"),
-            related_characters=hook_data.get("related_characters", []),
-            related_locations=hook_data.get("related_locations", []),
-            urgency=hook_data.get("urgency", "normal"),
-            source_chapter=hook_data.get("planted_chapter", 0),
-            valid_from_chapter=hook_data.get("planted_chapter", 0),
+            related_characters=hook_data.get("related_characters") or [],
+            related_locations=hook_data.get("related_locations") or [],
+            urgency=hook_data.get("urgency") or "normal",
+            source_chapter=hook_data.get("planted_chapter") or 0,
+            valid_from_chapter=hook_data.get("planted_chapter") or 0,
         )
         hooks.hooks[hook_id] = hook
 
@@ -299,12 +302,12 @@ subplots:
             continue
         subplot = Subplot(
             id=sp_id,
-            name=sp_data.get("name", ""),
-            description=sp_data.get("description", ""),
-            status=sp_data.get("status", "active"),
-            related_characters=sp_data.get("related_characters", []),
-            chapters_involved=sp_data.get("chapters_involved", []),
-            tension_level=sp_data.get("tension_level", "building"),
+            name=sp_data.get("name") or "",
+            description=sp_data.get("description") or "",
+            status=sp_data.get("status") or "active",
+            related_characters=sp_data.get("related_characters") or [],
+            chapters_involved=sp_data.get("chapters_involved") or [],
+            tension_level=sp_data.get("tension_level") or "building",
         )
         board.subplots[sp_id] = subplot
 

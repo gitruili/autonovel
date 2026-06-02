@@ -35,12 +35,14 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
   基础构建 (Foundation):
     seed.py              -- 生成 10 个灵感种子
     seed_lf.py           -- 生成长篇网文种子概念（支持市场调研、自动分批）
-    gen_world.py         -- 种子 → world.md
-    gen_characters.py    -- 种子 + 世界观 → characters.md
-    gen_outline.py       -- 种子 + 世界观 + 角色 → outline.md (第1部分)
-    gen_outline_part2.py -- 大纲 + 角色 → 伏笔账本
-    gen_canon.py         -- 世界观 + 角色 → canon.md (硬事实)
+    gen_world_lf.py      -- 种子 → world.md (新增 Part 0 核心速查表防截断)
+    gen_characters_lf.py -- 种子 + 世界观 → characters.md (前置索引与反派表防截断)
+    gen_briefs.py        -- 设定提纯 → world_brief.md + characters_brief.md (浓缩摘要层)
+    gen_master_outline.py-- 全书骨架 → master_plan.yaml + master_summary.md
+    gen_outline_v1.py    -- 解锁 32k tokens，一步生成首卷完整大纲 → volume_001_outline.md
     voice_fingerprint.py -- 测试段落 → voice.md 第2部分
+    gen_canon.py         -- 世界观 + 角色 → canon.md (硬事实)
+    init_state.py        -- 初始化流转状态 → story/state/*.json
 
   写作 (Drafting):
     draft_chapter.py     -- 编写单章，带反模式规则
@@ -121,31 +123,25 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
 
 ```
 输入:  seed.txt
-输出:  world.md, characters.md, outline.md, voice.md, canon.md, MYSTERY.md
+输出:  world.md, characters.md, outline_actual.md, voice.md, canon.md, MYSTERY.md
 退出条件:   foundation_score > 7.5 AND lore_score > 7.0
 
-循环：
-  1. gen_world.py        → world.md（传说、魔法系统、地理、阵营）
-  2. gen_characters.py   → characters.md（创伤/渴望/需求/谎言、语言习惯、滑块）
-  3. gen_outline.py      → outline.md 第 1 部分（节拍、章节结构）
-  4. gen_outline_part2.py → outline.md 第 2 部分（伏笔账本）
-  5. 叙事声音发现：用不同的语域写5段测试段落，
-     选择最好的一个，用示例和反面示例填充 voice.md 的第 2 部分
-  6. 定义 MYSTERY.md（读者将要发现的核心秘密）
-  7. gen_canon.py        → canon.md（交叉引用所有硬事实）
-  8. evaluate.py --phase=foundation
-  9. 如果分数提高 → git commit。如果下降 → git reset --hard HEAD~1。
-  10. 找出最弱的维度 → 下一次迭代针对该维度进行优化。
+最新优化的大型长篇循环（防截断与无限扩展架构）：
+  1. gen_world_lf.py       → world.md（在顶部插入 Part 0 核心速查表以防关键机制被截断）
+  2. gen_characters_lf.py  → characters.md（强制优先输出索引表、反派表、登场计划）
+  3. gen_briefs.py         → world_brief.md + characters_brief.md（将设定压缩提纯为高密度上下文）
+  4. gen_master_outline.py → master_plan.yaml + master_summary.md（定义全书多卷宏观骨架）
+  5. gen_outline_v1.py     → volume_001_outline.md（32k token 一步到位输出首卷20章大纲+台账）
+     - (同时后台会通过 outline_utils 拼装生成向下兼容的 outline.md)
+  6. 叙事声音发现：用不同的语域写5段测试段落，选择最好的一个填充 voice.md 的第 2 部分
+  7. 定义 MYSTERY.md（读者将要发现的核心秘密）
+  8. gen_canon.py          → canon.md（交叉引用所有硬事实）
+  9. init_state.py         → 初始化项目流转状态
 
 关键经验：
-  - 基础构建通常需要 5-15 次迭代
-  - 评估器将设定关联性的权重定为 40% — 魔法必须
-    影响政治，历史必须解释阵营，地理必须
-    塑造文化
-  - 每次迭代都进行跨层一致性检查
-  - 在退出基础构建阶段之前，正典(canon)应具有 400+ 个条目
-  - 声音发现是一个独立的子循环：编写测试段落，
-    评估，选择，完善
+  - 由于大模型经常截断超长上下文，采用**生成两遍（原版+极简 Briefs）**的机制，可以保证写到后半部时设定仍然健壮。
+  - 第一卷的大纲剥离到 `volume_001_outline.md` 中，避免污染 `master_summary.md`，使大纲体系可横向扩展到 25 卷以上。
+  - build_outline.py 现在只会根据写出来的散文重新汇总至 `outline_actual.md`，不再破坏生成用的大纲层。
 ```
 
 ### 阶段 2：初稿写作 (Phase 2: First Draft)

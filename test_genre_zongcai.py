@@ -292,13 +292,13 @@ class TestZongcaiReaderPersonas(unittest.TestCase):
 class TestGenreFallback(unittest.TestCase):
     """Verify fallback behavior when genre is missing."""
 
-    def test_unknown_genre_falls_back_to_zhongtian(self):
+    def test_unknown_genre_falls_back_to_zongcai(self):
         genre = load_genre("不存在的题材")
-        self.assertEqual(genre.genre_key, "zhongtian")
+        self.assertEqual(genre.genre_key, "zongcai")
 
-    def test_empty_genre_falls_back_to_zhongtian(self):
+    def test_empty_genre_falls_back_to_zongcai(self):
         genre = load_genre("")
-        self.assertEqual(genre.genre_key, "zhongtian")
+        self.assertEqual(genre.genre_key, "zongcai")
 
     def test_base_fields_preserved_after_merge(self):
         """After merging _base.yaml + zongcai.yaml, base fields should still exist."""
@@ -337,7 +337,7 @@ class TestProjectInit(unittest.TestCase):
                 self.assertEqual(genre.genre_key, "zongcai")
 
     def test_load_genre_for_project_empty_genre(self):
-        """When project.json has empty genre, should fall back to 种田文."""
+        """When project.json has empty genre, should fall back to 总裁豪门."""
         with tempfile.TemporaryDirectory() as tmpdir:
             story_dir = Path(tmpdir) / "story"
             story_dir.mkdir()
@@ -346,7 +346,7 @@ class TestProjectInit(unittest.TestCase):
                 json.dumps(proj, ensure_ascii=False), encoding="utf-8"
             )
             genre = load_genre("")
-            self.assertEqual(genre.genre_key, "zhongtian")
+            self.assertEqual(genre.genre_key, "zongcai")
 
     def test_tags_coverage_for_zongcai_defaults(self):
         """All default_tags for zongcai should have entries in TAG_DEFINITIONS."""

@@ -134,23 +134,23 @@ class GenreConfig:
 
 
 def load_genre(genre_name: str) -> GenreConfig:
-    """Load a genre config by Chinese display name (e.g., "种田文").
+    """Load a genre config by Chinese display name (e.g., "总裁豪门").
 
-    Falls back to "种田文" if the name is not found.
+    Falls back to "总裁豪门" if the name is not found.
     """
     genre_map = _get_genre_map()
 
     # Try direct lookup
     filename = genre_map.get(genre_name)
-    if filename is None:
+    if filename is None and genre_name:
         # Try matching by display_name in available YAML files
         for key, fname in genre_map.items():
             if key == genre_name or genre_name in key:
                 filename = fname
                 break
     if filename is None:
-        # Default to zhongtian
-        filename = genre_map.get("种田文", "zhongtian")
+        # Default to zongcai
+        filename = genre_map.get("总裁豪门", "zongcai")
 
     genre_path = GENRES_DIR / f"{filename}.yaml"
     if not genre_path.exists():
@@ -168,16 +168,16 @@ def load_genre_for_project() -> GenreConfig:
     """Load the genre config for the current project.
 
     Reads story/project.json -> genre field.
-    Falls back to "种田文" if not set.
+    Falls back to "总裁豪门" if not set.
     """
     import json
     proj_path = Path(__file__).parent.parent / "story" / "project.json"
-    genre_name = "种田文"
+    genre_name = "总裁豪门"
     if proj_path.exists():
         try:
             with open(proj_path, "r", encoding="utf-8") as f:
                 proj = json.load(f)
-            genre_name = proj.get("genre", "") or "种田文"
+            genre_name = proj.get("genre", "") or "总裁豪门"
         except (json.JSONDecodeError, OSError):
             pass
     return load_genre(genre_name)

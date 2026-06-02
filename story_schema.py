@@ -94,6 +94,7 @@ class ProjectConfig(BaseModel):
     target_words: int = 1_000_000
     target_chapters: int = 500
     default_chapter_chars: int = 4000
+    market_research_files: list[str] = Field(default_factory=list)
     current_volume: int = 1
     current_chapter: int = 0
     current_chars: int = 0

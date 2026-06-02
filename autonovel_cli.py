@@ -499,9 +499,13 @@ def cmd_generate(args):
             seed_args += ["--riff", args.riff]
         if hasattr(args, 'target_words') and args.target_words:
             seed_args += ["--target-words", str(args.target_words)]
+        for research_path in getattr(args, 'market_research', []) or []:
+            seed_args += ["--market-research", research_path]
         # Use long-form seed generator if --long-form flag, --target-words, or project targets 500+ chapters
         long_form = getattr(args, 'long_form', False)
         if not long_form and hasattr(args, 'target_words') and args.target_words:
+            long_form = True
+        if not long_form and getattr(args, 'market_research', None):
             long_form = True
         if not long_form:
             proj_path = STORY_DIR / "project.json"
@@ -755,6 +759,8 @@ Examples:
                        help="Generate long-form seed concepts (500+ chapters)")
     p_gen.add_argument("--target-words", type=int, default=None,
                        help="Target total word count for long-form seed (e.g. 500000 for 50万字, default: 1000000)")
+    p_gen.add_argument("--market-research", action="append", default=[],
+                       help="Path to an external ranking/market research Markdown file for long-form seed generation; repeatable")
     p_gen.add_argument("--input", type=str, default=None,
                        help="Provide your own concept text (evaluate + optimize)")
     p_gen.add_argument("--input-file", type=str, default=None,

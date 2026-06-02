@@ -31,6 +31,8 @@ WRITER_MODEL = os.environ.get(
     default_model_for_role("writer", "claude-sonnet-4-6-20250217"),
 )
 
+MAX_MARKET_RESEARCH_CHARS = 12000
+
 
 def call_writer(prompt, max_tokens=16000):
     return call_text_model(
@@ -52,9 +54,49 @@ def _format_long_form_fragment(fragment: str, context: dict) -> str:
     return fragment.format(**context).strip()
 
 
+def _load_market_research(paths: list[str]) -> str:
+    """Load external market research files for prompt injection."""
+    if not paths:
+        return ""
+
+    sections = []
+    for raw_path in paths:
+        path = Path(raw_path).expanduser()
+        if not path.is_absolute():
+            path = BASE_DIR / path
+        if not path.exists():
+            raise FileNotFoundError(f"Market research file not found: {path}")
+
+        text = path.read_text(encoding="utf-8").strip()
+        if len(text) > MAX_MARKET_RESEARCH_CHARS:
+            text = (
+                text[:MAX_MARKET_RESEARCH_CHARS].rstrip()
+                + "\n\n[市场调研文件过长，已截断。请优先保留趋势总结、开局模型、红海/蓝海判断。]"
+            )
+        sections.append(f"### 调研文件：{path.name}\n来源路径：{path}\n\n{text}")
+
+    return "\n\n".join(sections).strip()
+
+
+def _build_market_research_context(market_research: str) -> str:
+    """Wrap external research as time-sensitive market signal, not canon."""
+    if not market_research.strip():
+        return ""
+    return f"""## 外部榜单/市场调研参考（可替换、非硬性设定）
+以下资料可能来自七猫、番茄或其他平台，统计时间和榜单口径可能变化。
+请把它当作市场信号，而不是创作素材库：
+- 先提炼热词、红海方向、蓝海机会、开局模型和节奏规律。
+- 每个脑洞必须采用"热门基础盘 + 差异化切入"的组合。
+- 不要复刻榜单作品，不要复制已有书名、角色、人设组合或具体剧情。
+- 如果调研与题材基础 prompt 冲突，以题材基础 prompt 和现代法律/商业逻辑为准。
+
+{market_research.strip()}
+"""
+
+
 def _build_generate_prompt(count: int, tags_context: str, target_words_label: str,
                            target_chapters: int, total_volumes: int, early_chapters: int,
-                           ranges: dict) -> str:
+                           ranges: dict, market_research_context: str = "") -> str:
     """Build the long-form seed generation prompt from genre config."""
     context = {
         "count": count,
@@ -91,6 +133,8 @@ def _build_generate_prompt(count: int, tags_context: str, target_words_label: st
 
 {genre.synopsis_rules}
 
+{market_research_context}
+
 {_format_long_form_fragment(long_requirements, context)}
 
 {_format_long_form_fragment(diversity, context) if diversity else ""}
@@ -110,6 +154,8 @@ def _build_generate_prompt(count: int, tags_context: str, target_words_label: st
 {genre.title_rules}
 
 {genre.synopsis_rules}
+
+{market_research_context}
 
 ## 每个概念必须包含以下要素
 
@@ -232,7 +278,8 @@ def _build_generate_prompt(count: int, tags_context: str, target_words_label: st
 
 
 def _build_riff_prompt(idea: str, tags_context: str, target_words_label: str,
-                       target_chapters: int, total_volumes: int, ranges: dict) -> str:
+                       target_chapters: int, total_volumes: int, ranges: dict,
+                       market_research_context: str = "") -> str:
     """Build the long-form riff prompt from genre config."""
     context = {
         "target_words_label": target_words_label,
@@ -258,6 +305,8 @@ def _build_riff_prompt(idea: str, tags_context: str, target_words_label: str,
 
 {genre.synopsis_rules}
 
+{market_research_context}
+
 {_format_long_form_fragment(long_riff_requirements, context)}
 
 {_format_long_form_fragment(long_riff_template, context)}
@@ -274,6 +323,8 @@ def _build_riff_prompt(idea: str, tags_context: str, target_words_label: str,
 {genre.title_rules}
 
 {genre.synopsis_rules}
+
+{market_research_context}
 
 基于这个概念生成 5 个**长篇**变体（每个都应能支撑{target_words_label}/{target_chapters}+章/{total_volumes}卷）。
 保留核心构思中吸引人的部分，但将其推向不同的方向。
@@ -378,6 +429,8 @@ def main():
                         help="基于现有想法进行扩展")
     parser.add_argument("--target-words", type=int, default=1000000,
                         help="目标总字数 (默认: 1000000 即100万字)")
+    parser.add_argument("--market-research", action="append", default=[],
+                        help="外部榜单/市场调研 Markdown 文件路径，可重复传入；也可配置在 story/project.json 的 market_research_files")
     args = parser.parse_args()
 
     if not get_api_key():
@@ -385,7 +438,11 @@ def main():
         sys.exit(1)
 
     from story_schema import load_project_tags
-    _, tags_context = load_project_tags()
+    proj, tags_context = load_project_tags()
+    research_paths = [*proj.market_research_files, *args.market_research]
+    market_research_context = _build_market_research_context(
+        _load_market_research(research_paths)
+    )
 
     # Compute dynamic values from target_words
     target_words = args.target_words
@@ -401,10 +458,10 @@ def main():
 
     if args.riff:
         print(f"正在基于以下想法扩展长篇变体 ({label}+/{target_chapters}+章/{total_volumes}卷)...\n")
-        prompt = _build_riff_prompt(args.riff, tags_context, label, target_chapters, total_volumes, ranges)
+        prompt = _build_riff_prompt(args.riff, tags_context, label, target_chapters, total_volumes, ranges, market_research_context)
     else:
         print(f"正在生成 {args.count} 个长篇{genre.display_name}网文种子构思 ({label}+/{target_chapters}+章/{total_volumes}卷)...\n")
-        prompt = _build_generate_prompt(args.count, tags_context, label, target_chapters, total_volumes, early_chapters, ranges)
+        prompt = _build_generate_prompt(args.count, tags_context, label, target_chapters, total_volumes, early_chapters, ranges, market_research_context)
 
     print(prompt)
     print("-----------------")

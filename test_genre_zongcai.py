@@ -543,6 +543,35 @@ class TestPromptAssembly(unittest.TestCase):
         self.assertNotIn("朝堂", prompt)
         self.assertNotIn("三文钱", prompt)
 
+    def test_long_form_seed_prompt_accepts_external_market_research(self):
+        """Market research should be injected as replaceable external context."""
+        import seed_lf
+
+        original_genre = seed_lf.genre
+        try:
+            seed_lf.genre = self.genre
+            ranges = seed_lf._compute_volume_ranges(12)
+            market_context = seed_lf._build_market_research_context(
+                "平台：番茄小说\n趋势：男二上位、搞笑甜宠、非京圈地域创新"
+            )
+            prompt = seed_lf._build_generate_prompt(
+                count=3,
+                tags_context="",
+                target_words_label="100万字",
+                target_chapters=240,
+                total_volumes=12,
+                early_chapters=20,
+                ranges=ranges,
+                market_research_context=market_context,
+            )
+        finally:
+            seed_lf.genre = original_genre
+
+        self.assertIn("外部榜单/市场调研参考", prompt)
+        self.assertIn("番茄小说", prompt)
+        self.assertIn("热门基础盘 + 差异化切入", prompt)
+        self.assertIn("不要复刻榜单作品", prompt)
+
     def test_world_prompt_assembly(self):
         """Simulate gen_world_lf.py prompt assembly."""
         system = self.genre.get_system_prompt("world_builder")

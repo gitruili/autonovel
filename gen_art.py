@@ -442,7 +442,7 @@ def cmd_vectorize(args):
         try:
             # Step 1: Convert to grayscale PBM using Pillow
             from PIL import Image
-            img = Image.open(png_path).convert("L")
+            img = Image.open(png_path, encoding="utf-8").convert("L")
             # Threshold to black and white
             bw = img.point(lambda x: 0 if x < 180 else 255, "1")
             pbm_path = png_path.with_suffix(".pbm")

@@ -30,7 +30,7 @@ def call_writer(prompt, max_tokens=16000):
         timeout=600,
     )
 
-part1 = open(BASE_DIR / 'outline.md').read()
+part1 = open(BASE_DIR / 'outline.md', encoding="utf-8").read()
 
 # MYSTERY.md（如果存在）
 mystery_path = BASE_DIR / "MYSTERY.md"

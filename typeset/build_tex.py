@@ -93,7 +93,7 @@ def make_drop_cap(latex_body):
 chapters_tex = []
 for n in range(1, 20):
     path = os.path.join(CHAPTERS_DIR, f"ch_{n:02d}.md")
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         text = f.read()
     
     lines = text.strip().split('\n')
@@ -132,7 +132,7 @@ for n in range(1, 20):
 
 content = '\n\\clearpage\n\n'.join(chapters_tex)
 
-with open(os.path.join(OUT_DIR, "chapters_content.tex"), 'w') as f:
+with open(os.path.join(OUT_DIR, "chapters_content.tex", encoding="utf-8"), 'w') as f:
     f.write(content)
 
 print(f"\nWrote {len(chapters_tex)} chapters to typeset/chapters_content.tex")

@@ -193,7 +193,7 @@ def main():
     
     # Save full results
     out_path = BASE_DIR / "edit_logs" / "voice_fingerprint.json"
-    with open(out_path, "w") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump({"chapters": results, "outliers": outliers}, f, indent=2)
     print(f"\nSaved to {out_path}")
 

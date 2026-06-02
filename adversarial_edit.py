@@ -139,7 +139,7 @@ def edit_chapter(ch_num):
     
     # Save log
     log_path = EDIT_LOG_DIR / f"ch{ch_num:02d}_cuts.json"
-    with open(log_path, "w") as f:
+    with open(log_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
     
     return result, word_count

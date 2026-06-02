@@ -63,7 +63,7 @@ def composite_cover(
     preset="auto",
     output_path=None,
 ):
-    img = Image.open(art_path).convert("RGBA")
+    img = Image.open(art_path, encoding="utf-8").convert("RGBA")
     w, h = img.size
 
     # Auto-detect light/dark

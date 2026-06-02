@@ -54,7 +54,7 @@ PHASE_ORDER = ["foundation", "drafting", "revision", "export"]
 def load_state() -> dict:
     """Load pipeline state from state.json, creating defaults if missing."""
     if STATE_FILE.exists():
-        with open(STATE_FILE) as f:
+        with open(STATE_FILE, encoding="utf-8") as f:
             return json.load(f)
     return default_state()
 
@@ -76,7 +76,7 @@ def default_state() -> dict:
 
 def save_state(state: dict):
     """Write state to state.json."""
-    with open(STATE_FILE, "w") as f:
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
 
 
@@ -92,7 +92,7 @@ def log_result(commit: str, phase: str, score, word_count: int,
         RESULTS_FILE.write_text(header, encoding="utf-8")
     elif RESULTS_FILE.stat().st_size == 0:
         RESULTS_FILE.write_text(header, encoding="utf-8")
-    with open(RESULTS_FILE, "a") as f:
+    with open(RESULTS_FILE, "a", encoding="utf-8") as f:
         f.write(f"{commit}\t{phase}\t{score}\t{word_count}\t{status}\t{description}\n")
 
 
@@ -410,7 +410,7 @@ def parse_panel_consensus(panel_path: Path) -> list[dict]:
     """
     if not panel_path.exists():
         return []
-    with open(panel_path) as f:
+    with open(panel_path, encoding="utf-8") as f:
         data = json.load(f)
 
     items = []

@@ -1026,7 +1026,7 @@ def main():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     mode = args.phase or (f"ch{args.chapter:02d}" if args.chapter else "full")
     log_path = EVAL_LOG_DIR / f"{timestamp}_{mode}.json"
-    with open(log_path, "w") as f:
+    with open(log_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
     print(f"\neval_log: {log_path}")
 

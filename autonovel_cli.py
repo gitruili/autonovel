@@ -560,6 +560,10 @@ def cmd_generate(args):
     print()
 
     for i, (script, desc) in enumerate(steps, 1):
+        if getattr(args, 'start_step', None) and i < args.start_step:
+            print(f"[{i}/{len(steps)}] 跳过 {desc} (--start-step={args.start_step})")
+            continue
+            
         print(f"[{i}/{len(steps)}] 正在生成 {desc}...")
         rc = _run_script(script, [])
         if rc != 0:
@@ -758,6 +762,8 @@ Examples:
                        help="Max output tokens per LLM call for seed generation (default: 32000)")
     p_gen.add_argument("--batch-size", type=int, default=None,
                        help="Max concepts per batch; auto-splits when count exceeds this (default: 3)")
+    p_gen.add_argument("--start-step", type=int, default=None,
+                       help="Resume foundation generation from a specific step index (e.g. 5 for part 5/7)")
 
     args = parser.parse_args()
 

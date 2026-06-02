@@ -75,11 +75,11 @@ for ch in chapters:
     run(f"cd /home/jeffq/autonovel && git add chapters/ch_{ch:02d}.md state.json")
     
     # Update state.json
-    with open("state.json") as f:
+    with open("state.json", encoding="utf-8") as f:
         state = json.load(f)
     state["current_focus"] = f"ch_{ch:02d}"
     state["chapters_drafted"] = ch
-    with open("state.json", "w") as f:
+    with open("state.json", "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
 
 print(f"\n\n{'='*60}")

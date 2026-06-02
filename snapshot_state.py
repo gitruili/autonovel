@@ -131,7 +131,7 @@ def restore_snapshot(commit_ref: str) -> bool:
                 if name.startswith("story/"):
                     target = BASE_DIR / name
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    with zf.open(name) as src, open(target, "wb") as dst:
+                    with zf.open(name, encoding="utf-8") as src, open(target, "wb") as dst:
                         dst.write(src.read())
         print(f"  State files restored from snapshot")
 

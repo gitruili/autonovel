@@ -58,7 +58,7 @@ def load_title():
     # Try webnovel project.json first
     proj_path = STORY_DIR / "project.json"
     if proj_path.exists():
-        with open(proj_path) as f:
+        with open(proj_path, encoding="utf-8") as f:
             proj = json.load(f)
         if proj.get("title"):
             return proj["title"]
@@ -261,7 +261,7 @@ def main():
 
     if args.context:
         # Webnovel pipeline: read from context.json
-        with open(args.context) as f:
+        with open(args.context, encoding="utf-8") as f:
             context = json.load(f)
         prompt = build_prompt_from_context(chapter_num, context)
     else:
@@ -280,7 +280,7 @@ def main():
         proj_path = STORY_DIR / "project.json"
         volume = 1
         if proj_path.exists():
-            with open(proj_path) as f:
+            with open(proj_path, encoding="utf-8") as f:
                 proj_data = json.load(f)
             volume = proj_data.get("current_volume", 1)
         v_dir = CHAPTERS_DIR / f"v{volume:03d}"

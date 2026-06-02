@@ -225,7 +225,7 @@ def main():
         "timestamp": datetime.now().isoformat()
     }
     out_path = BASE_DIR / "edit_logs" / "reader_panel.json"
-    with open(out_path, "w") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2)
     print(f"\nSaved to {out_path}")
 

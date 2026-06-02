@@ -80,7 +80,7 @@ def compose_cover(
     print(f"  Pixels: {px_w} x {px_h} @ {DPI} DPI")
 
     # Load and scale art to fill canvas
-    art = Image.open(art_path).convert("RGB")
+    art = Image.open(art_path, encoding="utf-8").convert("RGB")
     art_ratio = art.width / art.height
     canvas_ratio = px_w / px_h
 
@@ -279,7 +279,7 @@ def compose_cover(
                 url=str(nous_svg),
                 output_width=logo_size, output_height=logo_size,
             )
-            logo_img = Image.open(io.BytesIO(png_data)).convert("RGBA")
+            logo_img = Image.open(io.BytesIO(png_data, encoding="utf-8")).convert("RGBA")
 
             # White background with equal padding on all sides
             pad = int(logo_size * 0.15)

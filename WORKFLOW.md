@@ -20,7 +20,10 @@ uv run python autonovel_cli.py init --title "我的小说" --genre "种田文"
 # 3a. 方式一：生成灵感种子（AI 生成多个概念供选择）
 uv run python autonovel_cli.py generate seed
 
-# 3b. 方式二：提供你自己的脑洞（自动评价+优化+保存到 seed.txt）
+# 3b. 方式二：长篇脑洞生成（推荐，支持市场调研+自动分批）
+uv run python autonovel_cli.py generate seed --long-form --count 5 --target-words 1000000 --market-research reports/7mao.md
+
+# 3c. 方式三：提供你自己的脑洞（自动评价+优化+保存到 seed.txt）
 uv run python autonovel_cli.py generate seed --input-file concept.txt
 
 # 4. 生成设定文件（seed.txt 已就绪时）

@@ -5,6 +5,7 @@ seed_lf.py -- 生成长篇网文种子概念（100万字+/500+章/25卷）。
 Usage:
   uv run python seed_lf.py              # 生成 3 个长篇概念
   uv run python seed_lf.py --count=2    # 生成 2 个概念
+  uv run python seed_lf.py --count=5    # 生成 5 个概念（自动分批）
   uv run python seed_lf.py --riff "边关种田美食文"  # 基于想法扩展
 """
 
@@ -32,9 +33,11 @@ WRITER_MODEL = os.environ.get(
 )
 
 MAX_MARKET_RESEARCH_CHARS = 12000
+DEFAULT_MAX_TOKENS = 32000
+DEFAULT_BATCH_SIZE = 3  # 每批生成的最大脑洞数量，超过时自动分批
 
 
-def call_writer(prompt, max_tokens=16000):
+def call_writer(prompt, max_tokens=DEFAULT_MAX_TOKENS):
     return call_text_model(
         model=WRITER_MODEL,
         max_tokens=max_tokens,
@@ -431,6 +434,10 @@ def main():
                         help="目标总字数 (默认: 1000000 即100万字)")
     parser.add_argument("--market-research", action="append", default=[],
                         help="外部榜单/市场调研 Markdown 文件路径，可重复传入；也可配置在 story/project.json 的 market_research_files")
+    parser.add_argument("--max-tokens", type=int, default=None,
+                        help=f"LLM 每批最大输出 token 数 (默认: {DEFAULT_MAX_TOKENS})")
+    parser.add_argument("--batch-size", type=int, default=None,
+                        help=f"每批生成的脑洞数量上限，超过时自动分批 (默认: {DEFAULT_BATCH_SIZE})")
     args = parser.parse_args()
 
     if not get_api_key():
@@ -443,6 +450,9 @@ def main():
     market_research_context = _build_market_research_context(
         _load_market_research(research_paths)
     )
+
+    max_tokens = args.max_tokens or DEFAULT_MAX_TOKENS
+    batch_size = args.batch_size or DEFAULT_BATCH_SIZE
 
     # Compute dynamic values from target_words
     target_words = args.target_words
@@ -459,14 +469,49 @@ def main():
     if args.riff:
         print(f"正在基于以下想法扩展长篇变体 ({label}+/{target_chapters}+章/{total_volumes}卷)...\n")
         prompt = _build_riff_prompt(args.riff, tags_context, label, target_chapters, total_volumes, ranges, market_research_context)
+        print(prompt)
+        print("-----------------")
+        result = call_writer(prompt, max_tokens=max_tokens)
+        print(result)
     else:
-        print(f"正在生成 {args.count} 个长篇{genre.display_name}网文种子构思 ({label}+/{target_chapters}+章/{total_volumes}卷)...\n")
-        prompt = _build_generate_prompt(args.count, tags_context, label, target_chapters, total_volumes, early_chapters, ranges, market_research_context)
+        total_count = args.count
+        # Split into batches to avoid truncation
+        batches = []
+        remaining = total_count
+        start_idx = 1
+        while remaining > 0:
+            batch_count = min(remaining, batch_size)
+            batches.append((start_idx, batch_count))
+            start_idx += batch_count
+            remaining -= batch_count
 
-    print(prompt)
-    print("-----------------")
-    result = call_writer(prompt, max_tokens=16000)
-    print(result)
+        if len(batches) > 1:
+            print(f"共需生成 {total_count} 个脑洞，将分 {len(batches)} 批进行（每批最多 {batch_size} 个），避免输出截断。\n")
+
+        all_results = []
+        for batch_idx, (start_num, batch_count) in enumerate(batches, 1):
+            if len(batches) > 1:
+                print(f"\n{'='*60}")
+                print(f"  第 {batch_idx}/{len(batches)} 批：生成创意 {start_num}-{start_num + batch_count - 1}")
+                print(f"{'='*60}\n")
+
+            prompt = _build_generate_prompt(
+                batch_count, tags_context, label, target_chapters,
+                total_volumes, early_chapters, ranges, market_research_context,
+            )
+
+            # If not the first batch, add instruction to continue numbering
+            if start_num > 1:
+                prompt += f"\n\n注意：请从创意{start_num}开始编号（不是从1开始）。\n"
+
+            if batch_idx == 1:
+                print(prompt)
+                print("-----------------")
+
+            result = call_writer(prompt, max_tokens=max_tokens)
+            print(result)
+            all_results.append(result)
+
     print("\n" + "=" * 60)
     print("要挑选一个种子，请将你喜欢的概念复制到 seed.txt 中：")
     print("  nano seed.txt")

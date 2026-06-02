@@ -26,7 +26,9 @@ uv run python autonovel_cli.py init --title "书名" --genre "年代文" --tags 
 uv run python autonovel_cli.py init --title "书名" --genre "总裁豪门" --tags "总裁,豪门,甜宠"
 uv run python autonovel_cli.py generate seed              # Generate story concepts (short-form)
 uv run python autonovel_cli.py generate seed --long-form  # Generate long-form seeds (500+ chapters)
-uv run python autonovel_cli.py generate seed --target-words 500000  # Long-form with custom target (30万-200万字)
+uv run python autonovel_cli.py generate seed --long-form --count 5 --target-words 1000000 --market-research reports/7mao.md  # 长篇+市场调研+5个脑洞(自动分批)
+uv run python autonovel_cli.py generate seed --long-form --max-tokens 48000  # 自定义每批最大输出token数
+uv run python autonovel_cli.py generate seed --long-form --batch-size 2  # 自定义每批脑洞数量
 uv run python autonovel_cli.py generate seed --input "《书名》概念文本..."  # Evaluate + optimize your own concept
 uv run python autonovel_cli.py generate seed --input-file concept.txt  # Same, from file
 uv run python autonovel_cli.py generate foundation        # Generate foundation (auto-detects short/long, long-form auto-evaluates)
@@ -112,9 +114,9 @@ Genre configs live in `genres/` as YAML files, loaded by `genres/genre_registry.
 - `zongcai.yaml` — 总裁豪门 config (modern CEO/billionaire romance)
 - `craft/*.md` — Genre-specific writing craft references
 
-Usage: `genre = load_genre_for_project()` reads `story/project.json` → genre field → loads YAML → deep-merges with `_base.yaml`. Falls back to 种田文 if genre not found.
+Usage: `genre = load_genre_for_project()` reads `story/project.json` → genre field → loads YAML → deep-merges with `_base.yaml`. Falls back to 总裁豪门 if genre is empty or not found.
 
-Key consumers: `seed.py`, `seed_lf.py`, `seed_input.py`, `gen_world*.py`, `gen_characters*.py`, `gen_outline*.py`, `gen_master_outline.py`, `gen_canon.py`, `draft_chapter.py`, `gen_revision.py`, `adversarial_edit.py`, `evaluate.py`, `reader_panel.py`.
+Key consumers: `seed.py`, `seed_lf.py`, `gen_world*.py`, `gen_characters*.py`, `gen_outline*.py`, `gen_master_outline.py`, `gen_canon.py`, `draft_chapter.py`, `gen_revision.py`, `adversarial_edit.py`, `evaluate.py`, `reader_panel.py`.
 
 ### Key Shared Code
 

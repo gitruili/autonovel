@@ -8,7 +8,7 @@ This is a Python 3.12 novel-generation pipeline. Most executable modules live at
 
 - `uv sync`: install dependencies from `pyproject.toml` and `uv.lock`.
 - `uv run python autonovel_cli.py genres`: list supported genres.
-- `uv run python autonovel_cli.py init --title "My Novel" --genre "年代文"`: initialize a story workspace.
+- `uv run python autonovel_cli.py init --title "My Novel" --genre "总裁豪门"`: initialize a story workspace.
 - `uv run python autonovel_cli.py status`: inspect current project state.
 - `uv run python run_pipeline.py --from-scratch`: run the full pipeline from foundation through export.
 - `uv run python smoke_llm.py`: verify LLM configuration before long runs.

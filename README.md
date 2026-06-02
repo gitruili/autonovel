@@ -66,6 +66,7 @@ uv run python autonovel_cli.py init --title "我的小说" --genre "年代文" -
 `--genre` 支持的题材可通过 `autonovel_cli.py genres` 查看。当前支持的题材：
 - **种田文** — 女主从低起点起步，凭知识或勤劳一步步积累财富、改善生活。核心是建设与成长的爽感。
 - **年代文** — 故事设定在1950s-1990s中国，女主穿越/重生到特定历史时期，抓住时代机遇逆袭翻身。
+- **总裁豪门** — 现代都市总裁豪门言情，包含契约婚姻、马甲大佬、商战、豪门恩怨等经典元素。
 
 新题材需在 `genres/` 目录下添加 YAML 配置文件。
 
@@ -98,6 +99,12 @@ uv run python autonovel_cli.py generate seed --long-form
 # 自定义目标字数（自动计算卷数和章数）
 uv run python autonovel_cli.py generate seed --target-words 500000   # 50万字
 uv run python autonovel_cli.py generate seed --target-words 800000   # 80万字
+
+# 市场调研驱动（推荐：带入榜单分析报告，让 AI 结合市场趋势生成脑洞）
+uv run python autonovel_cli.py generate seed --long-form --count 5 --target-words 1000000 --market-research reports/7mao.md
+
+# 自定义每批数量和最大 token 数（防止输出截断）
+uv run python autonovel_cli.py generate seed --long-form --count 5 --batch-size 2 --max-tokens 48000
 
 # 长篇 foundation（7步：世界观→角色→总纲→第一卷大纲→续写→正典→状态初始化）
 # 自动运行 evaluate.py --phase=foundation-lf 进行质量评估，结果写入 story/foundation_eval.json
@@ -291,7 +298,7 @@ uv run python autonovel_cli.py run --chapter 1 --audit-warn
 #### 基础构建 (Foundation) — 长篇（30万-200万字）
 | 工具 | 用途 |
 |------|---------|
-| `seed_lf.py` | 长篇种子（多卷升级线、反派轮换、感情线阶段，支持 `--target-words` 自定义字数） |
+| `seed_lf.py` | 长篇种子（多卷升级线、反派轮换、感情线阶段，支持 `--target-words`、`--market-research`、`--batch-size`、`--max-tokens`） |
 | `gen_world_lf.py` | 长篇世界观（核心设定 + 扩展路线图） |
 | `gen_characters_lf.py` | 长篇角色（三层体系：核心/卷级/反派轮换） |
 | `gen_master_outline.py` | 全书总纲（master_plan.yaml + outline.md） |

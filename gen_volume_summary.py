@@ -291,7 +291,7 @@ def main():
     md_lines.append("## 下卷铺垫")
     md_lines.append(summary.next_volume_setup)
 
-    proj_path.write_text("\n".join(md_lines), encoding="utf-8")
+    proj_path.write_text("\n".join(md_lines, encoding="utf-8"), encoding="utf-8")
 
     print(f"\nVolume summary saved to: {out_path}")
     print(f"Projection saved to: {proj_path}")

@@ -72,13 +72,13 @@ def get_title():
     """从第一章或大纲中提取小说标题。"""
     outline = BASE_DIR / "outline.md"
     if outline.exists():
-        first_line = outline.read_text().split("\n")[0]
+        first_line = outline.read_text(encoding="utf-8").split("\n")[0]
         title = first_line.lstrip("# ").strip()
         if title:
             return title
     ch1 = CHAPTERS_DIR / "ch_01.md"
     if ch1.exists():
-        first_line = ch1.read_text().split("\n")[0]
+        first_line = ch1.read_text(encoding="utf-8").split("\n")[0]
         return first_line.lstrip("# ").strip()
     return "未命名小说"
 
@@ -92,7 +92,7 @@ def build_manuscript():
     
     parts = []
     for ch in chapters:
-        parts.append(ch.read_text())
+        parts.append(ch.read_text(encoding="utf-8"))
     
     manuscript = "\n\n---\n\n".join(parts)
     wc = len(manuscript.split())
@@ -237,7 +237,7 @@ def cmd_review(args):
     parsed["title"] = title
     parsed["word_count"] = len(manuscript.split())
     
-    log_path.write_text(json.dumps(parsed, indent=2, ensure_ascii=False), encoding="utf-8")
+    log_path.write_text(json.dumps(parsed, indent=2, ensure_ascii=False, encoding="utf-8"), encoding="utf-8")
     print(f"\n审阅报告已保存至 {log_path}", file=sys.stderr)
     
     # 保存可读副本

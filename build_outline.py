@@ -43,7 +43,7 @@ def call_model(prompt, max_tokens=1500):
 
 def load_file(path):
     try:
-        return Path(path).read_text()
+        return Path(path).read_text(encoding="utf-8")
     except FileNotFoundError:
         return ""
 
@@ -72,7 +72,7 @@ def main():
             continue
         ch = int(m.group(1))
         
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         wc = len(text.split())
         
         title_line = text.strip().split('\n')[0].lstrip('# ').strip()
@@ -177,7 +177,7 @@ def main():
     lines.append("*大纲根据最终实际撰写的章节重新生成。*")
     
     out = '\n'.join(lines)
-    (BASE_DIR / "outline.md").write_text(out)
+    (BASE_DIR / "outline.md").write_text(out, encoding="utf-8")
     print(f"\nSaved outline.md ({len(out.split())} words)")
 
 if __name__ == "__main__":

@@ -58,7 +58,7 @@ ABSTRACT_INDICATORS = {
 }
 
 def analyze_chapter(path):
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     words = text.split()
     word_count = len(words)
     lower_words = [w.lower().strip(".,;:!?\"'()—-–") for w in words]

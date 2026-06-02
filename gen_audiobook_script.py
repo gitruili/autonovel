@@ -85,7 +85,7 @@ def parse_chapter(ch_num):
         print(f"  Chapter {ch_num} not found", file=sys.stderr)
         return None
 
-    text = ch_path.read_text()
+    text = ch_path.read_text(encoding="utf-8")
     title = text.split("\n")[0].lstrip("# ").strip()
     wc = len(text.split())
 
@@ -150,7 +150,7 @@ Output the JSON array only. No other text."""
                 })
             if not segments:
                 print(f" PARSE ERROR", file=sys.stderr)
-                (SCRIPTS_DIR / f"ch{ch_num:02d}_raw.txt").write_text(result)
+                (SCRIPTS_DIR / f"ch{ch_num:02d}_raw.txt").write_text(result, encoding="utf-8")
                 return None
 
     print(f" → {len(segments)} segments")
@@ -186,7 +186,7 @@ def main():
         if script:
             # Save individual chapter script
             out_path = SCRIPTS_DIR / f"ch{ch_num:02d}_script.json"
-            out_path.write_text(json.dumps(script, indent=2))
+            out_path.write_text(json.dumps(script, indent=2, encoding="utf-8"))
             all_scripts.append(script)
 
     # Summary

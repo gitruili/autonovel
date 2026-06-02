@@ -30,9 +30,9 @@ def call_writer(prompt, max_tokens=16000):
         timeout=300,
     )
 
-world = (BASE_DIR / "world.md").read_text()
-characters = (BASE_DIR / "characters.md").read_text()
-seed = (BASE_DIR / "seed.txt").read_text()
+world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
+characters = (BASE_DIR / "characters.md").read_text(encoding="utf-8")
+seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
 
 prompt = f"""请将这些策划文档中的每一个硬性事实提取到一个结构化的设定准则数据库（Canon Database）中。
 "硬性事实"是指作者绝不能违反的任何内容：姓名、年龄、物价、地理、关系、已发生的事件、

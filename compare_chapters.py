@@ -101,8 +101,8 @@ Respond with JSON:
 """
 
 def compare(ch_a, ch_b):
-    text_a = (CHAPTERS_DIR / f"ch_{ch_a:02d}.md").read_text()
-    text_b = (CHAPTERS_DIR / f"ch_{ch_b:02d}.md").read_text()
+    text_a = (CHAPTERS_DIR / f"ch_{ch_a:02d}.md").read_text(encoding="utf-8")
+    text_b = (CHAPTERS_DIR / f"ch_{ch_b:02d}.md").read_text(encoding="utf-8")
     
     # Truncate to ~3000 words each to fit context
     words_a = text_a.split()

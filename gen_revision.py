@@ -34,7 +34,7 @@ def call_writer(prompt, max_tokens=16000):
 
 def load_file(path):
     try:
-        return Path(path).read_text()
+        return Path(path).read_text(encoding="utf-8")
     except FileNotFoundError:
         return ""
 
@@ -68,21 +68,21 @@ def main():
     ch_num = int(sys.argv[1])
     brief_file = sys.argv[2]
 
-    voice = (BASE_DIR / "voice.md").read_text()
-    characters = (BASE_DIR / "characters.md").read_text()
-    world = (BASE_DIR / "world.md").read_text()
-    brief = Path(brief_file).read_text()
+    voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")
+    characters = (BASE_DIR / "characters.md").read_text(encoding="utf-8")
+    world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
+    brief = Path(brief_file).read_text(encoding="utf-8")
     title = load_title()
 
     # Load adjacent chapters for continuity
     prev_path = _chapter_path(ch_num - 1)
     next_path = _chapter_path(ch_num + 1)
-    prev_tail = prev_path.read_text()[-2000:] if prev_path.exists() else "(第一章——无前文)"
-    next_head = next_path.read_text()[:1500] if next_path.exists() else "(最后一章)"
+    prev_tail = prev_path.read_text(encoding="utf-8")[-2000:] if prev_path.exists() else "(第一章——无前文)"
+    next_head = next_path.read_text(encoding="utf-8")[:1500] if next_path.exists() else "(最后一章)"
 
     # Load old version if exists
     old_path = _chapter_path(ch_num)
-    old_text = old_path.read_text() if old_path.exists() else "(尚未起草)"
+    old_text = old_path.read_text(encoding="utf-8") if old_path.exists() else "(尚未起草)"
     
     prompt = f"""重写《{title}》的第 {ch_num} 章。
 
@@ -124,7 +124,7 @@ def main():
     result = call_writer(prompt)
     
     out_path = _chapter_path(ch_num)
-    out_path.write_text(result)
+    out_path.write_text(result, encoding="utf-8")
     print(f"Saved to {out_path}", file=sys.stderr)
     print(f"Word count: {len(result.split())}", file=sys.stderr)
 

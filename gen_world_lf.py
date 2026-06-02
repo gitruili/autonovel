@@ -33,8 +33,8 @@ def call_writer(prompt, max_tokens=16000):
         timeout=600,
     )
 
-seed = (BASE_DIR / "seed.txt").read_text()
-voice = (BASE_DIR / "voice.md").read_text()
+seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
+voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")
 _, tags_context = load_project_tags()
 
 # Extract voice Part 2 only

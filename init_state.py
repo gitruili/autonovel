@@ -91,7 +91,7 @@ def init_project():
 #  2. Character Matrix (LLM-assisted)
 # ──────────────────────────────────────────────────────────────
 def init_character_matrix():
-    characters_md = (BASE_DIR / "characters.md").read_text()
+    characters_md = (BASE_DIR / "characters.md").read_text(encoding="utf-8")
 
     prompt = f"""从以下角色注册表中提取所有核心角色（第一层）和卷1-3登场角色（第二层前半部分）的信息。
 为每个角色生成一个 JSON 对象，格式如下：
@@ -172,7 +172,7 @@ characters:
 #  3. Pending Hooks (LLM-assisted)
 # ──────────────────────────────────────────────────────────────
 def init_pending_hooks():
-    outline = (BASE_DIR / "outline.md").read_text()
+    outline = (BASE_DIR / "outline.md").read_text(encoding="utf-8")
     master = load_yaml(PLANS_DIR / "master_plan.yaml")
 
     # Collect hooks from master plan
@@ -253,7 +253,7 @@ hooks:
 #  4. Subplot Board (LLM-assisted)
 # ──────────────────────────────────────────────────────────────
 def init_subplot_board():
-    outline = (BASE_DIR / "outline.md").read_text()
+    outline = (BASE_DIR / "outline.md").read_text(encoding="utf-8")
 
     prompt = f"""从以下第一卷大纲中提取主要子线（subplot）。
 子线是指与主线并行的次要故事线（如：小叔子的成长线、与王婆的竞争线等）。
@@ -316,8 +316,8 @@ subplots:
 #  5. Current State (deterministic from seed + world)
 # ──────────────────────────────────────────────────────────────
 def init_current_state():
-    seed = (BASE_DIR / "seed.txt").read_text()
-    world = (BASE_DIR / "world.md").read_text()
+    seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
+    world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
     master = load_yaml(PLANS_DIR / "master_plan.yaml")
 
     # Extract initial location from seed
@@ -358,8 +358,8 @@ def init_current_state():
 #  6. Power Ledger (deterministic from world.md)
 # ──────────────────────────────────────────────────────────────
 def init_power_ledger():
-    world = (BASE_DIR / "world.md").read_text()
-    seed = (BASE_DIR / "seed.txt").read_text()
+    world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
+    seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
 
     # Extract currency info from world.md
     resources = {}

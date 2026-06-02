@@ -138,14 +138,14 @@ if __name__ == "__main__":
     if not style_file.exists():
         print("Run gen_art.py style first")
         sys.exit(1)
-    style = json.loads(style_file.read_text())
+    style = json.loads(style_file.read_text(encoding="utf-8"))
     
     art_type = sys.argv[1] if len(sys.argv) > 1 else "cover"
     n = int(sys.argv[2]) if len(sys.argv) > 2 else 6
     
     world = ""
     if (BASE_DIR / "world.md").exists():
-        world = (BASE_DIR / "world.md").read_text()[:3000]
+        world = (BASE_DIR / "world.md").read_text(encoding="utf-8")[:3000]
     
     directions = generate_directions(art_type, style, n, world)
     for i, d in enumerate(directions, 1):

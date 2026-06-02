@@ -130,7 +130,7 @@ def edit_chapter(ch_num):
         ch_path = vol_path
     else:
         ch_path = CHAPTERS_DIR / f"ch_{ch_num:02d}.md"
-    text = ch_path.read_text()
+    text = ch_path.read_text(encoding="utf-8")
     word_count = len(text.split())
     
     prompt = EDIT_PROMPT.format(chapter_text=text, word_count=word_count)

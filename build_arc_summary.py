@@ -48,7 +48,7 @@ def extract_key_passages(text):
 
 def load_file(path):
     try:
-        return Path(path).read_text()
+        return Path(path).read_text(encoding="utf-8")
     except FileNotFoundError:
         return ""
 
@@ -83,7 +83,7 @@ def main():
             continue
         ch = int(m.group(1))
         
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         wc = len(text.split())
         total_wc += wc
         
@@ -129,7 +129,7 @@ def main():
     full += '\n---\n\n'.join(summaries)
     
     out_path = BASE_DIR / "arc_summary.md"
-    out_path.write_text(full)
+    out_path.write_text(full, encoding="utf-8")
     print(f"\nSaved to {out_path} ({len(full.split())} words)")
 
 if __name__ == "__main__":

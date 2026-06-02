@@ -36,7 +36,7 @@ PROJECTIONS_DIR = STORY_DIR / "projections"
 def write_md(path: Path, lines: list[str]):
     """Write lines to a markdown file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path.write_text("\n".join(lines, encoding="utf-8") + "\n", encoding="utf-8")
 
 
 def update_characters_projection():

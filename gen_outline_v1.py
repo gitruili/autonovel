@@ -35,9 +35,9 @@ def call_writer(prompt, max_tokens=16000):
         include_beta=True,
     )
 
-seed = (BASE_DIR / "seed.txt").read_text()
-world = (BASE_DIR / "world.md").read_text()
-characters = (BASE_DIR / "characters.md").read_text()
+seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
+world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
+characters = (BASE_DIR / "characters.md").read_text(encoding="utf-8")
 _, tags_context = load_project_tags()
 
 # Load master plan
@@ -52,7 +52,7 @@ else:
     sys.exit(1)
 
 # Voice Part 2 only
-voice = (BASE_DIR / "voice.md").read_text()
+voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")
 voice_lines = voice.split('\n')
 part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
 voice_part2 = '\n'.join(voice_lines[part2_start:])
@@ -69,7 +69,7 @@ v1_hooks_plant = v1.get("foreshadow_planted", [])
 v1_hooks_payoff = v1.get("foreshadow_payoff", [])
 
 # Read existing outline.md (master summary)
-outline_existing = (BASE_DIR / "outline.md").read_text()
+outline_existing = (BASE_DIR / "outline.md").read_text(encoding="utf-8")
 
 prompt = f"""为这部**百万字长篇**{genre.display_name}网文生成**第一卷**的详细章节大纲。
 这是全书的起始卷，目标是快速入戏、建立读者追读习惯。

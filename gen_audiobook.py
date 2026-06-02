@@ -47,7 +47,7 @@ def load_voices():
     if not VOICES_FILE.exists():
         print(f"ERROR: {VOICES_FILE} not found. Create it first.", file=sys.stderr)
         sys.exit(1)
-    data = json.loads(VOICES_FILE.read_text())
+    data = json.loads(VOICES_FILE.read_text(encoding="utf-8"))
     voices = {}
     for name, info in data.items():
         if name.startswith("_"):
@@ -64,7 +64,7 @@ def load_script(ch_num):
     if not path.exists():
         print(f"  Script not found: {path}. Run gen_audiobook_script.py first.", file=sys.stderr)
         return None
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def chunk_segments(segments, voices, max_chars=MAX_CHARS_PER_CALL):
@@ -207,7 +207,7 @@ def generate_chapter(ch_num, client, voices, test_mode=False):
             "complete": len(failed_chunks) == 0,
         }
         manifest_path = OUTPUT_DIR / f"ch_{ch_num:02d}_manifest.json"
-        manifest_path.write_text(json.dumps(manifest, indent=2))
+        manifest_path.write_text(json.dumps(manifest, indent=2, encoding="utf-8"))
 
     if not audio_parts:
         print(f"  No audio generated for Ch {ch_num}")
@@ -302,7 +302,7 @@ def main():
             if audio_f.exists():
                 size_mb = audio_f.stat().st_size / (1024*1024)
                 if manifest_f.exists():
-                    m = json.loads(manifest_f.read_text())
+                    m = json.loads(manifest_f.read_text(encoding="utf-8"))
                     if m.get("failed"):
                         print(f"  Ch {ch_num:2d}: ⚠ PARTIAL ({size_mb:.1f} MB, chunks {m['failed']} failed)")
                     else:
@@ -319,7 +319,7 @@ def main():
         print("Run: python gen_audiobook.py --list-voices")
         sys.exit(1)
 
-    unconfigured = [name for name, info in json.loads(VOICES_FILE.read_text()).items()
+    unconfigured = [name for name, info in json.loads(VOICES_FILE.read_text(encoding="utf-8")).items()
                     if not name.startswith("_") and info.get("voice_id") == "REPLACE_WITH_VOICE_ID"]
     if unconfigured:
         print(f"WARNING: {len(unconfigured)} voices unconfigured: {unconfigured[:5]}")

@@ -172,7 +172,7 @@ def find_disagreements(results):
     return disagreements
 
 def main():
-    arc_summary = (BASE_DIR / "arc_summary.md").read_text()
+    arc_summary = (BASE_DIR / "arc_summary.md").read_text(encoding="utf-8")
     readers = get_readers()
 
     results = {}

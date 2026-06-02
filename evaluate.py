@@ -250,7 +250,7 @@ def slop_score(text):
 def load_file(path):
     """Load a text file, return empty string if missing."""
     try:
-        return Path(path).read_text()
+        return Path(path).read_text(encoding="utf-8")
     except FileNotFoundError:
         return ""
 
@@ -282,7 +282,7 @@ def load_all_chapters():
     chapters = {}
     for f in sorted(glob.glob(str(CHAPTERS_DIR / "ch_*.md"))):
         num = int(re.search(r'ch_(\d+)', f).group(1))
-        chapters[num] = Path(f).read_text()
+        chapters[num] = Path(f).read_text(encoding="utf-8")
     return chapters
 
 

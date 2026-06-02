@@ -32,16 +32,16 @@ def call_writer(prompt, max_tokens=16000):
         include_beta=True,
     )
 
-seed = (BASE_DIR / "seed.txt").read_text()
-world = (BASE_DIR / "world.md").read_text()
-characters = (BASE_DIR / "characters.md").read_text()
+seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
+world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
+characters = (BASE_DIR / "characters.md").read_text(encoding="utf-8")
 
 # MYSTERY.md（如果存在）
 mystery_path = BASE_DIR / "MYSTERY.md"
-mystery = mystery_path.read_text() if mystery_path.exists() else ""
+mystery = mystery_path.read_text(encoding="utf-8") if mystery_path.exists() else ""
 
 # Voice Part 2 only
-voice = (BASE_DIR / "voice.md").read_text()
+voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")
 voice_lines = voice.split('\n')
 part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
 voice_part2 = '\n'.join(voice_lines[part2_start:])

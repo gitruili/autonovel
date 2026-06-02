@@ -128,17 +128,17 @@ def load_style():
     if not STYLE_FILE.exists():
         print("No visual style found. Run: gen_art.py style")
         sys.exit(1)
-    return json.loads(STYLE_FILE.read_text())
+    return json.loads(STYLE_FILE.read_text(encoding="utf-8"))
 
 
 def load_picks():
     if PICKS_FILE.exists():
-        return json.loads(PICKS_FILE.read_text())
+        return json.loads(PICKS_FILE.read_text(encoding="utf-8"))
     return {}
 
 
 def save_picks(picks):
-    PICKS_FILE.write_text(json.dumps(picks, indent=2))
+    PICKS_FILE.write_text(json.dumps(picks, indent=2, encoding="utf-8"))
 
 
 def get_reference_url(art_type):
@@ -154,12 +154,12 @@ def get_reference_url(art_type):
 # ============================================================
 
 def cmd_style(args):
-    world = (BASE_DIR / "world.md").read_text()[:5000]
-    voice = (BASE_DIR / "voice.md").read_text()[:3000]
+    world = (BASE_DIR / "world.md").read_text(encoding="utf-8")[:5000]
+    voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")[:3000]
     title = "Unknown"
     outline = BASE_DIR / "outline.md"
     if outline.exists():
-        title = outline.read_text().split("\n")[0].lstrip("# ").strip()
+        title = outline.read_text(encoding="utf-8").split("\n")[0].lstrip("# ").strip()
 
     prompt = f"""You are an art director designing the visual identity for a fantasy novel.
 
@@ -196,7 +196,7 @@ JSON only."""
     style = json.loads(text)
 
     ART_DIR.mkdir(exist_ok=True)
-    STYLE_FILE.write_text(json.dumps(style, indent=2))
+    STYLE_FILE.write_text(json.dumps(style, indent=2, encoding="utf-8"))
 
     print(f"\nVisual style saved to {STYLE_FILE}")
     for k, v in style.items():
@@ -220,7 +220,7 @@ def cmd_curate(args):
 
     world = ""
     if (BASE_DIR / "world.md").exists():
-        world = (BASE_DIR / "world.md").read_text()[:3000]
+        world = (BASE_DIR / "world.md").read_text(encoding="utf-8")[:3000]
 
     print(f"Generating {n} radically different {art_type} directions...")
     directions = generate_directions(art_type, style, n, world)
@@ -277,7 +277,7 @@ def cmd_curate(args):
 
     # Save directions log for reference
     log_path = VARIANTS_DIR / f"{art_type}_directions.json"
-    log_path.write_text(json.dumps(directions_log, indent=2))
+    log_path.write_text(json.dumps(directions_log, indent=2, encoding="utf-8"))
 
     print(f"\n{'='*50}")
     print(f"{n} DIRECTIONS for {art_type}:")
@@ -369,7 +369,7 @@ def cmd_ornaments_all(args):
 
     for ch_path in chapters:
         num = int(ch_path.stem.split("_")[1])
-        title = ch_path.read_text().split("\n")[0].lstrip("# ").strip()
+        title = ch_path.read_text(encoding="utf-8").split("\n")[0].lstrip("# ").strip()
         if ": " in title:
             title = title.split(": ", 1)[1]
 

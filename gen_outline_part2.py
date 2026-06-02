@@ -34,7 +34,7 @@ part1 = open(BASE_DIR / 'outline.md').read()
 
 # MYSTERY.md（如果存在）
 mystery_path = BASE_DIR / "MYSTERY.md"
-mystery = mystery_path.read_text() if mystery_path.exists() else ""
+mystery = mystery_path.read_text(encoding="utf-8") if mystery_path.exists() else ""
 
 prompt = f"""这是一部{genre.display_name}网文大纲的前半部分。
 大纲在某一章中途断开了。请从断开的地方继续，完成剩余章节，

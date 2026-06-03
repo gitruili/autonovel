@@ -6,6 +6,7 @@ gen_characters_lf.py -- 长篇网文：角色注册表生成器（Foundation 阶
 """
 import os
 import sys
+import re
 from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
@@ -86,45 +87,19 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份�
 
 ---
 
-## 输出顺序要求 (非常重要)
+## 输出格式要求 (非常重要)
 
-为了确保核心结构信息不被截断，请**严格按照以下顺序**输出：
+为了方便后续自动更新，请在每一大章节前后使用 HTML 注释标记。
+标记格式形如 `<!-- SECTION_START -->` 和 `<!-- SECTION_END -->`。
+你**必须**原样输出这些标记，它们不会影响 Markdown 渲染。
 
-1. **角色索引表**：所有卷4+角色的简要表格
-2. **反派轮换表**：各层反派的轮换表格
-3. **角色登场计划表**：前5卷的活跃角色 YAML
-4. **第一层：核心角色（详细档案）**
-5. **第二层：卷1-3 角色（详细档案）**
-
----
-
-## 1. 角色索引表（卷4+角色）
-
-后续卷才登场的角色，只需用表格形式列出：
-| 角色ID | 姓名 | 身份 | 登场卷号 | 退场卷号 | 核心动机 | 与主角关系 |
-
-## 2. 反派轮换表
-
-请用表格形式列出反派轮换：
-| 层级 | 活跃卷号 | 反派名称 | 反派类型 | 核心动机 | 退场方式 | 对主角的威胁类型 |
-
-反派类型参考：利益争夺型、权力压制型、理念冲突型、情感纠葛型、制度性压迫型
-威胁类型参考：生存威胁、商业威胁、名誉威胁、人身安全、政治迫害
-
-## 3. 角色登场计划表
-
-请用 YAML 格式列出每卷的活跃角色：
-```yaml
-volume_1_active: [char_女主id, char_男主id, char_核心伙伴1, char_核心伙伴2, char_卷1反派, ...]
-volume_2_active: [char_女主id, char_男主id, char_核心伙伴1, char_核心伙伴2, char_新角色, ...]
-volume_3_active: [...]
-# ... 直到 volume_25
-```
-不需要列出全部25卷——列出前5卷（详细）和后续卷的大致规划即可。
+请**严格按照以下顺序**输出，并且包含所有标记。
+核心角色档案在前（这是全书最重要的资产），表格索引在后。
 
 ---
 
-## 4. 核心角色（详细档案）
+<!-- CORE_PROFILES_START -->
+## 1. 核心角色（详细档案）
 
 #### 1. 主角（视角人物）—— 最高优先级
 必须包含：
@@ -148,13 +123,52 @@ volume_3_active: [...]
 #### 3. 核心伙伴（2-3 人）—— 高优先级
 始终在线的配角（如心腹、助手、闺蜜等）。
 每个需要完整档案 + 长篇弧光规划。
+<!-- CORE_PROFILES_END -->
 
 ---
 
-## 5. 卷1-3 角色（详细档案）
+<!-- EARLY_PROFILES_START -->
+## 2. 卷1-3 角色（详细档案）
 
 故事初期登场的角色，需要与核心角色同等详细度的档案。
 包括：初期反派、初期助力、初期NPC。
+<!-- EARLY_PROFILES_END -->
+
+---
+
+<!-- ROLE_INDEX_START -->
+## 3. 角色索引表（卷4+角色）
+
+后续卷才登场的角色，只需用表格形式列出：
+| 角色ID | 姓名 | 身份 | 登场卷号 | 退场卷号 | 核心动机 | 与主角关系 |
+
+（在这里输出你的表格内容）
+<!-- ROLE_INDEX_END -->
+
+<!-- VILLAIN_ROSTER_START -->
+## 4. 反派轮换表
+
+请用表格形式列出反派轮换：
+| 层级 | 活跃卷号 | 反派名称 | 反派类型 | 核心动机 | 退场方式 | 对主角的威胁类型 |
+
+反派类型参考：利益争夺型、权力压制型、理念冲突型、情感纠葛型、制度性压迫型
+威胁类型参考：生存威胁、商业威胁、名誉威胁、人身安全、政治迫害
+
+（在这里输出你的表格内容）
+<!-- VILLAIN_ROSTER_END -->
+
+<!-- APPEARANCE_PLAN_START -->
+## 5. 角色登场计划表
+
+请用 YAML 格式列出每卷的活跃角色：
+```yaml
+volume_1_active: [char_女主id, char_男主id, char_核心伙伴1, char_核心伙伴2, char_卷1反派, ...]
+volume_2_active: [char_女主id, char_男主id, char_核心伙伴1, char_核心伙伴2, char_新角色, ...]
+volume_3_active: [...]
+# ... 直到 volume_25
+```
+不需要列出全部25卷——列出前5卷（详细）和后续卷的大致规划即可。
+<!-- APPEARANCE_PLAN_END -->
 
 ---
 
@@ -210,8 +224,57 @@ volume_3_active: [...]
 - 目标字数：核心角色 ~3000 字 + 卷级角色 ~1500 字 + 反派轮换表 ~500 字 = 总计 ~5000 字
 """
 
+# ---------------------------------------------------------------------------
+# 后处理：确保 markers 存在
+# ---------------------------------------------------------------------------
+MARKERS = {
+    "CORE_PROFILES":   ("<!-- CORE_PROFILES_START -->",   "<!-- CORE_PROFILES_END -->",   "## 1. 核心角色"),
+    "EARLY_PROFILES":  ("<!-- EARLY_PROFILES_START -->",  "<!-- EARLY_PROFILES_END -->",  "## 2. 卷1-3 角色"),
+    "ROLE_INDEX":      ("<!-- ROLE_INDEX_START -->",      "<!-- ROLE_INDEX_END -->",      "## 3. 角色索引表"),
+    "VILLAIN_ROSTER":  ("<!-- VILLAIN_ROSTER_START -->",  "<!-- VILLAIN_ROSTER_END -->",  "## 4. 反派轮换表"),
+    "APPEARANCE_PLAN": ("<!-- APPEARANCE_PLAN_START -->", "<!-- APPEARANCE_PLAN_END -->", "## 5. 角色登场计划表"),
+}
+
+def ensure_markers(text: str) -> str:
+    """如果模型输出中缺少某些 markers，则根据 heading 模式自动补入。"""
+    import re as _re
+    for _name, (start_m, end_m, heading_prefix) in MARKERS.items():
+        if start_m in text:
+            continue  # 模型已经输出了，跳过
+        # 在 heading 前面插入 start marker
+        pattern = _re.compile(r'^(' + _re.escape(heading_prefix) + r')', _re.MULTILINE)
+        match = pattern.search(text)
+        if not match:
+            continue
+        insert_pos = match.start()
+        text = text[:insert_pos] + start_m + "\n" + text[insert_pos:]
+
+        # 找到 end marker 应该放置的位置：下一个同级或更高级 heading (## ) 或文件末尾
+        # 需要重新搜索，因为文本已变化
+        search_start = text.index(start_m) + len(start_m)
+        next_section = _re.search(r'\n(?=## \d+\. |## [A-Z]|---\n<!-- )', text[search_start:])
+        if next_section:
+            end_pos = search_start + next_section.start()
+        else:
+            end_pos = len(text)
+        text = text[:end_pos] + "\n" + end_m + "\n" + text[end_pos:]
+    return text
+
 print("正在生成长篇角色注册表...", file=sys.stderr)
 result = call_writer(prompt)
+
+# 清理模型可能包裹的 markdown 代码块
+result = re.sub(r'^```markdown\s*\n', '', result)
+result = re.sub(r'^```\s*\n', '', result)
+result = re.sub(r'\n```\s*$', '', result)
+
+# 确保所有锚点到位
+result = ensure_markers(result)
+
+# 在文件头添加标题
+if not result.startswith("# CHARACTERS.MD"):
+    result = "# CHARACTERS.MD 角色注册表\n\n" + result
+
 print(result)
 
 # save to file

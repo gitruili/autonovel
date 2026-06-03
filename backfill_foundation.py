@@ -84,8 +84,21 @@ def backfill_world(world_text, outline_text, total_volumes):
         
     return new_world_text
 
+def _replace_between_markers(text, start_marker, end_marker, new_content):
+    """用 new_content 替换 start_marker 和 end_marker 之间的内容（包括 markers 本身）。
+    如果找不到 markers，返回原文不做修改。"""
+    s = text.find(start_marker)
+    e = text.find(end_marker)
+    if s == -1 or e == -1:
+        return text, False
+    e += len(end_marker)
+    # 确保新内容也包含 markers
+    replacement = start_marker + "\n" + new_content.strip() + "\n" + end_marker
+    return text[:s] + replacement + text[e:], True
+
+
 def backfill_characters(char_text, outline_text, total_volumes):
-    prompt = f"""我们之前生成了一份《characters.md》，但其中的角色索引表、反派轮换表、角色登场计划表以及核心角色的「长篇弧光规划」都只规划到了前中期。
+    prompt = f"""我们之前生成了一份《characters.md》，但其中的角色索引表、反派轮换表、角色登场计划表只规划到了前中期。
 现在我们已经生成了全书完整的总纲（共 {total_volumes} 卷）。
 请根据【全书总纲】，输出补充和更新后的角色设定内容。
 
@@ -99,19 +112,23 @@ def backfill_characters(char_text, outline_text, total_volumes):
 
 【第一部分：角色索引表】
 输出完整的表格，包含卷4到第 {total_volumes} 卷需要出场的关键配角。格式：
-## 1. 角色索引表（卷4+角色）
+## 3. 角色索引表（卷4+角色）
 | 角色ID | 姓名 | 身份 | 登场卷号 | 退场卷号 | 核心动机 | 与主角关系 |
 |||---|||
 【第二部分：反派轮换表】
 输出完整的反派轮换表格，覆盖从卷1到第 {total_volumes} 卷的所有层级反派。格式：
-## 2. 反派轮换表
+## 4. 反派轮换表
 | 层级 | 活跃卷号 | 反派名称 | 反派类型 | 核心动机 | 退场方式 | 对主角的威胁类型 |
 |||---|||
 【第三部分：角色登场计划表】
-输出 YAML 格式的活跃角色列表，补充后续关键卷（如卷8, 卷12, 卷15, 卷20等，不需要列出全部25卷，挑重点卷即可）。格式：
-## 3. 角色登场计划表（YAML格式）
+请**完整输出** YAML 格式的活跃角色列表。
+注意：**必须原样保留并抄录原有 characters.md 中的前几卷（如 volume_1 到 volume_5）登场计划**，然后在此基础上追加后续关键卷（如卷8, 卷12, 卷15, 卷20等，挑重点即可）。不要覆盖或遗漏前面的卷！格式：
+## 5. 角色登场计划表
 ```yaml
-...
+volume_1_active: ...
+# ... (原样保留原有卷)
+volume_8_active: ...
+# ... (新增后续关键卷)
 ```
 |||---|||
 【第四部分：核心角色长篇弧光规划补充】
@@ -129,51 +146,84 @@ def backfill_characters(char_text, outline_text, total_volumes):
 """
     print("正在反哺更新 characters.md 的角色和反派规划...", file=sys.stderr)
     result = call_writer(prompt)
-    
+
     parts = result.split("|||---|||")
-    if len(parts) >= 4:
-        part1_idx = parts[0].strip()
-        part2_ant = parts[1].strip()
-        part3_yaml = parts[2].strip()
-        part4_arcs = parts[3].strip()
-        
-        # 替换 1. 角色索引表
+    if len(parts) < 4:
+        print(f"警告：LLM 输出只有 {len(parts)} 个部分（预期 4），跳过反哺替换。", file=sys.stderr)
+        return char_text
+
+    part1_idx = parts[0].strip()
+    part2_ant = parts[1].strip()
+    part3_yaml = parts[2].strip()
+    part4_arcs = parts[3].strip()
+
+    # 清理每个 part 可能包含的 markdown 代码块包裹
+    for _p in [part1_idx, part2_ant, part3_yaml, part4_arcs]:
+        _p = re.sub(r'^```markdown\s*\n', '', _p)
+        _p = re.sub(r'\n```\s*$', '', _p)
+
+    # ---- 1. 替换角色索引表 ----
+    char_text, ok1 = _replace_between_markers(
+        char_text, "<!-- ROLE_INDEX_START -->", "<!-- ROLE_INDEX_END -->", part1_idx
+    )
+    if not ok1:
+        print("警告：未找到 ROLE_INDEX markers，尝试正则 fallback...", file=sys.stderr)
         char_text = re.sub(
-            r'## 1\. 角色索引表（卷4\+角色）.*?(?=## 2\. 反派轮换表)',
+            r'## \d+\. 角色索引表（卷4\+角色）.*?(?=<!-- VILLAIN|## \d+\. 反派轮换表)',
             part1_idx + "\n\n",
-            char_text,
-            flags=re.DOTALL
+            char_text, flags=re.DOTALL, count=1,
         )
-        # 替换 2. 反派轮换表
+
+    # ---- 2. 替换反派轮换表 ----
+    char_text, ok2 = _replace_between_markers(
+        char_text, "<!-- VILLAIN_ROSTER_START -->", "<!-- VILLAIN_ROSTER_END -->", part2_ant
+    )
+    if not ok2:
+        print("警告：未找到 VILLAIN_ROSTER markers，尝试正则 fallback...", file=sys.stderr)
         char_text = re.sub(
-            r'## 2\. 反派轮换表.*?(?=## 3\. 角色登场计划表)',
+            r'## \d+\. 反派轮换表.*?(?=<!-- APPEARANCE|## \d+\. 角色登场计划表)',
             part2_ant + "\n\n",
-            char_text,
-            flags=re.DOTALL
+            char_text, flags=re.DOTALL, count=1,
         )
-        # 替换 3. 角色登场计划表
+
+    # ---- 3. 替换角色登场计划表 ----
+    char_text, ok3 = _replace_between_markers(
+        char_text, "<!-- APPEARANCE_PLAN_START -->", "<!-- APPEARANCE_PLAN_END -->", part3_yaml
+    )
+    if not ok3:
+        print("警告：未找到 APPEARANCE_PLAN markers，尝试正则 fallback...", file=sys.stderr)
         char_text = re.sub(
-            r'## 3\. 角色登场计划表（YAML格式）.*?(?=---)',
+            r'## \d+\. 角色登场计划表.*?(?=---|<!-- CORE|<!-- ROLE|$)',
             part3_yaml + "\n\n",
-            char_text,
-            flags=re.DOTALL
+            char_text, flags=re.DOTALL, count=1,
         )
-        
-        # 将补充的弧光阶段插入到对应的角色块中
-        for block in re.finditer(r'### \d+\. (.+?)\n.*?(?=### \d+\. |## \d+\. |---)', part4_arcs, re.DOTALL):
-            char_name = block.group(1).strip()
-            # 从 block 中提取阶段列表
-            stages = re.findall(r'- 阶段\d+.*?(?=\n- |\n### |$)', block.group(0), re.DOTALL)
-            stages_text = "\n".join(s.strip() for s in stages)
-            
-            if stages_text:
-                # 在原 char_text 中找到该角色的 "长篇弧光规划" 部分，并在其末尾追加
-                char_pattern = re.compile(rf'(### \d+\. {re.escape(char_name)}.*?\*\*长篇弧光规划\*\*.*?)(?=\n\*\*性格与行为\*\*|\n\*\*)', re.DOTALL)
-                match = char_pattern.search(char_text)
-                if match:
-                    orig_arc = match.group(1).strip()
-                    new_arc = orig_arc + "\n" + stages_text + "\n"
-                    char_text = char_text[:match.start()] + new_arc + char_text[match.end():]
+
+    # ---- 4. 弧光补充：追加为文末新章节 ----
+    arc_section_header = "## 6. 全书核心角色长篇弧光（卷4至大结局扩展）"
+    arc_marker_start = "<!-- ARC_SUPPLEMENT_START -->"
+    arc_marker_end = "<!-- ARC_SUPPLEMENT_END -->"
+
+    new_arc_block = (
+        "\n\n---\n\n"
+        + arc_marker_start + "\n"
+        + arc_section_header + "\n\n"
+        + part4_arcs + "\n"
+        + arc_marker_end + "\n"
+    )
+
+    # 如果文件中已有旧的弧光补充章节，就替换它
+    if arc_marker_start in char_text:
+        char_text, _ = _replace_between_markers(
+            char_text, arc_marker_start, arc_marker_end,
+            arc_section_header + "\n\n" + part4_arcs,
+        )
+    elif arc_section_header in char_text:
+        # 有标题但没有 markers（历史遗留），删除旧章节后追加
+        idx = char_text.find(arc_section_header)
+        char_text = char_text[:idx].rstrip() + new_arc_block
+    else:
+        # 全新追加到文末
+        char_text = char_text.rstrip() + new_arc_block
 
     return char_text
 

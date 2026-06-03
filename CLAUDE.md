@@ -26,7 +26,7 @@ uv run python autonovel_cli.py init --title "书名" --genre "年代文" --tags 
 uv run python autonovel_cli.py init --title "书名" --genre "总裁豪门" --tags "总裁,豪门,甜宠"
 uv run python autonovel_cli.py generate seed              # Generate story concepts (short-form)
 uv run python autonovel_cli.py generate seed --long-form  # Generate long-form seeds (500+ chapters)
-uv run python autonovel_cli.py generate seed --long-form --count 5 --target-words 1000000 --market-research reports/7mao.md  # 长篇+市场调研+5个脑洞(自动分批)
+uv run python autonovel_cli.py generate seed --long-form --count 5 --batch-size 5 --target-words 1000000 --market-research reports/7mao.md  # 长篇+市场调研+5个脑洞(自动分批)
 uv run python autonovel_cli.py generate seed --long-form --max-tokens 48000  # 自定义每批最大输出token数
 uv run python autonovel_cli.py generate seed --long-form --batch-size 2  # 自定义每批脑洞数量
 uv run python autonovel_cli.py generate foundation        # Generate foundation (auto-detects short/long, long-form auto-evaluates)

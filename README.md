@@ -93,7 +93,7 @@ uv run python autonovel_cli.py generate foundation
 `generate seed` 和 `generate foundation` 自动切换为长篇管线：
 
 ```bash
-# 长篇种子（含多卷升级线、反派轮换、感情线阶段、超长线伏笔）
+# 长篇种子（含长篇支撑力提示）
 uv run python autonovel_cli.py generate seed --long-form
 
 # 自定义目标字数（自动计算卷数和章数）
@@ -101,7 +101,7 @@ uv run python autonovel_cli.py generate seed --target-words 500000   # 50万字
 uv run python autonovel_cli.py generate seed --target-words 800000   # 80万字
 
 # 市场调研驱动（推荐：带入榜单分析报告，让 AI 结合市场趋势生成脑洞）
-uv run python autonovel_cli.py generate seed --long-form --count 5 --target-words 1000000 --market-research reports/7mao.md
+uv run python autonovel_cli.py generate seed --long-form --count 5 --batch-size 5 --target-words 1000000 --market-research reports/7mao.md
 
 # 自定义每批数量和最大 token 数（防止输出截断）
 uv run python autonovel_cli.py generate seed --long-form --count 5 --batch-size 2 --max-tokens 48000
@@ -301,7 +301,7 @@ uv run python autonovel_cli.py run --chapter 1 --audit-warn
 #### 基础构建 (Foundation) — 长篇（30万-200万字）
 | 工具 | 用途 |
 |------|---------|
-| `seed_lf.py` | 长篇种子（多卷升级线、反派轮换、感情线阶段，支持 `--target-words`、`--market-research`、`--batch-size`、`--max-tokens`） |
+| `seed_lf.py` | 长篇种子（含长篇支撑力提示，支持 `--target-words`、`--market-research`、`--batch-size`、`--max-tokens`） |
 | `gen_world_lf.py` | 长篇世界观（核心设定 + 扩展路线图） |
 | `gen_characters_lf.py` | 长篇角色（三层体系：核心/卷级/反派轮换） |
 | `gen_briefs.py` | 浓缩摘要层（生成防截断的高密度设定上下文） |

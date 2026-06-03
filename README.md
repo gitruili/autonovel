@@ -306,7 +306,7 @@ uv run python autonovel_cli.py run --chapter 1 --audit-warn
 | `gen_characters_lf.py` | 长篇角色（三层体系：核心/卷级/反派轮换） |
 | `gen_briefs.py` | 浓缩摘要层（生成防截断的高密度设定上下文） |
 | `gen_master_outline.py` | 全书总纲（master_plan.yaml + master_summary.md） |
-| `gen_outline_v1.py` | 第一卷详细大纲（一步到位输出 ~20章逐章 + 台账） |
+| `gen_volume_outline.py` | 单卷详细大纲（按卷生成 ~20章逐章细纲） |
 | `init_state.py` | 状态初始化（7个 JSON state 文件） |
 
 #### 写作 (Drafting)

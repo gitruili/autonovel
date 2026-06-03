@@ -188,7 +188,20 @@ def cmd_run(args):
 
 def cmd_plan_volume(args):
     """Generate a volume plan."""
-    return _run_script("gen_volume_plan.py", ["--volume", str(args.volume)])
+    if args.volume is None:
+        print("Volume is required.")
+        return 1
+
+    # 1. 结构化卷纲 (YAML)
+    cmd1 = [sys.executable, "gen_volume_plan.py", "--volume", str(args.volume)]
+    print(f"Running: {' '.join(cmd1)}", file=sys.stderr)
+    subprocess.run(cmd1, cwd=BASE_DIR, check=True)
+
+    # 2. 详细章级大纲 (Markdown)
+    cmd2 = [sys.executable, "gen_volume_outline.py", "--volume", str(args.volume)]
+    print(f"Running: {' '.join(cmd2)}", file=sys.stderr)
+    subprocess.run(cmd2, cwd=BASE_DIR, check=True)
+    return 0
 
 
 def cmd_plan_chapter(args):
@@ -470,7 +483,7 @@ def cmd_init(args):
     print(f"  1. Create seed.txt with your story concept, then run:")
     print(f"     uv run python autonovel_cli.py generate foundation")
     print(f"  2. Run: uv run python autonovel_cli.py plan volume --volume 1")
-    print(f"  3. Run: uv run python autonovel_cli.py run --chapter 1")
+    print(f"  3. Run: uv run python autonovel_cli.py run --volume 1 --chapters 1-20")
     return 0
 
 
@@ -558,7 +571,8 @@ def cmd_generate(args):
             ("gen_characters_lf.py", "角色注册表 (characters.md)"),
             ("gen_briefs.py", "浓缩设定摘要 (world_brief.md + characters_brief.md)"),
             ("gen_master_outline.py", "全书总纲 (master_plan.yaml + master_summary.md)"),
-            ("gen_outline_v1.py", "第一卷详细大纲 (volume_001_outline.md)"),
+            ("backfill_foundation.py", "总纲反哺设定 (补全 world.md + characters.md)"),
+            ("gen_briefs.py", "重新生成设定摘要 (更新 world_brief.md + characters_brief.md)"),
             ("gen_canon.py", "设定准则数据库 (canon.md)"),
             ("init_state.py", "状态初始化 (story/state/*.json)"),
         ]

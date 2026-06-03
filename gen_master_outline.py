@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
 gen_master_outline.py -- 长篇网文：全书总纲生成器（Foundation 阶段）。
-读取 seed.txt + world.md + characters.md + voice.md，
-输出 story/plans/master_plan.yaml（结构化总纲）和 outline.md（人类可读摘要）。
+
+这是长篇设定的核心“蓝图”脚本：
+1. 它读取前期的基础设定（seed.txt + world_brief.md + characters_brief.md）。
+2. 它从 project.json 动态计算全书卷数（通常为25卷）。
+3. 它生成全书宏观走向（master_plan.yaml + master_summary.md）。
+4. （注：在它生成后，backfill_foundation.py 会根据它的25卷蓝图，去反哺补全 world.md 和 characters.md 的后半段设定空白）。
 """
 import os
 import sys
@@ -207,7 +211,7 @@ long_foreshadows:
 ## 约束条件
 
 1. **卷间节奏张弛有度**：不能连续3卷都是高强度冲突。至少每3-4卷有一卷"温馨日常"基调。
-2. **经济升级必须合理**：从日入百文到边关首富，每一级的跳跃都要有具体的剧情事件支撑。
+2. **资源/实力升级必须合理**：不论是经济、战力还是权势，从底层到顶层的每一级跳跃都要有具体的剧情事件支撑。
 3. **反派退场要有逻辑**：反派不能"突然就输了"，每层反派的退场方式要与其类型匹配。
 4. **感情线不能太快**：前3卷（60章）不能确认关系，要给读者足够的"磕糖"过程。
 5. **伏笔回收要自然**：超长线伏笔回收时，读者应该有"原来如此！"而不是"这谁记得住"的感觉。

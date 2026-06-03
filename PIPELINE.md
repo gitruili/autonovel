@@ -39,7 +39,7 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
     gen_characters_lf.py -- 种子 + 世界观 → characters.md (前置索引与反派表防截断)
     gen_briefs.py        -- 设定提纯 → world_brief.md + characters_brief.md (浓缩摘要层)
     gen_master_outline.py-- 全书骨架 → master_plan.yaml + master_summary.md
-    gen_outline_v1.py    -- 解锁 32k tokens，一步生成首卷完整大纲 → volume_001_outline.md
+    gen_volume_outline.py-- 解锁 32k tokens，一步生成单卷完整大纲 → volume_NNN_outline.md
     voice_fingerprint.py -- 测试段落 → voice.md 第2部分
     gen_canon.py         -- 世界观 + 角色 → canon.md (硬事实)
     init_state.py        -- 初始化流转状态 → story/state/*.json
@@ -131,7 +131,7 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
   2. gen_characters_lf.py  → characters.md（强制优先输出索引表、反派表、登场计划）
   3. gen_briefs.py         → world_brief.md + characters_brief.md（将设定压缩提纯为高密度上下文）
   4. gen_master_outline.py → master_plan.yaml + master_summary.md（定义全书多卷宏观骨架）
-  5. gen_outline_v1.py     → volume_001_outline.md（32k token 一步到位输出首卷20章大纲+台账）
+  5. (后续使用 `plan volume` 按需生成卷纲)
      - (同时后台会通过 outline_utils 拼装生成向下兼容的 outline.md)
   6. 叙事声音发现：用不同的语域写5段测试段落，选择最好的一个填充 voice.md 的第 2 部分
   7. 定义 MYSTERY.md（读者将要发现的核心秘密）

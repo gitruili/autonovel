@@ -72,9 +72,9 @@ def init_project():
             existing = json.load(f)
 
     proj = ProjectConfig(
-        title=master.get("title", existing.get("title", "")),
-        genre=master.get("genre", existing.get("genre", "")),
-        tags=master.get("tags", existing.get("tags", [])),
+        title=existing.get("title") or master.get("title", ""),
+        genre=existing.get("genre") or master.get("genre", ""),
+        tags=existing.get("tags") or master.get("tags", []),
         target_words=master.get("target_words", existing.get("target_words", 1_000_000)),
         target_chapters=master.get("total_chapters", existing.get("target_chapters", 500)),
         default_chapter_chars=existing.get("default_chapter_chars", 4000),
@@ -259,7 +259,7 @@ def init_subplot_board():
     outline = (BASE_DIR / "outline.md").read_text(encoding="utf-8")
 
     prompt = f"""从以下第一卷大纲中提取主要子线（subplot）。
-子线是指与主线并行的次要故事线（如：小叔子的成长线、与王婆的竞争线等）。
+子线是指与主线并行的次要故事线（如：主角隐藏身份的曝光危机、配角的成长线、商业对手的暗中布局等）。
 
 为每个子线生成一个 JSON 对象，格式如下：
 
@@ -319,89 +319,137 @@ subplots:
 #  5. Current State (deterministic from seed + world)
 # ──────────────────────────────────────────────────────────────
 def init_current_state():
-    seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
+    proj_path = STORY_DIR / "project.json"
+    genre = "小说"
+    if proj_path.exists():
+        with open(proj_path, "r", encoding="utf-8") as f:
+            proj_data = json.load(f)
+            genre = proj_data.get("genre", "小说")
+
     world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
     master = load_yaml(PLANS_DIR / "master_plan.yaml")
 
-    # Extract initial location from seed
-    location = ""
-    for line in seed.split("\n"):
-        if "边关" in line or "寨" in line or "村" in line:
-            location = line.strip()[:50]
-            break
-    if not location:
-        location = "故事开始的地方"
+    prompt = f"""从以下【{genre}】世界观设定中提取故事开局时的当前状态。
+
+为状态生成一个 JSON 对象，格式如下：
+```yaml
+current_state:
+  current_location: "故事开局的具体地点（如：A市国际机场、纽约总公司、京城、新手村等）"
+  world_conditions:
+    season: "当前季节（如：初秋、深冬）"
+    weather: "当前天气或大环境状态（如：商战前夕、平静、雨夜）"
+```
+
+世界观内容：
+{world[:3000]}
+
+要求：
+1. 只提取故事最开始的状态设定
+2. 输出合法的 YAML，不要任何多余的解释文字
+"""
+    print("  正在提取当前状态...", file=sys.stderr)
+    result = call_llm(prompt)
+    try:
+        yaml_match = re.search(r'```yaml\s*\n(.*?)```', result, re.DOTALL)
+        yaml_str = yaml_match.group(1).strip() if yaml_match else result.strip()
+        data = yaml.safe_load(yaml_str)
+    except Exception as e:
+        print(f"  [WARN] YAML parse failed: {e}", file=sys.stderr)
+        data = {"current_state": {}}
+        
+    cs_data = data.get("current_state", {})
 
     # Extract active plot threads from V1
     v1 = master.get("volumes", [{}])[0] if master.get("volumes") else {}
     threads = []
     if v1.get("main_arc"):
         threads.append(v1["main_arc"])
-    threads.extend(["家庭关系建立", "首次经营尝试"])
-
-    # Determine season from world
-    season = "春"
-    for kw, s in [("春季", "春"), ("夏季", "夏"), ("秋季", "秋"), ("冬季", "冬")]:
-        if kw in world[:2000]:
-            season = s
-            break
 
     state = CurrentState(
         timeline_position="故事开始",
-        current_location=location,
+        current_location=cs_data.get("current_location") or "故事开始的地方",
         active_plot_threads=threads,
         recent_events=[],
-        world_conditions={"season": season, "war_status": "胶着"},
+        world_conditions=cs_data.get("world_conditions") or {"season": "未知", "environment": "正常"},
     )
     save_json(STATE_DIR / "current_state.json", state.model_dump())
     print(f"  [OK] current_state.json", file=sys.stderr)
 
 
 # ──────────────────────────────────────────────────────────────
-#  6. Power Ledger (deterministic from world.md)
+#  6. Power Ledger (LLM-assisted)
 # ──────────────────────────────────────────────────────────────
 def init_power_ledger():
     world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
-    seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
+    proj_path = STORY_DIR / "project.json"
+    genre = "小说"
+    if proj_path.exists():
+        with open(proj_path, "r", encoding="utf-8") as f:
+            proj_data = json.load(f)
+            genre = proj_data.get("genre", "小说")
 
-    # Extract currency info from world.md
+    prompt = f"""从以下【{genre}】设定的世界观中，提取该世界的核心资源体系和能力/阶级体系。
+
+为体系生成一个 JSON 对象，格式如下：
+```yaml
+power_ledger:
+  power_system: "体系名称（如：商业资本、修真境界、异能等级）"
+  level_names: ["等级1", "等级2", "等级3"]  # 如果没有明确的等级划分，可以为空数组
+  resources:
+    res_currency:
+      name: "主要货币/资源名（如：人民币、灵石、公司股份、积分）"
+      category: "currency"  # currency | material | food | special
+      quantity: 0
+      unit: "单位（如：元、万、块、%）"
+    res_special:
+      name: "其他特殊资源名"
+      category: "special"
+      quantity: 0
+      unit: "单位"
+```
+
+世界观内容：
+{world[:6000]}
+
+要求：
+1. 资源ID必须以 res_ 开头
+2. 只提取世界观中明确提到或该题材最核心的 2-4 种初始资源
+3. 输出合法的 YAML，不要任何多余的解释文字
+"""
+
+    print("  正在提取资源/能力体系...", file=sys.stderr)
+    result = call_llm(prompt)
+
+    try:
+        yaml_match = re.search(r'```yaml\s*\n(.*?)```', result, re.DOTALL)
+        yaml_str = yaml_match.group(1).strip() if yaml_match else result.strip()
+        data = yaml.safe_load(yaml_str)
+    except Exception as e:
+        print(f"  [WARN] YAML parse failed: {e}", file=sys.stderr)
+        data = {"power_ledger": {}}
+
+    pl_data = data.get("power_ledger", {})
+    
     resources = {}
-
-    # Try to find currency mentions
-    if "铜" in world:
-        resources["res_copper"] = Resource(
-            id="res_copper", name="铜钱", category="currency",
-            quantity=0, unit="文", owner="", location="",
+    for res_id, res_data in pl_data.get("resources", {}).items():
+        if not isinstance(res_data, dict):
+            continue
+        resources[res_id] = Resource(
+            id=res_id,
+            name=res_data.get("name") or "",
+            category=res_data.get("category") or "material",
+            quantity=res_data.get("quantity") or 0.0,
+            unit=res_data.get("unit") or "",
+            owner="",
+            location="",
+            source_chapter=0,
+            valid_from_chapter=0,
         )
-    if "银" in world:
-        resources["res_silver"] = Resource(
-            id="res_silver", name="银两", category="currency",
-            quantity=0, unit="两", owner="", location="",
-        )
-
-    # Extract initial food/materials from seed
-    # Look for specific quantities mentioned
-    grain_match = re.search(r'(\d+).*?(?:粟|米|粮)', seed)
-    if grain_match:
-        resources["res_millet"] = Resource(
-            id="res_millet", name="粟米", category="food",
-            quantity=float(grain_match.group(1)), unit="斤", owner="", location="",
-        )
-
-    # Add common starting resources
-    resources["res_firewood"] = Resource(
-        id="res_firewood", name="柴火", category="material",
-        quantity=0, unit="捆", owner="", location="",
-    )
-    resources["res_water"] = Resource(
-        id="res_water", name="饮用水", category="material",
-        quantity=0, unit="缸", owner="", location="",
-    )
 
     ledger = PowerLedgerFull(
-        power_system="经济体系",
+        power_system=pl_data.get("power_system") or "默认体系",
         levels=[],
-        level_names=[],
+        level_names=pl_data.get("level_names") or [],
         resources=resources,
         items={},
     )

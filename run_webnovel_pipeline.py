@@ -107,6 +107,36 @@ def git_commit(message: str) -> str:
 # Pipeline steps
 # ---------------------------------------------------------------------------
 
+def step_ensure_volume_plan(chapter: int) -> bool:
+    """Phase 1: Ensure the volume plan and outline exist before generating a chapter."""
+    proj = load_project()
+    volume = proj.current_volume
+    
+    plan_yaml = STORY_DIR / "plans" / f"volume_{volume:03d}.yaml"
+    plan_md = STORY_DIR / "plans" / f"volume_{volume:03d}_outline.md"
+    
+    if plan_yaml.exists() and plan_md.exists():
+        return True
+        
+    banner(f"Step 0: Ensure Volume {volume} Plan")
+    
+    if not plan_yaml.exists():
+        print(f"  Generating {plan_yaml.name}...")
+        res = subprocess.run([sys.executable, "gen_volume_plan.py", "--volume", str(volume)], cwd=BASE_DIR)
+        if res.returncode != 0:
+            print(f"  [ERROR] gen_volume_plan.py failed")
+            return False
+            
+    if not plan_md.exists():
+        print(f"  Generating {plan_md.name}...")
+        res = subprocess.run([sys.executable, "gen_volume_outline.py", "--volume", str(volume)], cwd=BASE_DIR)
+        if res.returncode != 0:
+            print(f"  [ERROR] gen_volume_outline.py failed")
+            return False
+            
+    return True
+
+
 def step_gen_chapter_plan(chapter: int) -> bool:
     """Phase 2: Generate chapter plan and intent."""
     banner(f"Step 1: Generate Chapter Plan — Chapter {chapter}")
@@ -785,6 +815,7 @@ def run_chapter_transaction(chapter: int) -> bool:
     start_time = time.time()
 
     steps = [
+        ("Ensure Volume Plan", step_ensure_volume_plan),
         ("Chapter Plan", step_gen_chapter_plan),
         ("Context Assembly", step_assemble_context),
         ("Draft", step_draft_chapter),

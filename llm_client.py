@@ -144,18 +144,24 @@ def call_text_model(
 
     last_error = None
     for attempt in range(max_retries):
-        response = httpx.post(
-            messages_endpoint(),
-            headers=build_headers(provider=provider, include_beta=include_beta),
-            json=payload,
-            timeout=timeout,
-        )
-        if response.status_code == 429 and attempt < max_retries - 1:
-            retry_after = int(response.headers.get("retry-after", 30))
-            print(f"  [RATE LIMITED] Waiting {retry_after}s before retry {attempt + 1}/{max_retries}...", file=sys.stderr)
-            _time.sleep(retry_after)
-            continue
-        response.raise_for_status()
-        return extract_text_from_response(response.json())
+        try:
+            with httpx.Client(trust_env=False, verify=False, http2=False) as client:
+                response = client.post(
+                    messages_endpoint(),
+                    headers=build_headers(provider=provider, include_beta=include_beta),
+                    json=payload,
+                    timeout=timeout,
+                )
+            if response.status_code == 429 and attempt < max_retries - 1:
+                retry_after = int(response.headers.get("retry-after", 30))
+                print(f"  [RATE LIMITED] Waiting {retry_after}s before retry {attempt + 1}/{max_retries}...", file=sys.stderr)
+                _time.sleep(retry_after)
+                continue
+            response.raise_for_status()
+            return extract_text_from_response(response.json())
+        except httpx.RequestError as e:
+            last_error = e
+            print(f"  [NETWORK ERROR] {e}. Retrying {attempt + 1}/{max_retries}...", file=sys.stderr)
+            _time.sleep(2)
 
     raise last_error or RuntimeError("All retries exhausted")

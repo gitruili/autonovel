@@ -51,11 +51,62 @@ def call_llm(prompt, max_tokens=8000):
         temperature=0.3,
         system=(
             "你是一个数据提取助手。从给定的 Markdown 文档中提取结构化信息，"
-            "输出合法的 YAML 格式。不要添加任何解释，只输出 YAML。"
+            "输出合法的 JSON 格式。不要添加任何解释，只输出 JSON。"
+            "注意：所有字符串内容中的双引号必须用反斜杠转义（\\\"），"
+            "中文引号「」""''无需转义。"
         ),
         messages=[{"role": "user", "content": prompt}],
         timeout=300,
     )
+
+
+def parse_llm_output(result: str, label: str = "data") -> dict:
+    """Robustly parse LLM output, trying JSON first, then YAML as fallback.
+    
+    Returns the parsed dict, or an empty dict on failure.
+    """
+    # 1. Try to extract a code block (json or yaml)
+    json_match = re.search(r'```(?:json)?\s*\n(.*?)```', result, re.DOTALL)
+    yaml_match = re.search(r'```yaml\s*\n(.*?)```', result, re.DOTALL)
+    
+    content = None
+    
+    # Prefer JSON block
+    if json_match:
+        content = json_match.group(1).strip()
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            pass  # fall through to YAML
+    
+    # Try YAML block
+    if yaml_match:
+        content = yaml_match.group(1).strip()
+        try:
+            return yaml.safe_load(content)
+        except yaml.YAMLError:
+            pass  # fall through to raw parse
+    
+    # 2. Try parsing the whole response as JSON
+    if content is None:
+        content = result.strip()
+    
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+    
+    # 3. Last resort: strip markdown fence and try YAML
+    cleaned = re.sub(r'^```\w*\s*\n', '', result)
+    cleaned = re.sub(r'\n```\s*$', '', cleaned)
+    try:
+        return yaml.safe_load(cleaned)
+    except yaml.YAMLError:
+        pass
+    
+    # 4. Failed all attempts
+    print(f"  [WARN] Could not parse LLM output for {label}", file=sys.stderr)
+    return {}
 
 
 # ──────────────────────────────────────────────────────────────
@@ -97,24 +148,29 @@ def init_character_matrix():
     characters_md = (BASE_DIR / "characters.md").read_text(encoding="utf-8")
 
     prompt = f"""从以下角色注册表中提取所有核心角色（第一层）和卷1-3登场角色（第二层前半部分）的信息。
-为每个角色生成一个 JSON 对象，格式如下：
+为每个角色生成一个 JSON 对象。输出格式如下：
 
-```yaml
-characters:
-  char_角色id:
-    name: "角色名"
-    role: "protagonist"  # protagonist | antagonist | supporting | minor
-    age: 25
-    gender: "女"
-    personality: "性格核心描述"
-    speech_pattern: "说话特征描述"
-    appearance: "外貌速写"
-    background: "背景简介"
-    motivation: "核心动机"
-    arc_summary: "弧光概述"
-    secrets: ["秘密1", "秘密2"]
-    relationships:
-      char_其他角色id: "关系描述"
+```json
+{{
+  "characters": {{
+    "char_角色id": {{
+      "name": "角色名",
+      "role": "protagonist",
+      "age": 25,
+      "gender": "女",
+      "personality": "性格核心描述",
+      "speech_pattern": "说话特征描述",
+      "appearance": "外貌速写",
+      "background": "背景简介",
+      "motivation": "核心动机",
+      "arc_summary": "弧光概述",
+      "secrets": ["秘密1", "秘密2"],
+      "relationships": {{
+        "char_其他角色id": "关系描述"
+      }}
+    }}
+  }}
+}}
 ```
 
 角色注册表内容：
@@ -124,21 +180,14 @@ characters:
 1. 角色ID使用 char_拼音小写 的格式（如 char_aheng, char_chenyu）
 2. relationships 中引用的 char_id 必须与 characters 字典中的 key 一致
 3. 只提取第一层（核心角色）和第二层中"卷1-3登场"的角色
-4. 输出合法的 YAML
+4. role 字段可选值：protagonist（女主/男主）、antagonist（反派）、supporting（配角）、minor（次要角色）
+5. 所有字符串内容中的双引号必须转义为 \\\"，中文引号「」""无需转义
+6. 输出合法的 JSON，不要用 YAML 格式
 """
 
     print("  正在提取角色数据...", file=sys.stderr)
     result = call_llm(prompt)
-
-    # Parse YAML
-    try:
-        # Try to extract YAML block
-        yaml_match = re.search(r'```yaml\s*\n(.*?)```', result, re.DOTALL)
-        yaml_str = yaml_match.group(1).strip() if yaml_match else result.strip()
-        data = yaml.safe_load(yaml_str)
-    except Exception as e:
-        print(f"  [WARN] YAML parse failed, trying fallback: {e}", file=sys.stderr)
-        data = {"characters": {}}
+    data = parse_llm_output(result, "character_matrix")
 
     # Convert to CharacterMatrix
     char_matrix = CharacterMatrix()
@@ -191,18 +240,22 @@ def init_pending_hooks():
     prompt = f"""从以下第一卷大纲中提取所有"伏笔植入"条目。
 同时参考全书总纲中的超长线伏笔。
 
-为每个伏笔生成一个 JSON 对象，格式如下：
+为每个伏笔生成一个 JSON 对象。输出格式如下：
 
-```yaml
-hooks:
-  hook_001:
-    description: "伏笔描述"
-    hook_type: "setup"  # setup | advance | payoff
-    planted_chapter: 1
-    expected_payoff_chapter: null  # 如果不知道具体章节就写null
-    related_characters: ["char_角色id"]
-    related_locations: []
-    urgency: "normal"
+```json
+{{
+  "hooks": {{
+    "hook_001": {{
+      "description": "伏笔描述",
+      "hook_type": "setup",
+      "planted_chapter": 1,
+      "expected_payoff_chapter": null,
+      "related_characters": ["char_角色id"],
+      "related_locations": [],
+      "urgency": "normal"
+    }}
+  }}
+}}
 ```
 
 第一卷大纲（截取伏笔相关部分）：
@@ -215,19 +268,13 @@ hooks:
 1. 伏笔ID使用 hook_数字 格式
 2. 只提取"伏笔植入"和超长线伏笔
 3. related_characters 中的 ID 必须与 character_matrix 中的 ID 一致
-4. 输出合法的 YAML
+4. 字符串中的双引号必须转义为 \\\"
+5. 输出合法的 JSON
 """
 
     print("  正在提取伏笔数据...", file=sys.stderr)
     result = call_llm(prompt)
-
-    try:
-        yaml_match = re.search(r'```yaml\s*\n(.*?)```', result, re.DOTALL)
-        yaml_str = yaml_match.group(1).strip() if yaml_match else result.strip()
-        data = yaml.safe_load(yaml_str)
-    except Exception as e:
-        print(f"  [WARN] YAML parse failed: {e}", file=sys.stderr)
-        data = {"hooks": {}}
+    data = parse_llm_output(result, "pending_hooks")
 
     hooks = PendingHooks()
     raw_hooks = data.get("hooks", {})
@@ -261,17 +308,21 @@ def init_subplot_board():
     prompt = f"""从以下第一卷大纲中提取主要子线（subplot）。
 子线是指与主线并行的次要故事线（如：主角隐藏身份的曝光危机、配角的成长线、商业对手的暗中布局等）。
 
-为每个子线生成一个 JSON 对象，格式如下：
+为每个子线生成一个 JSON 对象。输出格式如下：
 
-```yaml
-subplots:
-  subplot_001:
-    name: "子线名称"
-    description: "子线描述"
-    status: "active"
-    related_characters: ["char_角色id"]
-    chapters_involved: [1, 3, 5, 8]
-    tension_level: "building"
+```json
+{{
+  "subplots": {{
+    "subplot_001": {{
+      "name": "子线名称",
+      "description": "子线描述",
+      "status": "active",
+      "related_characters": ["char_角色id"],
+      "chapters_involved": [1, 3, 5, 8],
+      "tension_level": "building"
+    }}
+  }}
+}}
 ```
 
 第一卷大纲：
@@ -281,19 +332,13 @@ subplots:
 1. 子线ID使用 subplot_数字 格式
 2. 只提取第一卷中明确的子线
 3. tension_level: building | climax | resolution
-4. 输出合法的 YAML
+4. 字符串中的双引号必须转义为 \\\"
+5. 输出合法的 JSON
 """
 
     print("  正在提取子线数据...", file=sys.stderr)
     result = call_llm(prompt)
-
-    try:
-        yaml_match = re.search(r'```yaml\s*\n(.*?)```', result, re.DOTALL)
-        yaml_str = yaml_match.group(1).strip() if yaml_match else result.strip()
-        data = yaml.safe_load(yaml_str)
-    except Exception as e:
-        print(f"  [WARN] YAML parse failed: {e}", file=sys.stderr)
-        data = {"subplots": {}}
+    data = parse_llm_output(result, "subplot_board")
 
     board = SubplotBoard()
     raw_subplots = data.get("subplots", {})
@@ -331,13 +376,17 @@ def init_current_state():
 
     prompt = f"""从以下【{genre}】世界观设定中提取故事开局时的当前状态。
 
-为状态生成一个 JSON 对象，格式如下：
-```yaml
-current_state:
-  current_location: "故事开局的具体地点（如：A市国际机场、纽约总公司、京城、新手村等）"
-  world_conditions:
-    season: "当前季节（如：初秋、深冬）"
-    weather: "当前天气或大环境状态（如：商战前夕、平静、雨夜）"
+为状态生成一个 JSON 对象。输出格式如下：
+```json
+{{
+  "current_state": {{
+    "current_location": "故事开局的具体地点（如：A市国际机场、纽约总公司）",
+    "world_conditions": {{
+      "season": "当前季节（如：初秋、深冬）",
+      "weather": "当前天气或大环境状态（如：商战前夕、平静、雨夜）"
+    }}
+  }}
+}}
 ```
 
 世界观内容：
@@ -345,17 +394,12 @@ current_state:
 
 要求：
 1. 只提取故事最开始的状态设定
-2. 输出合法的 YAML，不要任何多余的解释文字
+2. 字符串中的双引号必须转义为 \\\"
+3. 输出合法的 JSON，不要任何多余的解释文字
 """
     print("  正在提取当前状态...", file=sys.stderr)
     result = call_llm(prompt)
-    try:
-        yaml_match = re.search(r'```yaml\s*\n(.*?)```', result, re.DOTALL)
-        yaml_str = yaml_match.group(1).strip() if yaml_match else result.strip()
-        data = yaml.safe_load(yaml_str)
-    except Exception as e:
-        print(f"  [WARN] YAML parse failed: {e}", file=sys.stderr)
-        data = {"current_state": {}}
+    data = parse_llm_output(result, "current_state")
         
     cs_data = data.get("current_state", {})
 
@@ -390,22 +434,28 @@ def init_power_ledger():
 
     prompt = f"""从以下【{genre}】设定的世界观中，提取该世界的核心资源体系和能力/阶级体系。
 
-为体系生成一个 JSON 对象，格式如下：
-```yaml
-power_ledger:
-  power_system: "体系名称（如：商业资本、修真境界、异能等级）"
-  level_names: ["等级1", "等级2", "等级3"]  # 如果没有明确的等级划分，可以为空数组
-  resources:
-    res_currency:
-      name: "主要货币/资源名（如：人民币、灵石、公司股份、积分）"
-      category: "currency"  # currency | material | food | special
-      quantity: 0
-      unit: "单位（如：元、万、块、%）"
-    res_special:
-      name: "其他特殊资源名"
-      category: "special"
-      quantity: 0
-      unit: "单位"
+为体系生成一个 JSON 对象。输出格式如下：
+```json
+{{
+  "power_ledger": {{
+    "power_system": "体系名称（如：商业资本、修真境界、异能等级）",
+    "level_names": ["等级1", "等级2", "等级3"],
+    "resources": {{
+      "res_currency": {{
+        "name": "主要货币/资源名（如：人民币、灵石、公司股份）",
+        "category": "currency",
+        "quantity": 0,
+        "unit": "单位（如：元、万、块、%）"
+      }},
+      "res_special": {{
+        "name": "其他特殊资源名",
+        "category": "special",
+        "quantity": 0,
+        "unit": "单位"
+      }}
+    }}
+  }}
+}}
 ```
 
 世界观内容：
@@ -414,19 +464,13 @@ power_ledger:
 要求：
 1. 资源ID必须以 res_ 开头
 2. 只提取世界观中明确提到或该题材最核心的 2-4 种初始资源
-3. 输出合法的 YAML，不要任何多余的解释文字
+3. 字符串中的双引号必须转义为 \\\"
+4. 输出合法的 JSON，不要任何多余的解释文字
 """
 
     print("  正在提取资源/能力体系...", file=sys.stderr)
     result = call_llm(prompt)
-
-    try:
-        yaml_match = re.search(r'```yaml\s*\n(.*?)```', result, re.DOTALL)
-        yaml_str = yaml_match.group(1).strip() if yaml_match else result.strip()
-        data = yaml.safe_load(yaml_str)
-    except Exception as e:
-        print(f"  [WARN] YAML parse failed: {e}", file=sys.stderr)
-        data = {"power_ledger": {}}
+    data = parse_llm_output(result, "power_ledger")
 
     pl_data = data.get("power_ledger", {})
     

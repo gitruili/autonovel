@@ -212,6 +212,19 @@ def count_words_in_chapters() -> int:
     return total
 
 
+def is_long_form() -> bool:
+    """Check if project.json indicates a long-form novel (>= 100 chapters)."""
+    proj_path = BASE_DIR / "story" / "project.json"
+    if not proj_path.exists():
+        return False
+    try:
+        with open(proj_path, encoding="utf-8") as f:
+            proj = json.load(f)
+        return proj.get("target_chapters", 0) >= 100
+    except Exception:
+        return False
+
+
 def count_chapter_files() -> int:
     """Count the number of chapter files."""
     if not CHAPTERS_DIR.exists():
@@ -240,12 +253,17 @@ def get_total_chapters(state: dict) -> int:
 def run_foundation(state: dict) -> dict:
     """
     Build planning documents (world, characters, outline, voice, canon).
+    Auto-detects long-form mode when story/project.json has >= 100 chapters.
     Loop until foundation_score > threshold or max iterations reached.
     """
     banner("阶段 1: 设定基石 (FOUNDATION)", "=")
 
     best_score = state.get("foundation_score", 0.0)
     iteration = state.get("iteration", 0)
+    long_form = is_long_form()
+
+    if long_form:
+        step("检测到长篇模式 (>=100章)，启用全书总纲 + 长篇角色 + 反哺工具链")
 
     for i in range(iteration + 1, MAX_FOUNDATION_ITERS + 1):
         banner(f"设定迭代 {i}", "-")
@@ -255,14 +273,26 @@ def run_foundation(state: dict) -> dict:
         step("正在生成世界观设定集...")
         uv_run("gen_world.py", timeout=300)
 
-        step("正在生成角色注册表...")
-        uv_run("gen_characters.py", timeout=300)
+        if long_form:
+            step("正在生成长篇角色注册表（含反派轮换+登场计划）...")
+            uv_run("gen_characters_lf.py", timeout=600)
+        else:
+            step("正在生成角色注册表...")
+            uv_run("gen_characters.py", timeout=300)
 
-        step("正在生成大纲 (第一部分)...")
-        uv_run("gen_outline.py", timeout=300)
+        if long_form:
+            step("正在生成全书总纲（master_plan + master_summary）...")
+            uv_run("gen_master_outline.py", timeout=900)
+        else:
+            step("正在生成大纲 (第一部分)...")
+            uv_run("gen_outline.py", timeout=300)
 
-        step("正在生成大纲 (第二部分 — 伏笔)...")
-        uv_run("gen_outline_part2.py", timeout=300)
+            step("正在生成大纲 (第二部分 — 伏笔)...")
+            uv_run("gen_outline_part2.py", timeout=300)
+
+        if long_form:
+            step("正在反哺更新 foundation 设定（world Part B + characters 后半部）...")
+            uv_run("backfill_foundation.py", timeout=600)
 
         step("正在生成事实库 (Canon)...")
         uv_run("gen_canon.py", timeout=300)
@@ -270,9 +300,10 @@ def run_foundation(state: dict) -> dict:
         step("正在提取文风指纹...")
         uv_run("voice_fingerprint.py", timeout=300)
 
-        # 2. 评估
-        step("正在评估设定质量...")
-        eval_result = uv_run("evaluate.py --phase=foundation", timeout=300)
+        # 2. 评估 — 长篇用 foundation-lf，短篇用 foundation
+        eval_phase = "foundation-lf" if long_form else "foundation"
+        step(f"正在评估设定质量（{eval_phase} 模式）...")
+        eval_result = uv_run(f"evaluate.py --phase={eval_phase}", timeout=300)
         score = parse_score(eval_result.stdout, "overall_score")
         lore = parse_lore_score(eval_result.stdout)
 

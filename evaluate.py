@@ -470,38 +470,50 @@ def _build_lf_dims_text(genre) -> str:
         groups[group].append((key, dim))
 
     group_labels = {
-        "setting": "设定与世界观 (SETTING) — 35%",
-        "character": "角色 (CHARACTER) — 25%",
+        "setting": "设定与世界观 (SETTING) — 30%",
+        "character": "角色 (CHARACTER) — 30%",
         "structure": "结构 (STRUCTURE) — 30%",
         "craft": "创作素养 (CRAFT) — 10%",
     }
 
-    lf_character_dims = [
-        ("villain_rotation", "反派轮换设计", "【依据 master_plan.antagonist_rotation】: 反派梯队是否分层（阶段性反派 vs 终极反派）？退场-引入节奏是否合理？每个反派是否有独特动机？"),
+    # 硬编码兜底维度：仅在 genre config 未覆盖对应 group 时启用
+    # 这样既支持 genre config 自定义，也保证默认题材有合理评估维度
+    _fallback_character = [
+        ("villain_rotation", "反派轮换设计", "【依据 master_plan.antagonist_rotation】: 反派梯队是否分层？退场-引入节奏是否合理？每个反派是否有独特动机？"),
     ]
-    lf_structure_dims = [
-        ("volume_structure", "分卷结构", "【依据 master_plan.volumes】: 每卷是否有独立的核心冲突、高潮、和阶段性胜利？卷间是否有递进关系？全书节奏曲线是否合理？"),
-        ("progression_system", "升级台阶", "【依据 master_plan.economy_milestones + world.md】: 升级台阶是否清晰、可见、有代价？是否能支撑百万字不重复？经济数据是否与world.md匹配？"),
-        ("payoff_setup", "爽点铺垫", "【依据 outline 第一卷】: 每个打脸/爽点是否有至少1-2章的铺垫？爽点密度是否合理（不过密不过疏）？"),
-        ("foreshadowing_balance", "伏笔平衡", "【依据 master_plan.long_foreshadows + outline】: 伏笔台账是否存在？长线伏笔和短线伏笔是否平衡？植入到回收的间隔是否合理？"),
-        ("expansion_roadmap", "扩展路线图", "【依据 master_plan】: 世界观是否预留了足够的扩展空间？后续卷的设定扩展是否有明确规划？"),
+    _fallback_structure = [
+        ("volume_structure", "分卷结构", "【依据 master_plan.volumes】: 每卷是否有独立的核心冲突、高潮、和阶段性胜利？卷间是否有递进关系？"),
+        ("upgrade_progression", "升级台阶", "【依据 master_plan.economy_milestones + world.md】: 升级台阶是否清晰、可见、有代价？"),
+        ("payoff_setup", "爽点铺垫", "【依据 outline 第一卷】: 每个打脸/爽点是否有至少1-2章的铺垫？爽点密度是否合理？"),
+        ("foreshadowing_balance", "伏笔平衡", "【依据 master_plan.long_foreshadows + outline】: 伏笔台账是否存在？长线/短线伏笔是否平衡？"),
+        ("expansion_roadmap", "扩展路线图", "【依据 master_plan】: 世界观是否预留了足够的扩展空间？"),
     ]
 
     lines = []
     for group_key in ["setting", "character", "structure", "craft"]:
-        if group_key not in groups and group_key not in ("character", "structure"):
-            continue
         label = group_labels.get(group_key, group_key.upper())
+        
+        # 收集此 group 的维度
+        group_dims = list(groups.get(group_key, []))
+
+        # 如果 genre config 未覆盖，使用硬编码兜底
+        if not group_dims and group_key == "character":
+            group_dims = [(key, {"label": lbl, "description": desc}) for key, lbl, desc in _fallback_character]
+        if not group_dims and group_key == "structure":
+            group_dims = [(key, {"label": lbl, "description": desc}) for key, lbl, desc in _fallback_structure]
+        if not group_dims and group_key == "setting":
+            # Setting 必须有 genre config 提供，不兜底
+            pass
+        
+        if not group_dims:
+            continue
+            
         lines.append(f"{label}:")
-        if group_key in groups:
-            for key, dim in groups[group_key]:
+        for key, dim in group_dims:
+            if isinstance(dim, dict):
                 lines.append(f"- {dim.get('label', key)} ({key}): {dim.get('description', '')}")
-        if group_key == "character":
-            for key, lbl, desc in lf_character_dims:
-                lines.append(f"- {lbl} ({key}){desc}")
-        if group_key == "structure":
-            for key, lbl, desc in lf_structure_dims:
-                lines.append(f"- {lbl} ({key}){desc}")
+            else:
+                lines.append(f"- {key}: {dim}")
         lines.append("")
 
     return "\n".join(lines)
@@ -512,11 +524,23 @@ def _build_lf_json_keys(genre) -> str:
     eval_cfg = genre.get_evaluation_config("foundation")
     dims = eval_cfg.get("dimensions", {}) if eval_cfg else {}
 
+    # Fallback keys if genre config doesn't provide character/structure dimensions
+    _fallback_keys = [
+        "villain_rotation", "volume_structure", "upgrade_progression",
+        "payoff_setup", "foreshadowing_balance", "expansion_roadmap",
+    ]
+
+    # Start with genre config keys
+    keys_set = set(dims.keys()) if dims else set()
+    
+    # Add fallback keys for any group that has no genre config coverage
+    has_character = any(dims.get(k, {}).get("weight_group") == "character" for k in dims) if dims else False
+    has_structure = any(dims.get(k, {}).get("weight_group") == "structure" for k in dims) if dims else False
+    if not has_character or not has_structure:
+        keys_set.update(_fallback_keys)
+
     lines = []
-    for key in dims:
-        lines.append(f'  "{key}": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},')
-    for key in ["villain_rotation", "volume_structure", "progression_system",
-                 "payoff_setup", "foreshadowing_balance", "expansion_roadmap"]:
+    for key in sorted(keys_set):  # sort for consistency
         lines.append(f'  "{key}": {{"score": N, "gap": "...", "fix": "...", "note": "..."}},')
     return "\n".join(lines)
 
@@ -682,12 +706,12 @@ def _build_foundation_lf_prompt(genre) -> str:
 如果全书总纲缺失或为空，则 volume_structure、villain_rotation、expansion_roadmap 三个维度应直接给 0 分并注明"总纲缺失"。
 
 交叉核对（评分前执行）：
-1. 经济数据交叉验证：物价、收入、支出是否自洽？升级速度是否合理？
+1. 经济数据交叉验证：股权比例、交易金额、资产规模、收入量级是否自洽？升级速度是否合理？
 2. 角色对话检查：不同角色是否共享相同句式？去掉标签能分辨谁在说话吗？
-3. 金手指规则检查：局限性、冷却期是否明确？是否有规避不写的漏洞？
-4. 文档间矛盾检查：交叉对比年龄、地点、物价、关系。
-5. 分卷结构检查（依据 master_plan）：每卷是否有独立的核心冲突和高潮？卷间过渡是否合理？
-6. 反派轮换检查（依据 master_plan）：反派出场-退场节奏是否合理？新反派引入是否有铺垫？
+3. 主角设定完整性检查：是否覆盖了身高/声线/衣品/行事风格/家庭关系等关键维度？是否有遗漏？
+4. 配角锚定检查：每个配角是否都有明确的"对主角意味着什么"的答案？是否有悬浮的、与主角无关的角色？
+5. 金手指规则检查：局限性、冷却期是否明确？是否有规避不写的漏洞？
+6. 文档间矛盾检查：交叉对比年龄、地点、资产、关系、时间线。
 
 对以下维度进行评分（每个维度需包含缺陷+改进建议）：
 
@@ -703,7 +727,7 @@ def _build_foundation_lf_prompt(genre) -> str:
   "top_3_improvements": ["按优先级排列的 3 个最高杠杆改进方案"]
 }}
 
-{weights_text}长篇网文的结构权重高，因为分卷设计和升级台阶是读者追更的核心动力。
+{weights_text}设定、角色、结构三足鼎立——缺任何一条腿都撑不起百万字长篇。
 
 最终核对：如果你的总分高于 7 分，请重新阅读你的缺陷列表。如果任何缺陷会迫使作者动笔时临时发明内容，评分就太高了。
 """

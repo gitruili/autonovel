@@ -115,7 +115,7 @@ def main():
 {tags_context}
 
 全书总纲与历史卷纲摘要（已有，不要重复输出宏观内容，保持专注在本卷）：
-{outline_existing[:4000]}
+{outline_existing}
 
 {prev_vol_context}
 
@@ -143,10 +143,18 @@ def main():
 
 ---
 
+{genre.get_prompt_fragment("volume_plan", "design_principles")}
+
+{genre.get_prompt_fragment("volume_plan", "structure_requirements")}
+
+---
+
 ## 请生成第 {volume} 卷的详细章节大纲
 
 本卷约 {target_chapters} 章，每章约 4000 字。
 如果是全书的起始卷，目标是快速入戏、建立读者追读习惯；如果是后续卷，注意与上一卷的平滑承接和矛盾升级。
+
+{genre.get_prompt_fragment("volume_plan", "output_template")}
 
 ### 逐章大纲格式
 
@@ -179,7 +187,7 @@ def main():
 
 ## 重要提示
 - 你的输出上限已解锁至 32,000 Token，**务必在单次回复中一口气写完完整的 {target_chapters} 章大纲，千万不要中途中断**。
-- 先输出逐章大纲，最后附上所有的台账。
+- 先输出卷纲骨架（舞台环境/阶段目标/阶段成长/剧情概要），再输出逐章大纲，最后附上所有的台账。
 - 不要重复输出总纲中已有的宏观规划内容，只需输出本卷的详细纲要。
 
 """

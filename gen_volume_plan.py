@@ -18,6 +18,7 @@ from story_schema import (
     save_yaml,
 )
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 import os
 from dotenv import load_dotenv
 
@@ -55,10 +56,17 @@ def load_characters() -> str:
 
 def gen_volume_plan(volume: int) -> dict:
     """Generate a volume plan using LLM."""
+    genre = load_genre_for_project()
     proj = ProjectConfig(**load_json(STORY_DIR / "project.json"))
     outline = load_outline()
     world = load_world()
     characters = load_characters()
+
+    # Load genre-specific volume plan fragments
+    split_req = genre.get_prompt_fragment("volume_plan", "split_requirements")
+    design_princ = genre.get_prompt_fragment("volume_plan", "design_principles")
+    structure_req = genre.get_prompt_fragment("volume_plan", "structure_requirements")
+    output_tmpl = genre.get_prompt_fragment("volume_plan", "output_template")
 
     # Load existing chapter summaries for context
     summaries_path = STORY_DIR / "state" / "chapter_summaries.json"
@@ -84,7 +92,7 @@ def gen_volume_plan(volume: int) -> dict:
 每章目标字数: {proj.default_chapter_chars}
 
 === 总纲 ===
-{outline[:5000] if outline else '(未生成)'}
+{outline if outline else '(未生成)'}
 
 === 世界设定 ===
 {world[:3000] if world else '(未生成)'}
@@ -95,6 +103,12 @@ def gen_volume_plan(volume: int) -> dict:
 === 已有章节摘要 ===
 {recent_summaries or '(这是第一卷)'}
 
+{split_req}
+
+{design_princ}
+
+{structure_req}
+
 === 输出要求 ===
 请以 YAML 格式输出卷级计划，包含以下字段：
 
@@ -102,16 +116,35 @@ def gen_volume_plan(volume: int) -> dict:
 volume: {volume}
 title: "卷标题"
 theme: "本卷核心主题"
+stage: "舞台环境描述"
 chapter_range: "1-20"  # 本卷包含的章节范围
 target_chapters: 20
 target_words: 80000
 
-# 本卷主线
+# 阶段性成长（开头 vs 结尾的量化对比）
+growth:
+  position_start: "开头的职位/身份"
+  position_end: "结尾的职位/身份"
+  wealth_start: "开头的财富/股份状态"
+  wealth_end: "结尾的财富/股份状态"
+  reputation_start: "开头的声望"
+  reputation_end: "结尾的声望"
+  romance_start: "开头的感情阶段"
+  romance_end: "结尾的感情阶段"
+
+# 本卷主线（五段式结构）
 main_arc:
-  setup: "开局设定"
-  escalation: "矛盾升级"
-  climax: "高潮事件"
-  resolution: "收束方式"
+  opening_challenge: "开局挑战描述"
+  exploration: "发展与探索描述"
+  escalation: "冲突升级描述"
+  climax: "高潮事件描述"
+  resolution_and_hook: "整合与钩子描述"
+
+# 本卷新元素（至少其一）
+new_elements:
+  new_resources: ["新人脉/资金/信息"]
+  new_projects: ["新项目/新商战"]
+  new_enemies: ["新敌人"]
 
 # 本卷关键节点
 key_milestones:
@@ -156,6 +189,11 @@ subplots:
     name: "子线名"
     description: "子线描述"
     chapters_involved: [3, 5, 8, 12]
+
+# 爽点归因（高潮胜利归因到哪些前期积累）
+climax_payoff_sources:
+  - "前期积累1"
+  - "前期积累2"
 
 # 节奏规划
 pacing:

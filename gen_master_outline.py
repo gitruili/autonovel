@@ -2,7 +2,7 @@
 """
 gen_master_outline.py -- 长篇网文：全书总纲生成器（Foundation 阶段）。
 
-这是长篇设定的核心“蓝图”脚本：
+这是长篇设定的核心"蓝图"脚本：
 1. 它读取前期的基础设定（seed.txt + world_brief.md + characters_brief.md）。
 2. 它从 project.json 动态计算全书卷数（通常为25卷）。
 3. 它生成全书宏观走向（master_plan.yaml + master_summary.md）。
@@ -74,6 +74,9 @@ else:
 words_per_chapter = target_words // target_chapters
 chapters_per_volume = 20
 total_volumes = target_chapters // chapters_per_volume
+
+# Load genre-specific volume design principles
+volume_design_principles = genre.get_prompt_fragment("master_outline", "volume_design_principles")
 
 prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份全书总纲。
 总纲是整部书的骨架——它定义了25卷的宏观走向，但不细化到每一章。
@@ -186,12 +189,20 @@ long_foreshadows:
 ## 卷级概览
 
 ### 第1卷：[标题]（第1-{chapters_per_volume}章）
-[主线], 关键转折: [转折点], 情绪基调: [基调]
+**舞台环境**：[本卷主要活动区域]
+**阶段目标**：[本卷女主要达成的核心目标]
+**阶段成长**：
+- 资产/权力：[量化的变化]
+- 势力/人脉：[新增的底牌]
+- 情感：[感情阶段]
+**剧情概要**：
+1. [开局挑战描述]
+2. [发展与探索描述]
+3. [冲突升级描述]
+4. [高潮解决描述]
+5. [整合与钩子描述]
 
-### 第2卷：[标题]（第{chapters_per_volume+1}-{chapters_per_volume*2}章）
-[主线], 关键转折: [转折点], 情绪基调: [基调]
-
-...（共 {total_volumes} 卷，每卷 2-3 行）
+...（请为这 {total_volumes} 卷中的每一卷都详细展开上述结构，不要偷懒缩略，充分展示每一卷的细节和爽点！）
 
 ## 感情线总规划
 [6个阶段的简要描述]
@@ -218,10 +229,17 @@ long_foreshadows:
 6. **每卷要有独立的小高潮**：每卷最后2-3章必须有一个本卷级别的高潮事件，让读者觉得"这一卷值了"。
 7. **卷间衔接要有钩子**：每卷结尾要留下至少一个悬念，驱动读者追下一卷。
 
+---
+
+{volume_design_principles}
+
+---
+
 ## 重要提示
 - 先输出 YAML 部分（用 ```yaml 和 ``` 包裹），再输出 Markdown 部分
 - YAML 部分必须是合法的 YAML 格式
-- Markdown 部分控制在 4000-5000 字符以内（这是下游脚本读取 outline.md 时的截断范围）
+- Markdown 部分应该尽可能详尽，不受字数限制，充分展示每一卷的剧情脉络。
+- 你的输出上限已解锁至 32,000 Token，务必一口气写完 {total_volumes} 卷的详尽大纲，中途不要中断！
 - 不要在 YAML 和 Markdown 之间添加额外说明文字
 """
 

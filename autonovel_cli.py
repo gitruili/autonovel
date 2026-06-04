@@ -546,15 +546,30 @@ def cmd_generate(args):
         from story_schema import load_json, save_json
         try:
             seed_content = seed_path.read_text(encoding="utf-8")
+            proj_data = load_json(proj_path)
+            updated = False
+
+            # Extract title
+            title_match = re.search(r'《([^》]+)》', seed_content)
+            if title_match:
+                extracted_title = title_match.group(1).strip()
+                if extracted_title and (not proj_data.get("title") or proj_data.get("title") == "未命名小说"):
+                    proj_data["title"] = extracted_title
+                    updated = True
+                    print(f"  [INFO] 自动从 seed.txt 提取并更新书名: 《{extracted_title}》")
+
+            # Extract tags
             match = re.search(r'【([^】]+)】', seed_content)
             if match:
                 tags_str = match.group(1)
                 extracted_tags = [t.strip() for t in re.split(r'[\++,/;；，]', tags_str) if t.strip()]
                 if extracted_tags:
-                    proj_data = load_json(proj_path)
                     proj_data["tags"] = extracted_tags
-                    save_json(proj_path, proj_data)
+                    updated = True
                     print(f"  [INFO] 自动从 seed.txt 提取并更新标签: {extracted_tags}")
+
+            if updated:
+                save_json(proj_path, proj_data)
         except Exception as e:
             print(f"  [WARN] 自动提取 seed.txt 标签失败: {e}")
 

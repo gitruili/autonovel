@@ -343,7 +343,7 @@ class ChapterDelta(BaseModel):
 
 class ContextBudget(BaseModel):
     """Budget allocation for context assembly."""
-    chapter_plan: int = 2000
+    chapter_plan: int = 3200
     volume_contract: int = 1500
     state_slice: int = 3000
     recent_summaries: int = 2000

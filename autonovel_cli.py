@@ -549,8 +549,11 @@ def cmd_generate(args):
             proj_data = load_json(proj_path)
             updated = False
 
-            # Extract title
+            # Extract title — handle both 《书名》 and 书名》 (missing opening 《)
             title_match = re.search(r'《([^》]+)》', seed_content)
+            if not title_match:
+                # Fallback: line starting with text and ending with 》
+                title_match = re.search(r'^(.+?)》', seed_content)
             if title_match:
                 extracted_title = title_match.group(1).strip()
                 if extracted_title and (not proj_data.get("title") or proj_data.get("title") == "未命名小说"):
@@ -567,6 +570,22 @@ def cmd_generate(args):
                     proj_data["tags"] = extracted_tags
                     updated = True
                     print(f"  [INFO] 自动从 seed.txt 提取并更新标签: {extracted_tags}")
+
+            # Infer genre from tags (tag → genre reverse mapping)
+            # Priority order: more specific tags first, to avoid misclassification
+            TAG_TO_GENRE = {
+                "豪门": "总裁豪门", "总裁": "总裁豪门", "霸总": "总裁豪门",
+                "年代": "年代文",
+                "种田": "种田文", "赶山": "种田文", "赶海": "种田文",
+            }
+            if not proj_data.get("genre"):
+                extracted_tags = proj_data.get("tags", [])
+                for tag in extracted_tags:
+                    if tag in TAG_TO_GENRE:
+                        proj_data["genre"] = TAG_TO_GENRE[tag]
+                        updated = True
+                        print(f"  [INFO] 自动从标签推断类型: {tag} → {TAG_TO_GENRE[tag]}")
+                        break
 
             if updated:
                 save_json(proj_path, proj_data)

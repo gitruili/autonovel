@@ -68,7 +68,7 @@ prompt = f"""请将这些策划文档中的每一个硬性事实提取到一个�
 
 print("正在生成设定准则数据库...", file=sys.stderr)
 result = call_writer(prompt)
-print(result)
+# print(result)
 
 # save to file
 with open(BASE_DIR / "canon.md", "w", encoding="utf-8") as f:

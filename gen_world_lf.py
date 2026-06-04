@@ -128,7 +128,7 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份�
 
 print("正在生成长篇生活设定集...", file=sys.stderr)
 result = call_writer(prompt)
-print(result)
+# print(result)
 
 # save to file
 with open(BASE_DIR / "world.md", "w", encoding="utf-8") as f:

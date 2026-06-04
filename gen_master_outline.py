@@ -246,7 +246,7 @@ long_foreshadows:
 
 print("正在生成全书总纲...", file=sys.stderr)
 result = call_writer(prompt)
-print(result)
+# print(result)
 
 # Parse the result: split YAML and Markdown parts
 # The LLM should output YAML first (in ```yaml block), then Markdown

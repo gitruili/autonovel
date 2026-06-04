@@ -275,7 +275,7 @@ result = ensure_markers(result)
 if not result.startswith("# CHARACTERS.MD"):
     result = "# CHARACTERS.MD 角色注册表\n\n" + result
 
-print(result)
+# print(result)
 
 # save to file
 with open(BASE_DIR / "characters.md", "w", encoding="utf-8") as f:

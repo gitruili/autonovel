@@ -456,27 +456,37 @@ def step_apply_delta(chapter: int) -> bool:
                     setattr(res, k, v)
             res.last_seen_chapter = chapter
 
-    # Apply item updates
-    for update in delta.item_updates:
-        from story_schema import Item
-        action = update.get("action", "create")
+    # Apply item updates — process creates first, then other actions
+    # This ensures transfer/destroy on same-chapter-created items work
+    from story_schema import Item
+    create_updates = [u for u in delta.item_updates if u.get("action") == "create"]
+    other_updates = [u for u in delta.item_updates if u.get("action") != "create"]
+
+    for update in create_updates:
         raw_id = update.pop("id", None)
         raw_name = update.get("name", "")
         item_id = raw_id or raw_name or f"item_{chapter}_{len(power_ledger.items)}"
-        if action == "create" or (action == "upgrade" and item_id not in power_ledger.items):
-            update.pop("action", None)
-            update.pop("new_owner", None)
-            update["source_chapter"] = chapter
-            update["last_seen_chapter"] = chapter
-            update["acquired_chapter"] = chapter
-            if "name" not in update:
-                update["name"] = item_id
-            # Strip None values — JSON null for optional string fields
-            clean = {k: v for k, v in update.items() if v is not None}
-            power_ledger.items[item_id] = Item(id=item_id, **clean)
-        elif action == "transfer" and item_id in power_ledger.items:
+        update.pop("action", None)
+        update.pop("new_owner", None)
+        update["source_chapter"] = chapter
+        update["last_seen_chapter"] = chapter
+        update["acquired_chapter"] = chapter
+        if "name" not in update:
+            update["name"] = item_id
+        clean = {k: v for k, v in update.items() if v is not None}
+        power_ledger.items[item_id] = Item(id=item_id, **clean)
+
+    for update in other_updates:
+        action = update.get("action", "")
+        raw_id = update.pop("id", None)
+        raw_name = update.get("name", "")
+        item_id = raw_id or raw_name or f"item_{chapter}_{len(power_ledger.items)}"
+        if action == "transfer" and item_id in power_ledger.items:
             power_ledger.items[item_id].owner = update.get("new_owner", "")
             power_ledger.items[item_id].last_seen_chapter = chapter
+        elif action == "transfer" and item_id not in power_ledger.items:
+            # Item not found — likely a hallucinated item name, skip silently
+            pass
         elif action == "destroy" and item_id in power_ledger.items:
             power_ledger.items[item_id].status = "expired"
             power_ledger.items[item_id].valid_until_chapter = chapter

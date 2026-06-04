@@ -233,11 +233,23 @@ def check_ledger_compliance(delta: ChapterDelta) -> dict:
                 )
 
     # Check item consistency
+    # Collect items being created in this delta (so transfer on same-chapter creates passes)
+    created_item_ids = set()
+    created_item_names = set()
+    for update in delta.item_updates:
+        if update.get("action") == "create":
+            if update.get("id"):
+                created_item_ids.add(update["id"])
+            if update.get("name"):
+                created_item_names.add(update["name"])
+
     for update in delta.item_updates:
         if update.get("action") in ("transfer", "destroy"):
             item_id = update.get("id", "")
             if item_id and item_id not in power_ledger.items:
-                issues.append(f"Item {item_id} does not exist for action {update['action']}")
+                # Allow if the same delta creates this item (by id or name)
+                if item_id not in created_item_ids and item_id not in created_item_names:
+                    issues.append(f"Item {item_id} does not exist for action {update['action']}")
 
     return {
         "passed": len(issues) == 0,

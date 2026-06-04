@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # ---------------------------------------------------------------------------
 # Utility functions
@@ -161,7 +161,15 @@ class Character(TemporalFields):
     id: str
     name: str
     role: str = ""  # protagonist | antagonist | supporting | minor
-    age: int | None = None
+    age: str | None = None  # 网文中年龄常为描述性文本，不用 int
+
+    @field_validator("age", mode="before")
+    @classmethod
+    def coerce_age_to_str(cls, v):
+        """Accept int and convert to str for backward compatibility."""
+        if isinstance(v, int):
+            return f"{v}岁"
+        return v
     gender: str = ""
     personality: str = ""
     speech_pattern: str = ""

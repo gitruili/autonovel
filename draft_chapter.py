@@ -32,6 +32,7 @@ STORY_DIR = BASE_DIR / "story"
 genre = load_genre_for_project()
 genre_craft = load_genre_craft(genre)
 genre_detail = genre.get_prompt_fragment("chapter_draft", "genre_specific_detail") or "题材专属细节要具体有质感，参考世界设定集中的相关描写。"
+writing_guide = genre.get_prompt_fragment("chapter_draft", "writing_guide") or ""
 
 
 def call_writer(prompt, max_tokens=16000):
@@ -168,6 +169,8 @@ def build_prompt_from_context(chapter_num: int, context: dict) -> str:
 === {genre.display_name}写作技法参考 ===
 {genre_craft[:3000] if genre_craft else genre_detail}
 
+{writing_guide}
+
 现在开始撰写章节。完整文本，从头到尾。
 """
     return prompt
@@ -246,6 +249,8 @@ def build_prompt_legacy(chapter_num: int) -> str:
 === {genre.display_name}写作技法参考 ===
 {genre_craft[:3000] if genre_craft else genre_detail}
 
+{writing_guide}
+
 现在开始撰写章节。完整文本，从头到尾。
 """
 
@@ -264,6 +269,7 @@ def main():
         with open(args.context, encoding="utf-8") as f:
             context = json.load(f)
         prompt = build_prompt_from_context(chapter_num, context)
+        print(prompt)
     else:
         # Legacy: read from markdown files
         prompt = build_prompt_legacy(chapter_num)

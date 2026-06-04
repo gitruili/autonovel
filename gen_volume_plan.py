@@ -241,7 +241,7 @@ def main():
     plan_path.write_text(yaml_text, encoding="utf-8")
 
     print(f"\nVolume plan saved to: {plan_path}")
-    print(yaml_text)
+    # print(yaml_text)
 
 
 if __name__ == "__main__":

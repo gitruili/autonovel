@@ -115,6 +115,7 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份�
 ```yaml
 title: "{title}"
 genre: "{genre_name}"
+tags: {json.dumps(proj.get("tags", []), ensure_ascii=False) if 'proj' in locals() and isinstance(proj, dict) else "[]"}
 total_volumes: {total_volumes}
 total_chapters: {target_chapters}
 target_words: {target_words}

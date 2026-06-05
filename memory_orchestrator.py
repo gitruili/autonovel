@@ -13,6 +13,8 @@ import argparse
 import sys
 from pathlib import Path
 
+import yaml
+
 from story_schema import (
     ChapterContext,
     ChapterSummaries,
@@ -57,10 +59,24 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
     proj = ProjectConfig(**load_json(STORY_DIR / "project.json"))
     budget = ContextBudget()
 
-    # 1. Chapter plan
+    # 1. Chapter plan — load raw first, then truncate for prompt
     plan_path = STORY_DIR / "plans" / f"chapter_{chapter:04d}.yaml"
-    chapter_plan = load_file(plan_path)
-    chapter_plan = truncate_to_budget(chapter_plan, budget.chapter_plan)
+    raw_plan = load_file(plan_path)
+    chapter_plan = truncate_to_budget(raw_plan, budget.chapter_plan)
+
+    # 1a. Extract characters_present from the raw plan (before truncation)
+    present_char_ids: set[str] = set()
+    if raw_plan:
+        try:
+            plan_data = yaml.safe_load(raw_plan)
+            beats = plan_data.get("beats", [])
+            for beat in beats:
+                cp = beat.get("characters_present", [])
+                if cp:
+                    present_char_ids.update(cp)
+        except yaml.YAMLError:
+            # If YAML parsing fails, fall back to loading all characters
+            pass
 
     # 2. Volume contract
     volume = proj.current_volume
@@ -77,16 +93,32 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
 
     state_slice = {}
     if char_matrix.characters:
-        state_slice["characters"] = {
-            cid: {
-                "name": c.name,
-                "role": c.role,
-                "personality": c.personality[:200],
-                "speech_pattern": c.speech_pattern[:100],
-                "relationships": c.relationships,
+        # Filter to only characters that appear in this chapter's plan
+        if present_char_ids:
+            filtered_characters = {
+                cid: {
+                    "name": c.name,
+                    "role": c.role,
+                    "personality": c.personality[:200],
+                    "speech_pattern": c.speech_pattern[:100],
+                    "relationships": c.relationships,
+                }
+                for cid, c in char_matrix.characters.items()
+                if cid in present_char_ids
             }
-            for cid, c in char_matrix.characters.items()
-        }
+        else:
+            # Fallback: load all characters (plan didn't specify characters_present)
+            filtered_characters = {
+                cid: {
+                    "name": c.name,
+                    "role": c.role,
+                    "personality": c.personality[:200],
+                    "speech_pattern": c.speech_pattern[:100],
+                    "relationships": c.relationships,
+                }
+                for cid, c in char_matrix.characters.items()
+            }
+        state_slice["characters"] = filtered_characters
     active_hooks = {k: v.model_dump() for k, v in hooks.hooks.items() if v.status == "active"}
     if active_hooks:
         state_slice["active_hooks"] = active_hooks
@@ -181,7 +213,8 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
     ])
     print(f"Context assembled for chapter {chapter}")
     print(f"  Total chars: ~{total_chars:,} / {budget.total_budget:,} budget")
-    print(f"  Characters in state: {len(char_matrix.characters)}")
+    char_str = f"{len(filtered_characters)} (filtered from {len(char_matrix.characters)} by characters_present)" if present_char_ids else str(len(char_matrix.characters))
+    print(f"  Characters in state: {char_str}")
     print(f"  Active hooks: {len([h for h in hooks.hooks.values() if h.status == 'active'])}")
     print(f"  Recent summaries: {len(recent_summaries)}")
     print(f"  Retrieved fragments: {len(retrieved)}")

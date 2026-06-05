@@ -119,7 +119,7 @@ def main():
 ---
 
 全书总纲与历史卷纲摘要（已有，不要重复输出宏观内容，保持专注在本卷）：
-{outline_existing}
+{outline_existing[:4000]}
 
 {prev_vol_context}
 

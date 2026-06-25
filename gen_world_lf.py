@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 gen_world_lf.py -- 长篇网文：生活设定集生成器（Foundation 阶段）。
-读取 seed.txt + voice.md，调用大模型，输出 world.md。
+读取 seed.txt，调用大模型，输出 world.md。
 Part A: 核心设定（V1-3 范围，~3000词）
 Part B: 扩展路线图（~2000词）
 """
@@ -34,13 +34,7 @@ def call_writer(prompt, max_tokens=16000):
     )
 
 seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
-voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")
 _, tags_context = load_project_tags()
-
-# Extract voice Part 2 only
-voice_lines = voice.split('\n')
-part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
-voice_part2 = '\n'.join(voice_lines[part2_start:])
 
 prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份完整的生活设定集。
 这份文档分三部分：Part 0 是世界观速查表（结构化核心信息），Part A 是核心设定（卷1-3 立即需要的），Part B 是扩展路线图（后续卷需要的）。
@@ -49,9 +43,6 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份�
 
 种子概念 (SEED):
 {seed}
-
-语气标识 (VOICE):
-{voice_part2}
 
 {genre.get_prompt_fragment("world", "requirements")}
 

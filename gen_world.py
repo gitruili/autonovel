@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 gen_world.py -- 生活设定集生成器（Foundation 阶段）。
-读取 seed.txt + voice.md，调用大模型，输出 world.md（时代背景与社会经济设定）。
+读取 seed.txt，调用大模型，输出 world.md（时代背景与社会经济设定）。
 """
 import os
 import sys
@@ -31,12 +31,6 @@ def call_writer(prompt, max_tokens=16000):
     )
 
 seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
-voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")
-
-# Extract voice Part 2 only (the novel-specific voice)
-voice_lines = voice.split('\n')
-part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
-voice_part2 = '\n'.join(voice_lines[part2_start:])
 
 prompt = f"""为这部{genre.display_name}网文构建一份完整的世界观设定集。这是 WORLD.MD 文件——
 它是这个故事发生的时代背景、社会规则、商业环境和经济体系的权威参考。
@@ -45,9 +39,6 @@ prompt = f"""为这部{genre.display_name}网文构建一份完整的世界观�
 
 种子概念 (SEED):
 {seed}
-
-语气标识 (VOICE，此小说的基调):
-{voice_part2}
 
 {genre.get_prompt_fragment("world", "requirements")}
 

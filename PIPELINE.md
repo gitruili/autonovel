@@ -35,13 +35,14 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
   基础构建 (Foundation):
     seed.py              -- 生成 10 个灵感种子
     seed_lf.py           -- 生成长篇网文种子概念（支持市场调研、自动分批）
-    gen_world_lf.py      -- 种子 → world.md (新增 Part 0 核心速查表防截断)
-    gen_characters_lf.py -- 种子 + 世界观 → characters.md (前置索引与反派表防截断)
+    gen_world_sketch.py  -- 轻量世界观草稿 → world_sketch.md (5个核心参数，~300-500字)
+    gen_master_outline.py-- 草稿+种子 → 全书总纲 (master_plan.yaml + master_summary.md)
+    gen_world_lf.py      -- 种子+总纲 → world.md (Part 0+A+B 一次到位)
+    gen_characters_lf.py -- 种子+世界观+总纲 → characters.md (全弧光+全反派+全登场)
     gen_briefs.py        -- 设定提纯 → world_brief.md + characters_brief.md (浓缩摘要层)
-    gen_master_outline.py-- 全书骨架 → master_plan.yaml + master_summary.md
     gen_volume_outline.py-- 解锁 32k tokens，一步生成单卷完整大纲 → volume_NNN_outline.md
     voice_fingerprint.py -- 测试段落 → voice.md 第2部分
-    gen_canon.py         -- 世界观 + 角色 → canon.md (硬事实)
+    gen_canon.py         -- 世界观 + 角色 + 总纲 → canon.md (硬事实)
     init_state.py        -- 初始化流转状态 → story/state/*.json
 
   写作 (Drafting):
@@ -126,22 +127,20 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
 输出:  world.md, characters.md, outline_actual.md, voice.md, canon.md, MYSTERY.md
 退出条件:   foundation_score > 7.5 AND lore_score > 7.0
 
-最新优化的大型长篇循环（防截断与无限扩展架构）：
-  1. gen_world_lf.py       → world.md（在顶部插入 Part 0 核心速查表以防关键机制被截断）
-  2. gen_characters_lf.py  → characters.md（强制优先输出索引表、反派表、登场计划）
-  3. gen_briefs.py         → world_brief.md + characters_brief.md（将设定压缩提纯为高密度上下文）
-  4. gen_master_outline.py → master_plan.yaml + master_summary.md（定义全书多卷宏观骨架）
-  5. (后续使用 `plan volume` 按需生成卷纲)
-     - (同时后台会通过 outline_utils 拼装生成向下兼容的 outline.md)
-  6. 叙事声音发现：用不同的语域写5段测试段落，选择最好的一个填充 voice.md 的第 2 部分
-  7. 定义 MYSTERY.md（读者将要发现的核心秘密）
-  8. gen_canon.py          → canon.md（交叉引用所有硬事实）
-  9. init_state.py         → 初始化项目流转状态
+最新优化的大型长篇循环（总纲先行，7步到位，消除反哺）：
+  1. gen_world_sketch.py   → world_sketch.md（5个核心参数：时代/货币/科技/舞台/阶层，~300-500字）
+  2. gen_master_outline.py → master_plan.yaml + master_summary.md（基于草稿+种子定义25卷宏观骨架）
+     - (通过 outline_utils 拼装生成向下兼容的 outline.md)
+  3. gen_world_lf.py       → world.md（根据总纲一次到位生成 Part 0 + Part A + Part B）
+  4. gen_characters_lf.py  → characters.md（根据总纲一次到位生成全弧光+全反派+全登场计划）
+  5. gen_briefs.py         → world_brief.md + characters_brief.md（将设定压缩提纯为高密度上下文）
+  6. gen_canon.py          → canon.md（交叉引用所有硬事实）
+  7. init_state.py         → 初始化项目流转状态
 
 关键经验：
-  - 由于大模型经常截断超长上下文，采用**生成两遍（原版+极简 Briefs）**的机制，可以保证写到后半部时设定仍然健壮。
-  - 第一卷的大纲剥离到 `volume_001_outline.md` 中，避免污染 `master_summary.md`，使大纲体系可横向扩展到 25 卷以上。
-  - build_outline.py 现在只会根据写出来的散文重新汇总至 `outline_actual.md`，不再破坏生成用的大纲层。
+  - 总纲先行消除了"设定→总纲→反哺设定"的循环依赖，省去了 backfill_foundation.py。
+  - 世界草稿(~300-500字)足够为总纲提供锚点，详细设定在总纲确定后一次到位更精准。
+  - 第一卷的大纲使用 `plan volume` 按需生成到 volume_001_outline.md。
 ```
 
 ### 阶段 2：初稿写作 (Phase 2: First Draft)

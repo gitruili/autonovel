@@ -106,7 +106,7 @@ uv run python autonovel_cli.py generate seed --long-form --count 5 --batch-size 
 # 自定义每批数量和最大 token 数（防止输出截断）
 uv run python autonovel_cli.py generate seed --long-form --count 5 --batch-size 2 --max-tokens 48000
 
-# 长篇 foundation（6步：世界观→角色→摘要→总纲→第一卷大纲→正典→状态初始化）
+# 长篇 foundation（7步：世界草稿→总纲→世界观→角色→摘要→正典→状态初始化）
 # 自动运行 evaluate.py --phase=foundation-lf 进行质量评估，结果写入 story/foundation_eval.json
 uv run python autonovel_cli.py generate foundation
 
@@ -302,10 +302,12 @@ uv run python autonovel_cli.py run --chapter 1 --audit-warn
 | 工具 | 用途 |
 |------|---------|
 | `seed_lf.py` | 长篇种子（含长篇支撑力提示，支持 `--target-words`、`--market-research`、`--batch-size`、`--max-tokens`） |
-| `gen_world_lf.py` | 长篇世界观（核心设定 + 扩展路线图） |
-| `gen_characters_lf.py` | 长篇角色（三层体系：核心/卷级/反派轮换） |
-| `gen_briefs.py` | 浓缩摘要层（生成防截断的高密度设定上下文） |
+| `gen_world_sketch.py` | 轻量世界观草稿（5个核心参数，~300-500字） |
 | `gen_master_outline.py` | 全书总纲（master_plan.yaml + master_summary.md） |
+| `gen_world_lf.py` | 长篇世界观（核心设定 + 扩展路线图，根据总纲一次到位） |
+| `gen_characters_lf.py` | 长篇角色（三层体系：核心/卷级/反派轮换，根据总纲一次到位） |
+| `gen_briefs.py` | 浓缩摘要层（生成防截断的高密度设定上下文） |
+| `gen_canon.py` | 设定准则数据库（交叉引用硬性事实） |
 | `gen_volume_outline.py` | 单卷详细大纲（按卷生成 ~20章逐章细纲） |
 | `init_state.py` | 状态初始化（7个 JSON state 文件） |
 

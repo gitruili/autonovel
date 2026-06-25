@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-gen_master_outline.py -- 长篇网文：全书总纲生成器（Foundation 阶段）。
+gen_master_outline.py -- 长篇网文：全书总纲生成器（Foundation 阶段 Step 2）。
 
 这是长篇设定的核心"蓝图"脚本：
-1. 它读取前期的基础设定（seed.txt + world_brief.md + characters_brief.md）。
-2. 它从 project.json 动态计算全书卷数（通常为25卷）。
-3. 它生成全书宏观走向（master_plan.yaml + master_summary.md）。
-4. （注：在它生成后，backfill_foundation.py 会根据它的25卷蓝图，去反哺补全 world.md 和 characters.md 的后半段设定空白）。
+1. 读取 seed.txt + 轻量世界观草稿(world_sketch.md)。
+2. 从 project.json 动态计算全书卷数（通常为25卷）。
+3. 生成全书宏观走向（master_plan.yaml + master_summary.md → outline.md）。
+4. 下游 gen_world_lf.py 和 gen_characters_lf.py 根据总纲一次性生成完整设定。
 """
 import os
 import sys
@@ -40,13 +40,19 @@ def call_writer(prompt, max_tokens=16000):
     )
 
 seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
-world_path = BASE_DIR / "world_brief.md"
-if not world_path.exists(): world_path = BASE_DIR / "world.md"
+
+# World sketch (lightweight, ~300-500 words) — preferred for outline-first flow
+# Fallback chain: world_sketch.md → world_brief.md → world.md
+world_path = BASE_DIR / "world_sketch.md"
+if not world_path.exists():
+    world_path = BASE_DIR / "world_brief.md"
+if not world_path.exists():
+    world_path = BASE_DIR / "world.md"
 world = world_path.read_text(encoding="utf-8")
 
-char_path = BASE_DIR / "characters_brief.md"
-if not char_path.exists(): char_path = BASE_DIR / "characters.md"
-characters = char_path.read_text(encoding="utf-8")
+# Note: characters are NOT loaded — this script runs BEFORE character generation.
+# The outline uses only seed.txt + world_sketch.md. Character details are filled
+# in later by gen_characters_lf.py based on the completed outline.
 _, tags_context = load_project_tags()
 
 # Read project config for targets
@@ -80,11 +86,16 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份�
 种子概念 (SEED):
 {seed}
 
-生活设定集 (WORLD):
+生活设定草稿 (WORLD SKETCH，仅含核心参数，详细设定将在总纲确定后补充):
 {world}
 
-角色注册表 (CHARACTERS):
-{characters}
+注意：角色注册表尚未生成，请根据种子概念中隐含的人物关系和你对{genre.display_name}题材的理解，
+在总纲中设计角色间的戏剧冲突和感情线。你不需为反派和配角取具体名字——用身份标签替代
+（如"霍家远房亲戚""本地建材商""老钱家族继承人"）。具体名字由后续角色设计阶段补全。
+
+在 YAML 的 antagonist 字段中，对于尚未命名的角色，使用 `type:` 前缀标记身份类型，如：
+  antagonist: "type:嫉妒型远房亲戚"
+下游脚本遇到 `type:` 前缀时会自动识别为待命名角色。对于已从种子概念中可以确定姓名的角色（如主角），正常使用姓名。
 
 ---
 

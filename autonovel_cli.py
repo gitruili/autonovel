@@ -533,11 +533,10 @@ def cmd_generate(args):
         print(f"  then save your chosen concept to seed.txt.")
         return 1
 
-    # Check voice.md exists (generators read it)
+    # Check voice.md — foundation phase no longer requires it, but chapter drafting will
     voice_path = BASE_DIR / "voice.md"
     if not voice_path.exists():
-        print(f"[ERROR] voice.md not found. It ships with the project template.")
-        return 1
+        print(f"[WARN] voice.md 不存在。Foundation 阶段不受影响，但章节撰写时会需要。")
 
     # Extract tags from seed.txt and update project.json automatically
     proj_path = STORY_DIR / "project.json"
@@ -601,12 +600,11 @@ def cmd_generate(args):
 
     if long_form:
         steps = [
-            ("gen_world_lf.py", "世界观设定集 (world.md)"),
-            ("gen_characters_lf.py", "角色注册表 (characters.md)"),
-            ("gen_briefs.py", "浓缩设定摘要 (world_brief.md + characters_brief.md)"),
+            ("gen_world_sketch.py", "轻量世界观草稿 (world_sketch.md)"),
             ("gen_master_outline.py", "全书总纲 (master_plan.yaml + master_summary.md)"),
-            ("backfill_foundation.py", "总纲反哺设定 (补全 world.md + characters.md)"),
-            ("gen_briefs.py", "重新生成设定摘要 (更新 world_brief.md + characters_brief.md)"),
+            ("gen_world_lf.py", "完整世界观设定集 (world.md)"),
+            ("gen_characters_lf.py", "完整角色注册表 (characters.md)"),
+            ("gen_briefs.py", "浓缩设定摘要 (world_brief.md + characters_brief.md)"),
             ("gen_canon.py", "设定准则数据库 (canon.md)"),
             ("init_state.py", "状态初始化 (story/state/*.json)"),
         ]

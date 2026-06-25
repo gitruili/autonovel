@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 gen_characters.py -- 角色注册表生成器（Foundation 阶段）。
-读取 seed.txt + voice.md + world.md，调用大模型，输出 characters.md。
+读取 seed.txt + world.md，调用大模型，输出 characters.md。
 """
 import os
 import sys
@@ -33,12 +33,6 @@ def call_writer(prompt, max_tokens=16000):
 seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
 world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
 
-# Voice Part 2 only
-voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")
-voice_lines = voice.split('\n')
-part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
-voice_part2 = '\n'.join(voice_lines[part2_start:])
-
 prompt = f"""为这部{genre.display_name}网文构建一份完整的角色注册表（Character Registry）。
 这是 CHARACTERS.MD —— 它是关于故事中每个人物的权威参考，
 包括他们是谁、想要什么、怎么说话、藏着什么秘密。
@@ -48,9 +42,6 @@ prompt = f"""为这部{genre.display_name}网文构建一份完整的角色注�
 
 生活设定集 (WORLD，这些角色生活的时代与社会):
 {world}
-
-文风标识 (VOICE，本小说的基调):
-{voice_part2}
 
 {genre.get_prompt_fragment("characters", "requirements")}
 

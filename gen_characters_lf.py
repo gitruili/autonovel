@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 gen_characters_lf.py -- 长篇网文：角色注册表生成器（Foundation 阶段）。
-读取 seed.txt + voice.md + world.md，调用大模型，输出 characters.md。
+读取 seed.txt + world.md，调用大模型，输出 characters.md。
 三层角色体系：核心角色（全卷在线）、卷级角色（分批登场）、反派轮换表。
 """
 import os
@@ -37,12 +37,6 @@ seed = (BASE_DIR / "seed.txt").read_text(encoding="utf-8")
 world = (BASE_DIR / "world.md").read_text(encoding="utf-8")
 _, tags_context = load_project_tags()
 
-# Voice Part 2 only
-voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")
-voice_lines = voice.split('\n')
-part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
-voice_part2 = '\n'.join(voice_lines[part2_start:])
-
 prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份完整的角色注册表。
 这是 CHARACTERS.MD —— 它是关于故事中每个人物的权威参考。
 
@@ -56,9 +50,6 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份�
 
 生活设定集 (WORLD，这些角色生活的时代与社会):
 {world}
-
-文风标识 (VOICE):
-{voice_part2}
 
 ---
 

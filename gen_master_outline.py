@@ -49,12 +49,6 @@ if not char_path.exists(): char_path = BASE_DIR / "characters.md"
 characters = char_path.read_text(encoding="utf-8")
 _, tags_context = load_project_tags()
 
-# Voice Part 2 only
-voice = (BASE_DIR / "voice.md").read_text(encoding="utf-8")
-voice_lines = voice.split('\n')
-part2_start = next(i for i, l in enumerate(voice_lines) if 'Part 2' in l)
-voice_part2 = '\n'.join(voice_lines[part2_start:])
-
 # Read project config for targets
 import json
 proj_path = STORY_DIR / "project.json"
@@ -91,9 +85,6 @@ prompt = f"""为这部**百万字长篇**{genre.display_name}网文构建一份�
 
 角色注册表 (CHARACTERS):
 {characters}
-
-文风标识 (VOICE):
-{voice_part2}
 
 ---
 

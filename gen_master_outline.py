@@ -286,4 +286,4 @@ from outline_utils import rebuild_outline_compatibility_layer
 rebuild_outline_compatibility_layer(BASE_DIR)
 
 print(f"\n已保存 master_plan.yaml ({len(yaml_content)} 字符)", file=sys.stderr)
-print(f"已保存 master_summary.md ({len(md_content)} 字符) 并重新拼装 outline.md", file=sys.stderr)
+print(f"已保存 master_summary.md ({len(md_content)} 字符) 并同步写入 outline.md（全书总纲）", file=sys.stderr)

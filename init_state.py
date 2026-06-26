@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
+from outline_utils import load_volume_outline_for_chapter
 from llm_client import call_text_model, default_model_for_role
 from story_schema import (
     Character,
@@ -224,7 +225,12 @@ def init_character_matrix():
 #  3. Pending Hooks (LLM-assisted)
 # ──────────────────────────────────────────────────────────────
 def init_pending_hooks():
-    outline = (BASE_DIR / "outline.md").read_text(encoding="utf-8")
+    # Prefer first volume outline for long-form mode; fallback to outline.md for short-form.
+    vol_text, _ = load_volume_outline_for_chapter(1, BASE_DIR)
+    if vol_text:
+        outline = vol_text
+    else:
+        outline = (BASE_DIR / "outline.md").read_text(encoding="utf-8")
     master = load_yaml(PLANS_DIR / "master_plan.yaml")
 
     # Collect hooks from master plan
@@ -303,7 +309,12 @@ def init_pending_hooks():
 #  4. Subplot Board (LLM-assisted)
 # ──────────────────────────────────────────────────────────────
 def init_subplot_board():
-    outline = (BASE_DIR / "outline.md").read_text(encoding="utf-8")
+    # Prefer first volume outline for long-form mode; fallback to outline.md for short-form.
+    vol_text, _ = load_volume_outline_for_chapter(1, BASE_DIR)
+    if vol_text:
+        outline = vol_text
+    else:
+        outline = (BASE_DIR / "outline.md").read_text(encoding="utf-8")
 
     prompt = f"""从以下第一卷大纲中提取主要子线（subplot）。
 子线是指与主线并行的次要故事线（如：主角隐藏身份的曝光危机、配角的成长线、商业对手的暗中布局等）。

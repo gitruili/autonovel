@@ -4,28 +4,26 @@ from pathlib import Path
 
 def rebuild_outline_compatibility_layer(base_dir: Path):
     """
-    Rebuild the outline.md compatibility layer from the individual components:
-    master_summary.md + volume_*_outline.md
+    Rebuild outline.md as the whole-book master outline only.
+
+    For long-form mode (>=100 chapters), outline.md should be a stable copy of
+    master_summary.md (the high-level whole-book synopsis). Volume-level detailed
+    outlines live in their own volume_NNN_outline.md files and are no longer
+    concatenated into outline.md.
+
+    For short-form mode (<100 chapters), outline.md is generated directly by
+    gen_outline.py as the full chapter-by-chapter outline. In that case
+    master_summary.md does not exist, so this function leaves outline.md untouched.
     """
     plans_dir = base_dir / "story" / "plans"
-    parts = []
-
-    # 1. Add master summary
     summary_path = plans_dir / "master_summary.md"
+    outline_path = base_dir / "outline.md"
+
+    # Only overwrite outline.md when master_summary.md exists (long-form mode).
+    # This keeps outline.md as the whole-book master outline, not a mixture of
+    # master summary + per-volume detailed outlines.
     if summary_path.exists():
-        parts.append(summary_path.read_text(encoding="utf-8"))
-
-    # 2. Add volume outlines in order
-    if plans_dir.exists():
-        volume_outlines = sorted(plans_dir.glob("volume_*_outline.md"))
-        for vol_outline in volume_outlines:
-            parts.append(vol_outline.read_text(encoding="utf-8"))
-
-    # 3. Write combined outline
-    if parts:
-        combined_text = "\n\n---\n\n".join(parts)
-        outline_path = base_dir / "outline.md"
-        outline_path.write_text(combined_text, encoding="utf-8")
+        outline_path.write_text(summary_path.read_text(encoding="utf-8"), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------

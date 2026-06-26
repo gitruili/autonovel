@@ -17,6 +17,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from llm_client import call_text_model, default_model_for_role
 from genres.genre_registry import load_genre_for_project, load_genre_craft
+from outline_utils import load_volume_outline_for_chapter
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
@@ -188,8 +189,14 @@ def build_prompt_legacy(chapter_num: int) -> str:
     canon = load_file(BASE_DIR / "canon.md")
     title = load_title()
 
-    chapter_outline = extract_chapter_outline(outline, chapter_num)
-    next_chapter = extract_next_chapter_outline(outline, chapter_num)
+    # Prefer the volume-specific outline for this chapter; fallback to combined outline.md.
+    vol_outline_text, _ = load_volume_outline_for_chapter(chapter_num, BASE_DIR)
+    chapter_outline = extract_chapter_outline(vol_outline_text, chapter_num)
+    if not chapter_outline or chapter_outline == "(not found)":
+        chapter_outline = extract_chapter_outline(outline, chapter_num)
+    next_chapter = extract_next_chapter_outline(vol_outline_text or outline, chapter_num)
+    if not next_chapter or next_chapter == "(not found)" or next_chapter == "(final chapter)":
+        next_chapter = extract_next_chapter_outline(outline, chapter_num)
 
     prev_path = CHAPTERS_DIR / f"ch_{chapter_num - 1:02d}.md"
     if prev_path.exists():

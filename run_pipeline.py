@@ -21,6 +21,7 @@ import os
 import re
 import subprocess
 import sys
+import yaml
 from datetime import datetime
 from pathlib import Path
 
@@ -233,16 +234,39 @@ def count_chapter_files() -> int:
 
 
 def get_total_chapters(state: dict) -> int:
-    """Determine total chapter count from state or outline."""
+    """Determine total chapter count from state, project.json, or master_plan.yaml.
+
+    No longer scans outline.md for chapter headings, because outline.md is now a
+    stable whole-book master outline (master_summary.md) and does not contain
+    per-volume chapter details.
+    """
     if state.get("chapters_total", 0) > 0:
         return state["chapters_total"]
-    # Try to infer from outline.md
-    outline = BASE_DIR / "outline.md"
-    if outline.exists():
-        text = outline.read_text(encoding="utf-8")
-        matches = re.findall(r'###\s*Ch(?:apter)?\s*(\d+)', text)
-        if matches:
-            return max(int(m) for m in matches)
+
+    # Try project.json target_chapters
+    proj_path = BASE_DIR / "story" / "project.json"
+    if proj_path.exists():
+        try:
+            proj_data = json.loads(proj_path.read_text(encoding="utf-8"))
+            target = proj_data.get("target_chapters") or proj_data.get("chapters_total")
+            if target:
+                return int(target)
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # Try master_plan.yaml volumes chapter_range
+    master_plan_path = BASE_DIR / "story" / "plans" / "master_plan.yaml"
+    if master_plan_path.exists():
+        try:
+            master = yaml.safe_load(master_plan_path.read_text(encoding="utf-8"))
+            volumes = master.get("volumes", [])
+            if volumes:
+                last_range = volumes[-1].get("chapter_range", "")
+                if "-" in last_range:
+                    return int(last_range.split("-")[-1])
+        except (yaml.YAMLError, ValueError, AttributeError):
+            pass
+
     return 24  # sensible default
 
 

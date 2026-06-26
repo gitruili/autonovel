@@ -21,6 +21,7 @@ import glob
 import re
 from datetime import datetime
 from pathlib import Path
+from outline_utils import extract_chapter_outline, load_volume_outline_for_chapter
 from llm_client import call_text_model, default_model_for_role
 from genres.genre_registry import load_genre_for_project, load_genre_craft
 
@@ -889,11 +890,14 @@ def evaluate_chapter(chapter_num):
         return {"error": f"Chapter {chapter_num} is empty or missing",
                 "overall_score": 0.0}
 
-    # Extract this chapter's outline entry (rough heuristic)
-    outline = layers["outline"]
-    ch_pattern = rf'###\s*第\s*{chapter_num}\s*章.*?(?=###\s*第\s*\d+\s*章|##\s*第|##\s*[一二三四五]|$)'
-    ch_match = re.search(ch_pattern, outline, re.DOTALL)
-    chapter_outline = ch_match.group(0) if ch_match else "(outline entry not found)"
+    # Extract this chapter's outline entry (prefer volume outline, fallback outline.md)
+    vol_outline_text, _ = load_volume_outline_for_chapter(chapter_num, BASE_DIR)
+    chapter_outline = extract_chapter_outline(vol_outline_text, chapter_num)
+    if not chapter_outline:
+        # Fallback for short-form mode or missing volume outline
+        chapter_outline = extract_chapter_outline(layers["outline"], chapter_num)
+    if not chapter_outline:
+        chapter_outline = "(outline entry not found)"
 
     # Load previous chapter tail
     prev_text = load_chapter(chapter_num - 1) if chapter_num > 1 else "(first chapter)"

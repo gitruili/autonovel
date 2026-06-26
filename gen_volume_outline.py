@@ -2,7 +2,10 @@
 """
 gen_volume_outline.py -- 长篇网文：单卷详细章节大纲生成器。
 读取 seed.txt + world.md + characters.md + story/plans/master_plan.yaml + voice.md，
-生成指定卷（~20章）的逐章大纲，追加到 outline.md。
+生成指定卷（~20章）的逐章大纲，保存到 story/plans/volume_NNN_outline.md。
+
+本脚本不再把卷纲追加到 outline.md；outline.md 保持为全书总纲
+（master_summary.md 的副本），卷级逐章细节请直接读取 volume_NNN_outline.md。
 
 Usage:
   uv run python gen_volume_outline.py --volume 1
@@ -88,11 +91,11 @@ def main():
     v_hooks_plant = vol_info.get("foreshadow_planted", [])
     v_hooks_payoff = vol_info.get("foreshadow_payoff", [])
 
-    # Read existing outline.md (master summary + previous volumes)
-    outline_existing = ""
-    outline_path = BASE_DIR / "outline.md"
-    if outline_path.exists():
-        outline_existing = outline_path.read_text(encoding="utf-8")
+    # Read master summary (whole-book master outline)
+    master_summary_text = ""
+    summary_path = PLANS_DIR / "master_summary.md"
+    if summary_path.exists():
+        master_summary_text = summary_path.read_text(encoding="utf-8")
 
     # If generating volume > 1, try to load previous volume's structure
     prev_vol_context = ""
@@ -135,7 +138,7 @@ def main():
 {tags_context}{term_block}
 
 全书总纲与历史卷纲摘要（已有，不要重复输出宏观内容，保持专注在本卷）：
-{outline_existing[:4000]}
+{master_summary_text[:4000]}
 
 {prev_vol_context}
 
@@ -188,11 +191,7 @@ def main():
     with open(out_file, "w", encoding="utf-8") as f:
         f.write(result)
 
-    # Rebuild compatibility layer outline.md
-    from outline_utils import rebuild_outline_compatibility_layer
-    rebuild_outline_compatibility_layer(BASE_DIR)
-
-    print(f"\n已保存 {out_file.name} 并拼装到 outline.md", file=sys.stderr)
+    print(f"\n已保存 {out_file.name}（不再拼装到 outline.md）", file=sys.stderr)
     return 0
 
 if __name__ == "__main__":

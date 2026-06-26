@@ -573,17 +573,32 @@ def cmd_generate(args):
             # Infer genre from tags (tag → genre reverse mapping)
             # Priority order: more specific tags first, to avoid misclassification
             TAG_TO_GENRE = {
+                # 总裁豪门
                 "豪门": "总裁豪门", "总裁": "总裁豪门", "霸总": "总裁豪门",
-                "年代": "年代文",
-                "种田": "种田文", "赶山": "种田文", "赶海": "种田文",
+                "甜宠": "总裁豪门", "先婚后爱": "总裁豪门", "替嫁": "总裁豪门",
+                "契约婚姻": "总裁豪门", "穿书": "总裁豪门",
+                # 年代文
+                "年代": "年代文", "年代差": "年代文",
+                # 种田文
+                "种田": "种田文", "赶山": "种田文", "赶海": "种田文", "空间": "种田文",
             }
             if not proj_data.get("genre"):
                 extracted_tags = proj_data.get("tags", [])
                 for tag in extracted_tags:
+                    # 精确匹配
                     if tag in TAG_TO_GENRE:
                         proj_data["genre"] = TAG_TO_GENRE[tag]
                         updated = True
                         print(f"  [INFO] 自动从标签推断类型: {tag} → {TAG_TO_GENRE[tag]}")
+                        break
+                    # 部分匹配（如"年代差"匹配"年代"）
+                    for key, val in TAG_TO_GENRE.items():
+                        if len(key) > 1 and key in tag:
+                            proj_data["genre"] = val
+                            updated = True
+                            print(f"  [INFO] 自动从标签推断类型: '{tag}' 部分匹配 '{key}' → {val}")
+                            break
+                    if updated:
                         break
 
             if updated:

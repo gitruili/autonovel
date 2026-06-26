@@ -15,6 +15,10 @@ from pathlib import Path
 
 import yaml
 
+from outline_utils import (
+    extract_chapter_outline,
+    load_volume_outline_for_chapter,
+)
 from story_schema import (
     ChapterContext,
     ChapterSummaries,
@@ -83,6 +87,18 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
     vol_path = STORY_DIR / "plans" / f"volume_{volume:03d}.yaml"
     volume_contract = load_file(vol_path)
     volume_contract = truncate_to_budget(volume_contract, budget.volume_contract)
+
+    # 2a. Chapter outline detail — extract this chapter's narrative entry from the
+    #     corresponding volume_*_outline.md (falls back to outline.md if not found).
+    chapter_outline_detail = ""
+    vol_outline_text, _ = load_volume_outline_for_chapter(chapter, BASE_DIR)
+    if vol_outline_text:
+        chapter_outline_detail = extract_chapter_outline(vol_outline_text, chapter)
+    if not chapter_outline_detail:
+        # Fallback: search the combined outline.md
+        outline_text = load_file(BASE_DIR / "outline.md")
+        chapter_outline_detail = extract_chapter_outline(outline_text, chapter)
+    chapter_outline_detail = truncate_to_budget(chapter_outline_detail, budget.chapter_outline_detail)
 
     # 3. State slice (characters, hooks, subplots, current state)
     char_matrix = CharacterMatrix(**load_json(STORY_DIR / "state" / "character_matrix.json"))
@@ -185,6 +201,7 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
         budget=budget,
         chapter_plan=chapter_plan,
         volume_contract=volume_contract,
+        chapter_outline_detail=chapter_outline_detail,
         state_slice=state_slice,
         recent_summaries=recent_summaries,
         retrieved_fragments=retrieved,
@@ -206,6 +223,7 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
     total_chars = sum([
         len(chapter_plan),
         len(volume_contract),
+        len(chapter_outline_detail),
         len(str(state_slice)),
         len(str(recent_summaries)),
         len(voice_rules),
@@ -213,6 +231,7 @@ def assemble_context(chapter: int, out_path: Path) -> ChapterContext:
     ])
     print(f"Context assembled for chapter {chapter}")
     print(f"  Total chars: ~{total_chars:,} / {budget.total_budget:,} budget")
+    print(f"  Chapter outline detail: {len(chapter_outline_detail):,} chars")
     char_str = f"{len(filtered_characters)} (filtered from {len(char_matrix.characters)} by characters_present)" if present_char_ids else str(len(char_matrix.characters))
     print(f"  Characters in state: {char_str}")
     print(f"  Active hooks: {len([h for h in hooks.hooks.values() if h.status == 'active'])}")

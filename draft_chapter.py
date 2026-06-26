@@ -137,6 +137,9 @@ def build_prompt_from_context(chapter_num: int, context: dict) -> str:
 === 卷级计划（参考） ===
 {context.get('volume_contract', '')[:2000]}
 
+=== 本章在卷纲中的定位（叙事细纲） ===
+{context.get('chapter_outline_detail', '') or '(无逐章细纲)'}
+
 === 前一章结尾（从此处继续） ===
 {context.get('previous_chapter_tail', '(第一章——无前文)')}
 

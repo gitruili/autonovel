@@ -15,6 +15,10 @@ import re
 import sys
 from pathlib import Path
 
+from outline_utils import (
+    extract_chapter_range_outline,
+    load_volume_outline_for_chapter,
+)
 from story_schema import (
     ChapterSummaries,
     CharacterMatrix,
@@ -221,6 +225,15 @@ def gen_batch_plans(start: int, count: int) -> list[tuple[int, str, str]]:
     detail_block = f"\n=== 题材专属细节 ===\n{genre_detail}" if genre_detail else ""
     guide_block = f"\n=== 写作指南 ===\n{writing_guide}" if writing_guide else ""
 
+    # Extract narrative outline entries for the requested range from the
+    # corresponding volume outline file; fall back to the combined outline.md.
+    chapter_range_detail = ""
+    vol_outline_text, _ = load_volume_outline_for_chapter(start, BASE_DIR)
+    if vol_outline_text:
+        chapter_range_detail = extract_chapter_range_outline(vol_outline_text, start, end)
+    if not chapter_range_detail:
+        chapter_range_detail = extract_chapter_range_outline(outline, start, end)
+
     prompt = f"""你是一位网文策划编辑，擅长将卷级计划拆解为连续章节，确保前后章节的连贯性和伏笔节奏。
 
 请为第 {start} 章到第 {end} 章（共 {count} 章）生成详细的章级计划。
@@ -235,7 +248,10 @@ def gen_batch_plans(start: int, count: int) -> list[tuple[int, str, str]]:
 {volume_plan[:6000] if volume_plan else '(未生成卷计划)'}
 
 === 总纲 ===
-{outline[:4000] if outline else '(未生成总纲)'}
+{outline[:2000] if outline else '(未生成总纲)'}
+
+=== 本批章节在卷纲中的定位（叙事细纲） ===
+{chapter_range_detail or '(无逐章细纲)'}
 
 === 当前状态 ===
 {state_ctx}

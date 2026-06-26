@@ -353,12 +353,13 @@ class ContextBudget(BaseModel):
     """Budget allocation for context assembly."""
     chapter_plan: int = 3200
     volume_contract: int = 1500
+    chapter_outline_detail: int = 2000
     state_slice: int = 3000
     recent_summaries: int = 2000
     retrieved_fragments: int = 2000
     voice_rules: int = 1500
     previous_chapter_tail: int = 1500
-    total_budget: int = 15000
+    total_budget: int = 17000
 
 
 class ChapterContext(BaseModel):
@@ -367,6 +368,7 @@ class ChapterContext(BaseModel):
     budget: ContextBudget = Field(default_factory=ContextBudget)
     chapter_plan: str = ""
     volume_contract: str = ""
+    chapter_outline_detail: str = ""  # Narrative outline for this chapter from volume_NNN_outline.md
     state_slice: dict = Field(default_factory=dict)
     recent_summaries: list[dict] = Field(default_factory=list)
     retrieved_fragments: list[dict] = Field(default_factory=list)

@@ -10,6 +10,10 @@ import argparse
 import sys
 from pathlib import Path
 
+from outline_utils import (
+    extract_chapter_outline,
+    load_volume_outline_for_chapter,
+)
 from story_schema import (
     ChapterSummaries,
     CharacterMatrix,
@@ -103,6 +107,15 @@ def gen_chapter_plan(chapter: int) -> tuple[str, str]:
     voice = load_voice()
     state_ctx = get_state_context(chapter)
 
+    # Extract the narrative outline entry for this chapter from the corresponding
+    # volume outline file; fall back to the combined outline.md if unavailable.
+    chapter_outline_detail = ""
+    vol_outline_text, _ = load_volume_outline_for_chapter(chapter, BASE_DIR)
+    if vol_outline_text:
+        chapter_outline_detail = extract_chapter_outline(vol_outline_text, chapter)
+    if not chapter_outline_detail:
+        chapter_outline_detail = extract_chapter_outline(outline, chapter)
+
     genre_detail = genre.get_prompt_fragment("chapter_draft", "genre_specific_detail") or "题材专属细节要具体有质感，参考世界设定集中的相关描写。"
 
     prompt = f"""你是一位{genre.display_name}网文策划编辑，擅长将卷级计划拆解为具体章节。
@@ -119,7 +132,10 @@ def gen_chapter_plan(chapter: int) -> tuple[str, str]:
 {volume_plan[:4000] if volume_plan else '(未生成卷计划)'}
 
 === 总纲 ===
-{outline[:3000] if outline else '(未生成总纲)'}
+{outline[:2000] if outline else '(未生成总纲)'}
+
+=== 本章在卷纲中的定位（叙事细纲） ===
+{chapter_outline_detail or '(无逐章细纲)'}
 
 === 当前状态 ===
 {state_ctx}

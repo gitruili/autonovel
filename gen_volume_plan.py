@@ -31,85 +31,9 @@ WRITER_MODEL = os.environ.get(
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
 
-
-def load_outline() -> str:
-    """Load outline.md content."""
-    path = BASE_DIR / "outline.md"
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return ""
-
-
-def load_world() -> str:
-    path = BASE_DIR / "world.md"
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return ""
-
-
-def load_characters() -> str:
-    path = BASE_DIR / "characters.md"
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return ""
-
-
-def gen_volume_plan(volume: int) -> dict:
-    """Generate a volume plan using LLM."""
-    genre = load_genre_for_project()
-    proj = ProjectConfig(**load_json(STORY_DIR / "project.json"))
-    outline = load_outline()
-    world = load_world()
-    characters = load_characters()
-
-    # Load genre-specific volume plan fragments
-    split_req = genre.get_prompt_fragment("volume_plan", "split_requirements")
-    design_princ = genre.get_prompt_fragment("volume_plan", "design_principles")
-    structure_req = genre.get_prompt_fragment("volume_plan", "structure_requirements")
-    output_tmpl = genre.get_prompt_fragment("volume_plan", "output_template")
-
-    # Load existing chapter summaries for context
-    summaries_path = STORY_DIR / "state" / "chapter_summaries.json"
-    summaries_data = load_json(summaries_path)
-    recent_summaries = ""
-    if summaries_data.get("summaries"):
-        # Get last 5 summaries
-        items = sorted(summaries_data["summaries"].items(), key=lambda x: x[0])
-        recent = items[-5:] if len(items) > 5 else items
-        recent_summaries = "\n".join(
-            f"- Ch {v.chapter}: {v.summary}" for _, v in recent
-        )
-
-    prompt = f"""你是一位网文策划编辑，擅长规划百万字长篇网文的卷级结构。
-
-请为第 {volume} 卷生成详细的卷级计划。
-
-=== 项目信息 ===
-标题: {proj.title or '(未设定)'}
-类型: {proj.genre or '(未设定)'}
-目标字数: {proj.target_words:,}
-目标章节数: {proj.target_chapters}
-每章目标字数: {proj.default_chapter_chars}
-
-=== 总纲 ===
-{outline if outline else '(未生成)'}
-
-=== 世界设定 ===
-{world[:3000] if world else '(未生成)'}
-
-=== 角色 ===
-{characters[:3000] if characters else '(未生成)'}
-
-=== 已有章节摘要 ===
-{recent_summaries or '(这是第一卷)'}
-
-{split_req}
-
-{design_princ}
-
-{structure_req}
-
-=== 输出要求 ===
+# Default YAML output template — used as fallback when genre config
+# does not define volume_plan.yaml_schema.
+DEFAULT_YAML_SCHEMA = """=== 输出要求 ===
 请以 YAML 格式输出卷级计划，包含以下字段：
 
 ```yaml
@@ -203,6 +127,90 @@ pacing:
 ```
 
 只输出 YAML，不要其他文字。"""
+
+
+def load_outline() -> str:
+    """Load outline.md content."""
+    path = BASE_DIR / "outline.md"
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return ""
+
+
+def load_world() -> str:
+    path = BASE_DIR / "world.md"
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return ""
+
+
+def load_characters() -> str:
+    path = BASE_DIR / "characters.md"
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return ""
+
+
+def gen_volume_plan(volume: int) -> dict:
+    """Generate a volume plan using LLM."""
+    genre = load_genre_for_project()
+    proj = ProjectConfig(**load_json(STORY_DIR / "project.json"))
+    outline = load_outline()
+    world = load_world()
+    characters = load_characters()
+
+    # Load genre-specific volume plan fragments
+    split_req = genre.get_prompt_fragment("volume_plan", "split_requirements")
+    design_princ = genre.get_prompt_fragment("volume_plan", "design_principles")
+    structure_req = genre.get_prompt_fragment("volume_plan", "structure_requirements")
+    yaml_schema = genre.get_prompt_fragment("volume_plan", "yaml_schema")
+    if not yaml_schema:
+        yaml_schema = DEFAULT_YAML_SCHEMA
+    yaml_schema = yaml_schema.format(volume=volume)
+
+    # Load existing chapter summaries for context
+    summaries_path = STORY_DIR / "state" / "chapter_summaries.json"
+    summaries_data = load_json(summaries_path)
+    recent_summaries = ""
+    if summaries_data.get("summaries"):
+        # Get last 5 summaries
+        items = sorted(summaries_data["summaries"].items(), key=lambda x: x[0])
+        recent = items[-5:] if len(items) > 5 else items
+        recent_summaries = "\n".join(
+            f"- Ch {v.chapter}: {v.summary}" for _, v in recent
+        )
+
+    prompt = f"""你是一位网文策划编辑，擅长规划百万字长篇网文的卷级结构。
+
+请为第 {volume} 卷生成详细的卷级计划。
+
+=== 项目信息 ===
+标题: {proj.title or '(未设定)'}
+类型: {proj.genre or '(未设定)'}
+目标字数: {proj.target_words:,}
+目标章节数: {proj.target_chapters}
+每章目标字数: {proj.default_chapter_chars}
+
+=== 总纲 ===
+{outline if outline else '(未生成)'}
+
+=== 世界设定 ===
+{world[:3000] if world else '(未生成)'}
+
+=== 角色 ===
+{characters[:3000] if characters else '(未生成)'}
+
+=== 已有章节摘要 ===
+{recent_summaries or '(这是第一卷)'}
+
+{split_req}
+
+{design_princ}
+
+{structure_req}
+
+{yaml_schema}"""
+
 
     print(f"Generating volume {volume} plan...", file=sys.stderr)
     result = call_text_model(

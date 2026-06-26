@@ -26,6 +26,7 @@ from story_schema import (
     SubplotBoard,
     VolumeSummary,
     load_json,
+    load_volume_plan,
     save_json,
     save_yaml,
 )
@@ -57,13 +58,6 @@ def get_chapter_range_for_volume(volume: int) -> tuple[int, int]:
     # Default: 20 chapters per volume
     start = (volume - 1) * 20 + 1
     return start, start + 19
-
-
-def load_volume_plan(volume: int) -> str:
-    path = STORY_DIR / "plans" / f"volume_{volume:03d}.yaml"
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return ""
 
 
 def gen_volume_summary(volume: int, chapter_start: int | None = None,

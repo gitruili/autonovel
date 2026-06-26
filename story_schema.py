@@ -67,6 +67,14 @@ def save_yaml(path: Path, data: Any) -> None:
         yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
 
+def load_volume_plan(volume: int) -> str:
+    """Load a volume plan YAML file as raw text. Returns empty string if missing."""
+    plan_path = STORY_DIR / "plans" / f"volume_{volume:03d}.yaml"
+    if not plan_path.exists():
+        return ""
+    return plan_path.read_text(encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------
 # Temporal fields — all important facts must have these
 # ---------------------------------------------------------------------------

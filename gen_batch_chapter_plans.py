@@ -22,8 +22,10 @@ from story_schema import (
     ProjectConfig,
     SubplotBoard,
     load_json,
+    load_volume_plan,
 )
 from llm_client import call_text_model, default_model_for_role
+from genres.genre_registry import load_genre_for_project
 import os
 from dotenv import load_dotenv
 
@@ -35,13 +37,6 @@ WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
-
-
-def load_volume_plan(volume: int) -> str:
-    path = STORY_DIR / "plans" / f"volume_{volume:03d}.yaml"
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return ""
 
 
 def load_outline() -> str:
@@ -210,6 +205,7 @@ def parse_batch_output(result: str, start: int, count: int) -> list[tuple[str, s
 
 def gen_batch_plans(start: int, count: int) -> list[tuple[int, str, str]]:
     """Generate batch chapter plans. Returns list of (chapter_num, yaml_text, intent_text)."""
+    genre = load_genre_for_project()
     proj = ProjectConfig(**load_json(STORY_DIR / "project.json"))
     volume = proj.current_volume
     end = start + count - 1
@@ -217,6 +213,13 @@ def gen_batch_plans(start: int, count: int) -> list[tuple[int, str, str]]:
     outline = load_outline()
     voice = load_voice()
     state_ctx = get_state_context(start)
+
+    # Load genre-specific writing fragments
+    genre_detail = genre.get_prompt_fragment("chapter_draft", "genre_specific_detail")
+    writing_guide = genre.get_prompt_fragment("chapter_draft", "writing_guide")
+
+    detail_block = f"\n=== 题材专属细节 ===\n{genre_detail}" if genre_detail else ""
+    guide_block = f"\n=== 写作指南 ===\n{writing_guide}" if writing_guide else ""
 
     prompt = f"""你是一位网文策划编辑，擅长将卷级计划拆解为连续章节，确保前后章节的连贯性和伏笔节奏。
 
@@ -238,7 +241,7 @@ def gen_batch_plans(start: int, count: int) -> list[tuple[int, str, str]]:
 {state_ctx}
 
 === 写作规范 ===
-{voice[:2000] if voice else '(未设定写作规范)'}
+{voice[:2000] if voice else '(未设定写作规范)'}{detail_block}{guide_block}
 
 === 输出要求 ===
 请以 YAML 列表格式输出 {count} 个章级计划。关键要求：
@@ -325,7 +328,7 @@ def gen_batch_plans(start: int, count: int) -> list[tuple[int, str, str]]:
         model=WRITER_MODEL,
         max_tokens=16000,
         temperature=0.7,
-        system="你是一位网文策划编辑。只输出指定格式的内容。确保章与章之间衔接自然。",
+        system=genre.get_system_prompt("architect"),
         messages=[{"role": "user", "content": prompt}],
         timeout=600,
     )

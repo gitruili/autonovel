@@ -109,14 +109,30 @@ def main():
         ch_end = int(parts[1])
         target_chapters = ch_end - ch_start + 1
 
+    # Pre-load genre prompt fragments; conditionally skip empty ones
+    # so prompts don't contain dangling section headers/separators.
+    term_frag = genre.get_prompt_fragment("volume_plan", "terminology")
+    dp_frag = genre.get_prompt_fragment("volume_plan", "design_principles")
+    sr_frag = genre.get_prompt_fragment("volume_plan", "structure_requirements")
+    cp_frag = genre.get_prompt_fragment("volume_plan", "conflict_patterns")
+    ot_frag = genre.get_prompt_fragment("volume_plan", "output_template")
+    cot_frag = genre.get_prompt_fragment("volume_plan", "chapter_output_template")
+    lgr_frag = genre.get_prompt_fragment("outline", "ledgers")
+    cnstr_frag = genre.get_prompt_fragment("outline", "constraints")
+
+    # Build conditional sections — skip the surrounding markers if empty
+    term_block = f"\n{term_frag}\n\n---" if term_frag else ""
+    dp_sr_block = f"\n{dp_frag}\n\n{sr_frag}\n\n---" if (dp_frag or sr_frag) else ""
+    cp_block = f"\n{cp_frag}\n\n---" if cp_frag else ""
+    ot_block = f"\n\n### 卷纲骨架（先输出本卷宏观骨架）\n\n{ot_frag}" if ot_frag else ""
+    cot_block = f"\n\n### 逐章大纲（核心输出，每章约 200-300 字）\n\n{cot_frag}" if cot_frag else ""
+    lgr_block = f"\n{lgr_frag}\n\n---" if lgr_frag else ""
+    cnstr_block = f"\n{cnstr_frag}" if cnstr_frag else ""
+
     prompt = f"""为这部**百万字长篇**{genre.display_name}网文生成**第 {volume} 卷**的详细章节大纲。
 目标字数约 {target_chapters * 4000} 字，共约 {target_chapters} 章。
 
-{tags_context}
-
-{genre.get_prompt_fragment("volume_plan", "terminology")}
-
----
+{tags_context}{term_block}
 
 全书总纲与历史卷纲摘要（已有，不要重复输出宏观内容，保持专注在本卷）：
 {outline_existing[:4000]}
@@ -143,40 +159,13 @@ def main():
 {characters}
 
 文风标识 (VOICE):
-{voice_part2}
-
----
-
-{genre.get_prompt_fragment("volume_plan", "design_principles")}
-
-{genre.get_prompt_fragment("volume_plan", "structure_requirements")}
-
----
-
-{genre.get_prompt_fragment("volume_plan", "conflict_patterns")}
-
----
+{voice_part2}{dp_sr_block}{cp_block}
 
 ## 请生成第 {volume} 卷的详细章节大纲
 
 本卷约 {target_chapters} 章，每章约 4000 字。
 如果是全书的起始卷，目标是快速入戏、建立读者追读习惯；如果是后续卷，注意与上一卷的平滑承接和矛盾升级。
-
-### 卷纲骨架（先输出本卷宏观骨架）
-
-{genre.get_prompt_fragment("volume_plan", "output_template")}
-
-### 逐章大纲（核心输出，每章约 200-300 字）
-
-{genre.get_prompt_fragment("volume_plan", "chapter_output_template")}
-
----
-
-{genre.get_prompt_fragment("outline", "ledgers")}
-
----
-
-{genre.get_prompt_fragment("outline", "constraints")}
+{ot_block}{cot_block}{lgr_block}{cnstr_block}
 
 8. **目标字数约 3500-4500 字/章**：铺垫章节可以略短，高潮章节可以略长。
 

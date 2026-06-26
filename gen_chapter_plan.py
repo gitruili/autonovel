@@ -17,6 +17,7 @@ from story_schema import (
     ProjectConfig,
     SubplotBoard,
     load_json,
+    load_volume_plan,
     save_json,
 )
 from llm_client import call_text_model, default_model_for_role
@@ -34,14 +35,6 @@ WRITER_MODEL = os.environ.get(
     "AUTONOVEL_WRITER_MODEL",
     default_model_for_role("writer", "claude-sonnet-4-6"),
 )
-
-
-def load_volume_plan(volume: int) -> str:
-    """Load the volume plan YAML."""
-    path = STORY_DIR / "plans" / f"volume_{volume:03d}.yaml"
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return ""
 
 
 def load_outline() -> str:

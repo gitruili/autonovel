@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_world_lf.py -- 长篇网文：生活设定集生成器（Foundation 阶段 Step 3）。
+gen_world_lf.py -- 长篇网文：生活设定集生成器（Foundation 阶段）。
 读取 seed.txt + outline.md（全书总纲），调用大模型，输出 world.md。
 Part 0: 世界观速查表 | Part A: 核心设定（卷1-3） | Part B: 扩展路线图（卷4-25，一次到位）
 """

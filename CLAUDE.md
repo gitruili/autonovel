@@ -62,7 +62,7 @@ uv run python smoke_llm.py
 
 **Legacy pipeline** (`run_pipeline.py`): Reads `voice.md`, `world.md`, `characters.md`, `outline.md`, `canon.md` directly. No structured state. Chapters go to `chapters/ch_XX.md`.
 
-**Webnovel pipeline** (`run_webnovel_pipeline.py`): 11-step chapter transaction loop. Foundation phase auto-detects short-form (gen_world.py → gen_outline.py, 24 chapters) vs long-form (gen_world_sketch.py → gen_master_outline.py → gen_world_lf.py → gen_characters_lf.py → gen_briefs.py → gen_canon.py → init_state.py, 500+ chapters) based on `target_chapters >= 100` in project.json. Long-form foundation auto-runs `evaluate.py --phase=foundation-lf` and writes results to `story/foundation_eval.json`.
+**Webnovel pipeline** (`run_webnovel_pipeline.py`): 11-step chapter transaction loop. Foundation phase auto-detects short-form (gen_world.py → gen_outline.py, 24 chapters) vs long-form (gen_master_outline.py → gen_world_lf.py → gen_characters_lf.py → gen_briefs.py → gen_canon.py → init_state.py, 500+ chapters) based on `target_chapters >= 100` in project.json. Long-form foundation auto-runs `evaluate.py --phase=foundation-lf` and writes results to `story/foundation_eval.json`.
 1. Generate chapter plan (`gen_chapter_plan.py` or `gen_batch_chapter_plans.py` for batch mode)
 2. Assemble context (`memory_orchestrator.py`)
 3. Draft chapter (`draft_chapter.py`)

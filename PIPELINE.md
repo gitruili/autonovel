@@ -35,8 +35,7 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
   基础构建 (Foundation):
     seed.py              -- 生成 10 个灵感种子
     seed_lf.py           -- 生成长篇网文种子概念（支持市场调研、自动分批）
-    gen_world_sketch.py  -- 轻量世界观草稿 → world_sketch.md (5个核心参数，~300-500字)
-    gen_master_outline.py-- 草稿+种子 → 全书总纲 (master_plan.yaml + master_summary.md)
+    gen_master_outline.py-- 种子 → 全书总纲 (master_plan.yaml + master_summary.md)
     gen_world_lf.py      -- 种子+总纲 → world.md (Part 0+A+B 一次到位)
     gen_characters_lf.py -- 种子+世界观+总纲 → characters.md (全弧光+全反派+全登场)
     gen_briefs.py        -- 设定提纯 → world_brief.md + characters_brief.md (浓缩摘要层)
@@ -127,19 +126,18 @@ Master 分支不包含任何特定于故事的内容。它是可复用的基础�
 输出:  world.md, characters.md, outline_actual.md, voice.md, canon.md, MYSTERY.md
 退出条件:   foundation_score > 7.5 AND lore_score > 7.0
 
-最新优化的大型长篇循环（总纲先行，7步到位，消除反哺）：
-  1. gen_world_sketch.py   → world_sketch.md（5个核心参数：时代/货币/科技/舞台/阶层，~300-500字）
-  2. gen_master_outline.py → master_plan.yaml + master_summary.md（基于草稿+种子定义25卷宏观骨架）
+最新优化的大型长篇循环（总纲先行，6步到位，消除反哺）：
+  1. gen_master_outline.py → master_plan.yaml + master_summary.md（基于种子定义25卷宏观骨架）
      - (通过 outline_utils 拼装生成向下兼容的 outline.md)
-  3. gen_world_lf.py       → world.md（根据总纲一次到位生成 Part 0 + Part A + Part B）
-  4. gen_characters_lf.py  → characters.md（根据总纲一次到位生成全弧光+全反派+全登场计划）
-  5. gen_briefs.py         → world_brief.md + characters_brief.md（将设定压缩提纯为高密度上下文）
-  6. gen_canon.py          → canon.md（交叉引用所有硬事实）
-  7. init_state.py         → 初始化项目流转状态
+  2. gen_world_lf.py       → world.md（根据总纲一次到位生成 Part 0 + Part A + Part B）
+  3. gen_characters_lf.py  → characters.md（根据总纲一次到位生成全弧光+全反派+全登场计划）
+  4. gen_briefs.py         → world_brief.md + characters_brief.md（将设定压缩提纯为高密度上下文）
+  5. gen_canon.py          → canon.md（交叉引用所有硬事实）
+  6. init_state.py         → 初始化项目流转状态
 
 关键经验：
   - 总纲先行消除了"设定→总纲→反哺设定"的循环依赖，省去了 backfill_foundation.py。
-  - 世界草稿(~300-500字)足够为总纲提供锚点，详细设定在总纲确定后一次到位更精准。
+  - 种子概念本身已包含足够的世界观锚点，总纲阶段无需额外输入。
   - 第一卷的大纲使用 `plan volume` 按需生成到 volume_001_outline.md。
 ```
 

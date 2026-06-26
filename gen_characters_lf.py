@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gen_characters_lf.py -- 长篇网文：角色注册表生成器（Foundation 阶段 Step 4）。
+gen_characters_lf.py -- 长篇网文：角色注册表生成器（Foundation 阶段）。
 读取 seed.txt + world.md + outline.md（全书总纲），调用大模型，输出 characters.md。
 三层角色体系：核心角色（全卷在线）、卷级角色（分批登场）、反派轮换表。
 总纲已确定25卷走向，角色设计可一次性输出完整弧光（阶段1-6）、全套反派和全登场计划。

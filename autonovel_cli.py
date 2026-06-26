@@ -600,7 +600,6 @@ def cmd_generate(args):
 
     if long_form:
         steps = [
-            ("gen_world_sketch.py", "轻量世界观草稿 (world_sketch.md)"),
             ("gen_master_outline.py", "全书总纲 (master_plan.yaml + master_summary.md)"),
             ("gen_world_lf.py", "完整世界观设定集 (world.md)"),
             ("gen_characters_lf.py", "完整角色注册表 (characters.md)"),
